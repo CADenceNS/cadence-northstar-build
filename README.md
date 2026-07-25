@@ -4,9 +4,9 @@ CADence NorthStar is the laboratory operating system for Keramos Dental Laborato
 
 ## Current milestone
 
-**v0.2.0 — Core Platform**
+**v0.3.0 — Workflow Control & Data Safety**
 
-This milestone adds a working administrator login, persistent browser storage, Practice CRM, Doctor CRM, case intake, automatic account and case numbering, laboratory dashboard metrics, user-role foundation, and audit history.
+This milestone adds editable Practice and Doctor CRM records, case editing and deletion, guarded relationship deletion, case-status progression, production workload controls, search and filtering, overdue case identification, and JSON backup/import recovery.
 
 ## Development login
 
@@ -30,7 +30,7 @@ pnpm dev
 
 ## Data persistence
 
-v0.2.0 stores application records in browser localStorage so the milestone can be used immediately without database setup. PostgreSQL-backed persistence and production authentication are scheduled for the next security/data milestone.
+v0.3.0 continues to use browser localStorage and now includes Settings → Export backup / Import backup. PostgreSQL-backed persistence remains a future production milestone.
 
 ## Security
 

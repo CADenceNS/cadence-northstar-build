@@ -4,36 +4,17 @@ import type { DashboardSnapshot } from '@northstar/shared';
 
 const app = express();
 const port = Number(process.env.PORT ?? 4000);
-
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
-app.get('/health', (_request, response) => {
-  response.json({ service: 'cadence-northstar-api', status: 'ok', version: '0.1.0' });
-});
-
+app.get('/health', (_request, response) => response.json({ service: 'cadence-northstar-api', status: 'ok', version: '0.3.0' }));
 app.get('/api/dashboard', (_request, response) => {
-  const snapshot: DashboardSnapshot = {
-    generatedAt: new Date().toISOString(),
-    casesReceivedToday: 18,
-    casesDueToday: 12,
-    casesAtRisk: 3,
-    casesInQc: 7,
-    shipmentsReady: 5,
-    monthRevenue: 84250,
-    departments: [
-      { name: 'Receiving', activeCases: 8, status: 'healthy' },
-      { name: 'Model', activeCases: 11, status: 'healthy' },
-      { name: 'CAD', activeCases: 19, status: 'attention' },
-      { name: 'Mill / Print', activeCases: 13, status: 'healthy' },
-      { name: 'Ceramics', activeCases: 17, status: 'attention' },
-      { name: 'QC', activeCases: 7, status: 'healthy' },
-      { name: 'Shipping', activeCases: 5, status: 'healthy' }
-    ]
-  };
+  const snapshot: DashboardSnapshot = { generatedAt: new Date().toISOString(), casesReceivedToday: 1, casesDueToday: 0, casesAtRisk: 0, casesInQc: 0, shipmentsReady: 0, monthRevenue: 0, activeDoctors: 1, activePractices: 1 };
   response.json(snapshot);
 });
-
-app.listen(port, () => {
-  console.log(`CADence NorthStar API listening on http://localhost:${port}`);
+app.post('/api/auth/login', (request, response) => {
+  const { email, password } = request.body as { email?: string; password?: string };
+  if (email === 'dorianhabet@yahoo.com' && password === 'NorthStar!2026') return response.json({ user: { id: 'usr-admin', name: 'Dorian Habet', email, role: 'administrator', active: true } });
+  return response.status(401).json({ error: 'Invalid credentials' });
 });
+app.listen(port, () => console.log(`CADence NorthStar API listening on http://localhost:${port}`));

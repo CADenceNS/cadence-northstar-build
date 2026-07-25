@@ -1,108 +1,66 @@
-import { useEffect, useState } from 'react';
-import type { DashboardSnapshot } from '@northstar/shared';
+import { FormEvent, useMemo, useRef, useState } from 'react';
+import type { CaseStatus, Doctor, LaboratoryCase, Practice, User } from '@northstar/shared';
 
-const fallback: DashboardSnapshot = {
-  generatedAt: new Date().toISOString(),
-  casesReceivedToday: 18,
-  casesDueToday: 12,
-  casesAtRisk: 3,
-  casesInQc: 7,
-  shipmentsReady: 5,
-  monthRevenue: 84250,
-  departments: [
-    { name: 'Receiving', activeCases: 8, status: 'healthy' },
-    { name: 'Model', activeCases: 11, status: 'healthy' },
-    { name: 'CAD', activeCases: 19, status: 'attention' },
-    { name: 'Mill / Print', activeCases: 13, status: 'healthy' },
-    { name: 'Ceramics', activeCases: 17, status: 'attention' },
-    { name: 'QC', activeCases: 7, status: 'healthy' },
-    { name: 'Shipping', activeCases: 5, status: 'healthy' }
-  ]
+type View = 'dashboard' | 'practices' | 'doctors' | 'cases' | 'users' | 'audit' | 'settings';
+type BackupPayload = { version: '0.3.0'; exportedAt: string; practices: Practice[]; doctors: Doctor[]; cases: LaboratoryCase[]; audit: string[] };
+
+const demoUser: User = { id: 'usr-admin', name: 'Dorian Habet', email: 'dorianhabet@yahoo.com', role: 'administrator', active: true };
+const departments = ['Receiving','Model','CAD','Mill / Print','Ceramics','QC','Shipping'];
+const workflow: Record<CaseStatus, { next?: CaseStatus; department: string; label: string }> = {
+  received: { next: 'in-production', department: 'Receiving', label: 'Start production' },
+  'in-production': { next: 'qc', department: 'CAD', label: 'Send to QC' },
+  qc: { next: 'ready-to-ship', department: 'QC', label: 'Approve QC' },
+  'ready-to-ship': { next: 'completed', department: 'Shipping', label: 'Complete shipment' },
+  completed: { department: 'Shipping', label: 'Completed' }
 };
 
+const initialPractices: Practice[] = [{ id:'practice-1', accountNumber:'KDL-1001', practiceName:'NorthStar Dental Group', status:'active', phone:'818-555-0148', email:'office@northstardental.example', address:'19350 Business Ctr Dr', city:'Northridge', state:'CA', postalCode:'91324', taxExempt:false, scannerType:'iTero', createdAt:new Date().toISOString() }];
+const initialDoctors: Doctor[] = [{ id:'doctor-1', practiceId:'practice-1', firstName:'Beibei', lastName:'Wu', specialty:'General Dentistry', email:'doctor@example.com', phone:'818-555-0171', active:true, createdAt:new Date().toISOString() }];
+const initialCases: LaboratoryCase[] = [{ id:'case-1', caseNumber:'NS-260724-014', practiceId:'practice-1', doctorId:'doctor-1', patientReference:'ML-014', restorationType:'Implant Crown', toothNumbers:'30', intakeType:'digital', route:'A', department:'CAD', status:'in-production', receivedDate:'2026-07-24', dueDate:'2026-08-11', notes:'Verify scan body seating and implant component compatibility.', createdAt:new Date().toISOString() }];
+
+function load<T>(key: string, fallback: T): T { try { const value=localStorage.getItem(key); return value ? JSON.parse(value) as T : fallback; } catch { return fallback; } }
+function persist<T>(key: string, value: T) { localStorage.setItem(key, JSON.stringify(value)); }
+
 export function App() {
-  const [snapshot, setSnapshot] = useState<DashboardSnapshot>(fallback);
-
-  useEffect(() => {
-    fetch('/api/dashboard')
-      .then((response) => {
-        if (!response.ok) throw new Error('API unavailable');
-        return response.json();
-      })
-      .then(setSnapshot)
-      .catch(() => setSnapshot(fallback));
-  }, []);
-
-  return (
-    <div className="app-shell">
-      <aside className="sidebar">
-        <div className="brand">
-          <span className="brand-mark">NS</span>
-          <div>
-            <strong>CADence</strong>
-            <span>NorthStar</span>
-          </div>
-        </div>
-        <nav>
-          {['Laboratory', 'Cases', 'Doctors', 'Production', 'QC', 'Shipping', 'Billing', 'Reports'].map((item, index) => (
-            <button className={index === 0 ? 'active' : ''} key={item}>{item}</button>
-          ))}
-        </nav>
-        <div className="sidebar-footer">v0.1.0 Foundation</div>
-      </aside>
-
-      <main>
-        <header>
-          <div>
-            <p className="eyebrow">KERAMOS DIGITAL TWIN</p>
-            <h1>Laboratory Status</h1>
-            <p className="subtitle">Live operational view of today's laboratory.</p>
-          </div>
-          <div className="user-card">
-            <span className="user-avatar">DH</span>
-            <div><strong>Dorian Habet</strong><span>Administrator</span></div>
-          </div>
-        </header>
-
-        <section className="metrics">
-          <Metric label="Received today" value={snapshot.casesReceivedToday} />
-          <Metric label="Due today" value={snapshot.casesDueToday} />
-          <Metric label="At risk" value={snapshot.casesAtRisk} emphasis />
-          <Metric label="In QC" value={snapshot.casesInQc} />
-          <Metric label="Ready to ship" value={snapshot.shipmentsReady} />
-          <Metric label="Month revenue" value={snapshot.monthRevenue.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })} />
-        </section>
-
-        <section className="content-grid">
-          <article className="panel">
-            <div className="panel-heading"><div><p className="eyebrow">PRODUCTION FLOOR</p><h2>Department activity</h2></div><span className="live">Live</span></div>
-            <div className="departments">
-              {snapshot.departments.map((department) => (
-                <div className="department-row" key={department.name}>
-                  <div><span className={`status-dot ${department.status}`} /><strong>{department.name}</strong></div>
-                  <span>{department.activeCases} active cases</span>
-                </div>
-              ))}
-            </div>
-          </article>
-
-          <article className="panel priority-panel">
-            <p className="eyebrow">PRIORITY CONTROL</p>
-            <h2>Cases requiring attention</h2>
-            <Priority caseNumber="NS-260724-014" doctor="Dr. Beibei Wu" reason="Implant records incomplete" />
-            <Priority caseNumber="NS-260724-009" doctor="Dr. Evans" reason="QC contact adjustment" />
-            <Priority caseNumber="NS-260723-031" doctor="Dr. Isakov" reason="Shipping deadline today" />
-          </article>
-        </section>
-      </main>
-    </div>
-  );
+  const [session,setSession]=useState<User|null>(()=>load('northstar.session',null));
+  const [view,setView]=useState<View>('dashboard');
+  const [practices,setPractices]=useState<Practice[]>(()=>load('northstar.practices',initialPractices));
+  const [doctors,setDoctors]=useState<Doctor[]>(()=>load('northstar.doctors',initialDoctors));
+  const [cases,setCases]=useState<LaboratoryCase[]>(()=>load('northstar.cases',initialCases));
+  const [audit,setAudit]=useState<string[]>(()=>load('northstar.audit',['System initialized']));
+  const writeAudit=(message:string)=>{ const next=[`${new Date().toLocaleString()} — ${message}`,...audit].slice(0,250); setAudit(next); persist('northstar.audit',next); };
+  const savePractices=(next:Practice[])=>{setPractices(next);persist('northstar.practices',next)};
+  const saveDoctors=(next:Doctor[])=>{setDoctors(next);persist('northstar.doctors',next)};
+  const saveCases=(next:LaboratoryCase[])=>{setCases(next);persist('northstar.cases',next)};
+  if(!session) return <Login onLogin={(user)=>{setSession(user);persist('northstar.session',user);writeAudit(`${user.name} signed in`)}}/>;
+  const navigation:Array<[View,string]>=[['dashboard','Laboratory'],['practices','Practices'],['doctors','Doctors'],['cases','Cases'],['users','Users'],['audit','Audit Log'],['settings','Settings']];
+  return <div className="app-shell"><aside className="sidebar"><div className="brand"><span className="brand-mark">NS</span><div><strong>CADence</strong><span>NorthStar</span></div></div><nav>{navigation.map(([id,label])=><button className={view===id?'active':''} key={id} onClick={()=>setView(id)}>{label}</button>)}</nav><div className="sidebar-footer"><span>v0.3.0 Workflow Control</span><button onClick={()=>{writeAudit(`${session.name} signed out`);setSession(null);localStorage.removeItem('northstar.session')}}>Sign out</button></div></aside><main><header><div><p className="eyebrow">KERAMOS DIGITAL TWIN</p><h1>{titleFor(view)}</h1><p className="subtitle">Operational command center for Keramos Dental Laboratory.</p></div><div className="user-card"><span className="user-avatar">DH</span><div><strong>{session.name}</strong><span>{session.role}</span></div></div></header>
+  {view==='dashboard'&&<Dashboard practices={practices} doctors={doctors} cases={cases} onOpenCases={()=>setView('cases')}/>} 
+  {view==='practices'&&<Practices practices={practices} doctors={doctors} onSave={(item)=>{const exists=practices.some(p=>p.id===item.id);savePractices(exists?practices.map(p=>p.id===item.id?item:p):[...practices,item]);writeAudit(`${exists?'Updated':'Created'} practice ${item.practiceName}`)}} onDelete={(id)=>{if(doctors.some(d=>d.practiceId===id)||cases.some(c=>c.practiceId===id)) return alert('This practice is linked to a doctor or case and cannot be deleted.'); const target=practices.find(p=>p.id===id);savePractices(practices.filter(p=>p.id!==id));writeAudit(`Deleted practice ${target?.practiceName??id}`)}}/>}
+  {view==='doctors'&&<Doctors doctors={doctors} practices={practices} cases={cases} onSave={(item)=>{const exists=doctors.some(d=>d.id===item.id);saveDoctors(exists?doctors.map(d=>d.id===item.id?item:d):[...doctors,item]);writeAudit(`${exists?'Updated':'Created'} doctor ${item.firstName} ${item.lastName}`)}} onDelete={(id)=>{if(cases.some(c=>c.doctorId===id)) return alert('This doctor is linked to a case and cannot be deleted.'); const target=doctors.find(d=>d.id===id);saveDoctors(doctors.filter(d=>d.id!==id));writeAudit(`Deleted doctor ${target?.firstName??''} ${target?.lastName??''}`)}}/>}
+  {view==='cases'&&<Cases cases={cases} doctors={doctors} practices={practices} onSave={(item)=>{const exists=cases.some(c=>c.id===item.id);saveCases(exists?cases.map(c=>c.id===item.id?item:c):[item,...cases]);writeAudit(`${exists?'Updated':'Created'} case ${item.caseNumber}`)}} onAdvance={(id)=>{const current=cases.find(c=>c.id===id); if(!current?.status||!workflow[current.status].next) return; const nextStatus=workflow[current.status].next!; const department=workflow[nextStatus].department; saveCases(cases.map(c=>c.id===id?{...c,status:nextStatus,department}:c));writeAudit(`Advanced case ${current.caseNumber} to ${nextStatus}`)}} onDelete={(id)=>{const target=cases.find(c=>c.id===id);saveCases(cases.filter(c=>c.id!==id));writeAudit(`Deleted case ${target?.caseNumber??id}`)}}/>}
+  {view==='users'&&<Users/>}{view==='audit'&&<Audit events={audit}/>} {view==='settings'&&<Settings practices={practices} doctors={doctors} cases={cases} audit={audit} onImport={(payload)=>{savePractices(payload.practices);saveDoctors(payload.doctors);saveCases(payload.cases);setAudit(payload.audit);persist('northstar.audit',payload.audit);writeAudit('Imported NorthStar backup')}}/>}
+  </main></div>;
 }
 
-function Metric({ label, value, emphasis = false }: { label: string; value: string | number; emphasis?: boolean }) {
-  return <article className={`metric ${emphasis ? 'emphasis' : ''}`}><span>{label}</span><strong>{value}</strong></article>;
-}
+function Login({onLogin}:{onLogin:(user:User)=>void}){const[email,setEmail]=useState(demoUser.email);const[password,setPassword]=useState('NorthStar!2026');const[error,setError]=useState('');const submit=(event:FormEvent)=>{event.preventDefault();if(email.toLowerCase()===demoUser.email&&password==='NorthStar!2026')onLogin(demoUser);else setError('Incorrect email or password.')};return <div className="login-page"><form className="login-card" onSubmit={submit}><div className="brand login-brand"><span className="brand-mark">NS</span><div><strong>CADence</strong><span>NorthStar</span></div></div><p className="eyebrow">KERAMOS DIGITAL TWIN</p><h1>Welcome back</h1><p>Sign in to enter the laboratory operating system.</p><label>Email<input value={email} onChange={e=>setEmail(e.target.value)} type="email" required/></label><label>Password<input value={password} onChange={e=>setPassword(e.target.value)} type="password" required/></label>{error&&<p className="error">{error}</p>}<button className="primary" type="submit">Sign in</button><small>Development credentials are prefilled for this milestone.</small></form></div>}
 
-function Priority({ caseNumber, doctor, reason }: { caseNumber: string; doctor: string; reason: string }) {
-  return <div className="priority"><div><strong>{caseNumber}</strong><span>{doctor}</span></div><p>{reason}</p><button>Open case</button></div>;
-}
+function Dashboard({practices,doctors,cases,onOpenCases}:{practices:Practice[];doctors:Doctor[];cases:LaboratoryCase[];onOpenCases:()=>void}){const today=new Date().toISOString().slice(0,10);const overdue=cases.filter(c=>c.status!=='completed'&&c.dueDate<today);const metrics=[['Active practices',practices.filter(p=>p.status==='active').length],['Active doctors',doctors.filter(d=>d.active).length],['Open cases',cases.filter(c=>c.status!=='completed').length],['In QC',cases.filter(c=>c.status==='qc').length],['Ready to ship',cases.filter(c=>c.status==='ready-to-ship').length],['Overdue',overdue.length]];return <><section className="metrics">{metrics.map(([label,value])=><article className={`metric ${label==='Overdue'&&Number(value)>0?'emphasis':''}`} key={label}><span>{label}</span><strong>{value}</strong></article>)}</section><section className="content-grid"><article className="panel"><div className="panel-heading"><div><p className="eyebrow">PRODUCTION FLOOR</p><h2>Current workload</h2></div><button className="secondary" onClick={onOpenCases}>Open cases</button></div>{departments.map(department=><div className="department-row" key={department}><strong>{department}</strong><span>{cases.filter(item=>item.department===department&&item.status!=='completed').length} active cases</span></div>)}</article><article className="panel"><p className="eyebrow">PRIORITY CONTROL</p><h2>Cases requiring attention</h2>{(overdue.length?overdue:cases.filter(c=>c.status!=='completed')).slice(0,5).map(item=><div className="priority" key={item.id}><div><strong>{item.caseNumber}</strong><span>{item.status}</span></div><p>{item.restorationType} · Tooth {item.toothNumbers}</p><small>Due {item.dueDate}</small></div>)}{!cases.length&&<Empty text="No cases yet."/>}</article></section></>}
+
+function Practices({practices,doctors,onSave,onDelete}:{practices:Practice[];doctors:Doctor[];onSave:(p:Practice)=>void;onDelete:(id:string)=>void}){const[editing,setEditing]=useState<Practice|null>(null);const[open,setOpen]=useState(false);const[query,setQuery]=useState('');const rows=practices.filter(p=>`${p.accountNumber} ${p.practiceName} ${p.email}`.toLowerCase().includes(query.toLowerCase()));return <section className="panel"><div className="panel-heading"><div><p className="eyebrow">DOCTOR CRM</p><h2>Practices</h2></div><button className="primary" onClick={()=>{setEditing(null);setOpen(!open)}}>{open?'Close form':'New practice'}</button></div><input className="search" placeholder="Search practices" value={query} onChange={e=>setQuery(e.target.value)}/>{open&&<PracticeForm initial={editing} onSave={item=>{onSave(item);setOpen(false);setEditing(null)}}/>}<div className="table"><div className="table-head"><span>Account</span><span>Practice</span><span>Contact</span><span>Doctors</span><span>Actions</span></div>{rows.map(p=><div className="table-row" key={p.id}><span>{p.accountNumber}</span><strong>{p.practiceName}<small>{p.status}</small></strong><span>{p.phone}<small>{p.email}</small></span><span>{doctors.filter(d=>d.practiceId===p.id).length}</span><span className="actions"><button onClick={()=>{setEditing(p);setOpen(true)}}>Edit</button><button className="danger" onClick={()=>confirm(`Delete ${p.practiceName}?`)&&onDelete(p.id)}>Delete</button></span></div>)}</div></section>}
+function PracticeForm({initial,onSave}:{initial:Practice|null;onSave:(p:Practice)=>void}){const[form,setForm]=useState(()=>initial??{id:crypto.randomUUID(),accountNumber:`KDL-${1000+Math.floor(Math.random()*8999)}`,practiceName:'',status:'active' as const,phone:'',email:'',address:'',city:'',state:'CA',postalCode:'',taxExempt:false,scannerType:'iTero',createdAt:new Date().toISOString()});const submit=(e:FormEvent)=>{e.preventDefault();onSave(form)};return <form className="form-grid" onSubmit={submit}>{(['practiceName','phone','email','address','city','state','postalCode','scannerType'] as const).map(key=><label key={key}>{labelize(key)}<input value={form[key]} onChange={e=>setForm({...form,[key]:e.target.value})} required={['practiceName','phone','email'].includes(key)}/></label>)}<label>Status<select value={form.status} onChange={e=>setForm({...form,status:e.target.value as Practice['status']})}><option value="active">Active</option><option value="inactive">Inactive</option></select></label><label className="checkbox"><input type="checkbox" checked={form.taxExempt} onChange={e=>setForm({...form,taxExempt:e.target.checked})}/>Tax exempt</label><button className="primary" type="submit">Save practice</button></form>}
+
+function Doctors({doctors,practices,cases,onSave,onDelete}:{doctors:Doctor[];practices:Practice[];cases:LaboratoryCase[];onSave:(d:Doctor)=>void;onDelete:(id:string)=>void}){const[editing,setEditing]=useState<Doctor|null>(null);const[open,setOpen]=useState(false);const[query,setQuery]=useState('');const rows=doctors.filter(d=>`${d.firstName} ${d.lastName} ${d.email}`.toLowerCase().includes(query.toLowerCase()));return <section className="panel"><div className="panel-heading"><div><p className="eyebrow">DOCTOR CRM</p><h2>Doctors</h2></div><button className="primary" onClick={()=>{setEditing(null);setOpen(!open)}}>{open?'Close form':'New doctor'}</button></div><input className="search" placeholder="Search doctors" value={query} onChange={e=>setQuery(e.target.value)}/>{open&&<DoctorForm initial={editing} practices={practices} onSave={item=>{onSave(item);setOpen(false);setEditing(null)}}/>}<div className="table"><div className="table-head"><span>Doctor</span><span>Practice</span><span>Specialty</span><span>Cases</span><span>Actions</span></div>{rows.map(d=><div className="table-row" key={d.id}><strong>Dr. {d.firstName} {d.lastName}<small>{d.active?'active':'inactive'}</small></strong><span>{practices.find(p=>p.id===d.practiceId)?.practiceName??'Unassigned'}</span><span>{d.specialty}<small>{d.email}</small></span><span>{cases.filter(c=>c.doctorId===d.id).length}</span><span className="actions"><button onClick={()=>{setEditing(d);setOpen(true)}}>Edit</button><button className="danger" onClick={()=>confirm(`Delete Dr. ${d.lastName}?`)&&onDelete(d.id)}>Delete</button></span></div>)}</div></section>}
+function DoctorForm({initial,practices,onSave}:{initial:Doctor|null;practices:Practice[];onSave:(d:Doctor)=>void}){const[form,setForm]=useState(()=>initial??{id:crypto.randomUUID(),practiceId:practices[0]?.id??'',firstName:'',lastName:'',specialty:'General Dentistry',email:'',phone:'',active:true,createdAt:new Date().toISOString()});return <form className="form-grid" onSubmit={e=>{e.preventDefault();onSave(form)}}><label>Practice<select value={form.practiceId} onChange={e=>setForm({...form,practiceId:e.target.value})}>{practices.map(p=><option key={p.id} value={p.id}>{p.practiceName}</option>)}</select></label>{(['firstName','lastName','specialty','email','phone'] as const).map(key=><label key={key}>{labelize(key)}<input value={form[key]} onChange={e=>setForm({...form,[key]:e.target.value})} required/></label>)}<label className="checkbox"><input type="checkbox" checked={form.active} onChange={e=>setForm({...form,active:e.target.checked})}/>Active</label><button className="primary" type="submit">Save doctor</button></form>}
+
+function Cases({cases,doctors,practices,onSave,onAdvance,onDelete}:{cases:LaboratoryCase[];doctors:Doctor[];practices:Practice[];onSave:(c:LaboratoryCase)=>void;onAdvance:(id:string)=>void;onDelete:(id:string)=>void}){const[editing,setEditing]=useState<LaboratoryCase|null>(null);const[open,setOpen]=useState(false);const[query,setQuery]=useState('');const[status,setStatus]=useState('all');const rows=useMemo(()=>cases.filter(c=>(status==='all'||c.status===status)&&`${c.caseNumber} ${c.patientReference} ${c.restorationType}`.toLowerCase().includes(query.toLowerCase())),[cases,query,status]);return <section className="panel"><div className="panel-heading"><div><p className="eyebrow">CASE CONTROL</p><h2>Laboratory cases</h2></div><button className="primary" onClick={()=>{setEditing(null);setOpen(!open)}}>{open?'Close form':'New case'}</button></div><div className="filters"><input className="search" placeholder="Search cases" value={query} onChange={e=>setQuery(e.target.value)}/><select value={status} onChange={e=>setStatus(e.target.value)}><option value="all">All statuses</option>{Object.keys(workflow).map(s=><option value={s} key={s}>{s}</option>)}</select></div>{open&&<CaseForm initial={editing} doctors={doctors} practices={practices} onSave={item=>{onSave(item);setOpen(false);setEditing(null)}}/>}<div className="table cases-table"><div className="table-head"><span>Case</span><span>Doctor</span><span>Restoration</span><span>Route</span><span>Due</span><span>Actions</span></div>{rows.map(item=><div className="table-row" key={item.id}><strong>{item.caseNumber}<small>{item.patientReference} · {item.status}</small></strong><span>{doctorName(item.doctorId,doctors)}</span><span>{item.restorationType}<small>Tooth {item.toothNumbers}</small></span><span>Route {item.route}<small>{item.department}</small></span><span className={item.status!=='completed'&&item.dueDate<new Date().toISOString().slice(0,10)?'overdue':''}>{item.dueDate}</span><span className="actions"><button onClick={()=>{setEditing(item);setOpen(true)}}>Edit</button>{workflow[item.status].next&&<button className="primary compact" onClick={()=>onAdvance(item.id)}>{workflow[item.status].label}</button>}<button className="danger" onClick={()=>confirm(`Delete ${item.caseNumber}?`)&&onDelete(item.id)}>Delete</button></span></div>)}</div></section>}
+function CaseForm({initial,doctors,practices,onSave}:{initial:LaboratoryCase|null;doctors:Doctor[];practices:Practice[];onSave:(c:LaboratoryCase)=>void}){const[form,setForm]=useState(()=>initial??{id:crypto.randomUUID(),caseNumber:`NS-${new Date().toISOString().slice(2,10).replaceAll('-','')}-${String(casesSequence()).padStart(3,'0')}`,practiceId:practices[0]?.id??'',doctorId:doctors[0]?.id??'',patientReference:'',restorationType:'Full Zirconia Crown',toothNumbers:'',intakeType:'digital' as const,route:'A' as const,department:'Receiving',status:'received' as const,receivedDate:new Date().toISOString().slice(0,10),dueDate:'',notes:'',createdAt:new Date().toISOString()});const eligibleDoctors=doctors.filter(d=>d.practiceId===form.practiceId);return <form className="form-grid case-form" onSubmit={e=>{e.preventDefault();onSave(form)}}><label>Practice<select value={form.practiceId} onChange={e=>{const practiceId=e.target.value;setForm({...form,practiceId,doctorId:doctors.find(d=>d.practiceId===practiceId)?.id??''})}}>{practices.map(p=><option value={p.id} key={p.id}>{p.practiceName}</option>)}</select></label><label>Doctor<select value={form.doctorId} onChange={e=>setForm({...form,doctorId:e.target.value})}>{eligibleDoctors.map(d=><option value={d.id} key={d.id}>Dr. {d.firstName} {d.lastName}</option>)}</select></label>{(['patientReference','restorationType','toothNumbers','receivedDate','dueDate'] as const).map(key=><label key={key}>{labelize(key)}<input type={key.includes('Date')?'date':'text'} value={form[key]} onChange={e=>setForm({...form,[key]:e.target.value})} required/></label>)}<label>Intake type<select value={form.intakeType} onChange={e=>setForm({...form,intakeType:e.target.value as LaboratoryCase['intakeType']})}><option value="digital">Digital</option><option value="physical">Physical</option><option value="hybrid">Hybrid</option></select></label><label>Route<select value={form.route} onChange={e=>setForm({...form,route:e.target.value as LaboratoryCase['route']})}><option value="A">A — Pure digital</option><option value="B">B — Hybrid</option><option value="C">C — Manual</option></select></label><label>Status<select value={form.status} onChange={e=>setForm({...form,status:e.target.value as CaseStatus})}>{Object.keys(workflow).map(s=><option value={s} key={s}>{s}</option>)}</select></label><label>Department<select value={form.department} onChange={e=>setForm({...form,department:e.target.value})}>{departments.map(d=><option key={d}>{d}</option>)}</select></label><label>Notes<textarea value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})}/></label><button className="primary" type="submit">Save case</button></form>}
+
+function Settings({practices,doctors,cases,audit,onImport}:{practices:Practice[];doctors:Doctor[];cases:LaboratoryCase[];audit:string[];onImport:(p:BackupPayload)=>void}){const file=useRef<HTMLInputElement>(null);const exportData=()=>{const payload:BackupPayload={version:'0.3.0',exportedAt:new Date().toISOString(),practices,doctors,cases,audit};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`northstar-backup-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url)};const importFile=async(e:React.ChangeEvent<HTMLInputElement>)=>{const selected=e.target.files?.[0];if(!selected)return;try{const payload=JSON.parse(await selected.text()) as BackupPayload;if(!Array.isArray(payload.practices)||!Array.isArray(payload.doctors)||!Array.isArray(payload.cases))throw new Error();if(confirm('Replace current browser data with this backup?'))onImport(payload)}catch{alert('The selected file is not a valid NorthStar backup.')}finally{e.target.value=''}};return <section className="panel"><p className="eyebrow">DATA CONTROL</p><h2>Backup and recovery</h2><p className="note">Export browser data before major updates. Backups contain operational records and should be stored securely.</p><div className="settings-actions"><button className="primary" onClick={exportData}>Export backup</button><button className="secondary" onClick={()=>file.current?.click()}>Import backup</button><input ref={file} hidden type="file" accept="application/json" onChange={importFile}/></div><div className="summary-grid"><article><strong>{practices.length}</strong><span>Practices</span></article><article><strong>{doctors.length}</strong><span>Doctors</span></article><article><strong>{cases.length}</strong><span>Cases</span></article><article><strong>{audit.length}</strong><span>Audit events</span></article></div></section>}
+function Users(){return <section className="panel"><p className="eyebrow">ACCESS CONTROL</p><h2>Users and roles</h2><div className="table"><div className="table-head"><span>Name</span><span>Email</span><span>Role</span><span>Status</span></div><div className="table-row"><strong>Dorian Habet</strong><span>dorianhabet@yahoo.com</span><span>Administrator</span><span className="badge">active</span></div></div><p className="note">Server-backed account creation and password resets remain scheduled for the security milestone.</p></section>}
+function Audit({events}:{events:string[]}){return <section className="panel"><p className="eyebrow">SYSTEM CONTROL</p><h2>Audit log</h2>{events.map((event,index)=><div className="audit-row" key={`${event}-${index}`}>{event}</div>)}</section>}
+function Empty({text}:{text:string}){return <p className="empty">{text}</p>}
+function doctorName(id:string,doctors:Doctor[]){const doctor=doctors.find(d=>d.id===id);return doctor?`Dr. ${doctor.firstName} ${doctor.lastName}`:'Unassigned'}
+function labelize(value:string){return value.replace(/([A-Z])/g,' $1').replace(/^./,c=>c.toUpperCase())}
+function titleFor(view:View){return({dashboard:'Laboratory Status',practices:'Practice Management',doctors:'Doctor Management',cases:'Case Intake & Workflow',users:'User Administration',audit:'Audit History',settings:'System Settings'} as const)[view]}
+function casesSequence(){const current=Number(localStorage.getItem('northstar.caseSequence')??'0')+1;localStorage.setItem('northstar.caseSequence',String(current));return current}

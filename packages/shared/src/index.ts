@@ -1,9 +1,69 @@
-export type DepartmentStatus = 'healthy' | 'attention' | 'blocked';
+export type UserRole = 'administrator' | 'office' | 'cad' | 'ceramics' | 'qc' | 'shipping' | 'billing' | 'sales';
+export type CaseStatus = 'received' | 'in-production' | 'qc' | 'ready-to-ship' | 'completed';
+export type IntakeType = 'digital' | 'physical' | 'hybrid';
+export type WorkflowRoute = 'A' | 'B' | 'C';
 
-export interface DepartmentSnapshot {
+export interface User {
+  id: string;
   name: string;
-  activeCases: number;
-  status: DepartmentStatus;
+  email: string;
+  role: UserRole;
+  active: boolean;
+}
+
+export interface Practice {
+  id: string;
+  accountNumber: string;
+  practiceName: string;
+  status: 'active' | 'inactive';
+  phone: string;
+  email: string;
+  address: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  taxExempt: boolean;
+  scannerType: string;
+  createdAt: string;
+}
+
+export interface Doctor {
+  id: string;
+  practiceId: string;
+  firstName: string;
+  lastName: string;
+  specialty: string;
+  email: string;
+  phone: string;
+  active: boolean;
+  createdAt: string;
+}
+
+export interface LaboratoryCase {
+  id: string;
+  caseNumber: string;
+  practiceId: string;
+  doctorId: string;
+  patientReference: string;
+  restorationType: string;
+  toothNumbers: string;
+  intakeType: IntakeType;
+  route: WorkflowRoute;
+  department: string;
+  status: CaseStatus;
+  receivedDate: string;
+  dueDate: string;
+  notes: string;
+  createdAt: string;
+}
+
+export interface AuditEvent {
+  id: string;
+  actor: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  createdAt: string;
 }
 
 export interface DashboardSnapshot {
@@ -14,26 +74,6 @@ export interface DashboardSnapshot {
   casesInQc: number;
   shipmentsReady: number;
   monthRevenue: number;
-  departments: DepartmentSnapshot[];
-}
-
-export interface DoctorAccount {
-  id: string;
-  accountNumber: string;
-  doctorName: string;
-  practiceName: string;
-  email: string;
-  phone: string;
-  status: 'active' | 'inactive' | 'prospect';
-}
-
-export interface LaboratoryCase {
-  id: string;
-  caseNumber: string;
-  doctorId: string;
-  patientReference: string;
-  department: string;
-  restorationType: string;
-  dueDate: string;
-  status: 'received' | 'in-production' | 'qc' | 'ready-to-ship' | 'completed';
+  activeDoctors: number;
+  activePractices: number;
 }

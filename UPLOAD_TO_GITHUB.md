@@ -1,9 +1,8 @@
-# Upload CADence NorthStar v0.2.0
+# Upload v0.3.0 to GitHub
 
-Upload the contents of this folder into the repository root and allow GitHub to replace the existing v0.1.0 files.
-
-Recommended commit message:
-
-`feat: add NorthStar v0.2.0 core platform`
-
-The repository root should continue to show `apps`, `packages`, `docs`, `package.json`, and `pnpm-workspace.yaml` directly. Do not upload the outer folder as an extra nested directory.
+1. Extract the ZIP.
+2. Open `CADenceNS/cadence-northstar-build`.
+3. Choose **Add file → Upload files**.
+4. Upload the contents inside this folder into the repository root.
+5. Replace matching files when prompted.
+6. Commit directly to `main` with: `feat: add NorthStar v0.3.0 workflow control and backup`
