@@ -1,0 +1,163 @@
+import { FormEvent, useMemo, useState } from 'react';
+import type { Doctor, LaboratoryCase, Practice, User } from '@northstar/shared';
+
+type View = 'dashboard' | 'practices' | 'doctors' | 'cases' | 'users' | 'audit';
+
+const demoUser: User = {
+  id: 'usr-admin',
+  name: 'Dorian Habet',
+  email: 'dorianhabet@yahoo.com',
+  role: 'administrator',
+  active: true
+};
+
+const initialPractices: Practice[] = [
+  {
+    id: 'practice-1', accountNumber: 'KDL-1001', practiceName: 'NorthStar Dental Group', status: 'active',
+    phone: '818-555-0148', email: 'office@northstardental.example', address: '19350 Business Ctr Dr',
+    city: 'Northridge', state: 'CA', postalCode: '91324', taxExempt: false, scannerType: 'iTero',
+    createdAt: new Date().toISOString()
+  }
+];
+
+const initialDoctors: Doctor[] = [
+  {
+    id: 'doctor-1', practiceId: 'practice-1', firstName: 'Beibei', lastName: 'Wu', specialty: 'General Dentistry',
+    email: 'doctor@example.com', phone: '818-555-0171', active: true, createdAt: new Date().toISOString()
+  }
+];
+
+const initialCases: LaboratoryCase[] = [
+  {
+    id: 'case-1', caseNumber: 'NS-260724-014', practiceId: 'practice-1', doctorId: 'doctor-1',
+    patientReference: 'ML-014', restorationType: 'Implant Crown', toothNumbers: '30', intakeType: 'digital',
+    route: 'A', department: 'CAD', status: 'in-production', receivedDate: '2026-07-24', dueDate: '2026-08-11',
+    notes: 'Verify scan body seating and implant component compatibility.', createdAt: new Date().toISOString()
+  }
+];
+
+function load<T>(key: string, fallback: T): T {
+  try {
+    const value = localStorage.getItem(key);
+    return value ? JSON.parse(value) as T : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function persist<T>(key: string, value: T) {
+  localStorage.setItem(key, JSON.stringify(value));
+}
+
+export function App() {
+  const [session, setSession] = useState<User | null>(() => load<User | null>('northstar.session', null));
+  const [view, setView] = useState<View>('dashboard');
+  const [practices, setPractices] = useState<Practice[]>(() => load('northstar.practices', initialPractices));
+  const [doctors, setDoctors] = useState<Doctor[]>(() => load('northstar.doctors', initialDoctors));
+  const [cases, setCases] = useState<LaboratoryCase[]>(() => load('northstar.cases', initialCases));
+  const [audit, setAudit] = useState<string[]>(() => load('northstar.audit', ['System initialized']));
+
+  const writeAudit = (message: string) => {
+    const next = [`${new Date().toLocaleString()} — ${message}`, ...audit].slice(0, 100);
+    setAudit(next);
+    persist('northstar.audit', next);
+  };
+
+  if (!session) {
+    return <Login onLogin={(user) => { setSession(user); persist('northstar.session', user); writeAudit(`${user.name} signed in`); }} />;
+  }
+
+  const navigation: Array<[View, string]> = [
+    ['dashboard', 'Laboratory'], ['practices', 'Practices'], ['doctors', 'Doctors'], ['cases', 'Cases'],
+    ['users', 'Users'], ['audit', 'Audit Log']
+  ];
+
+  return (
+    <div className="app-shell">
+      <aside className="sidebar">
+        <div className="brand"><span className="brand-mark">NS</span><div><strong>CADence</strong><span>NorthStar</span></div></div>
+        <nav>{navigation.map(([id, label]) => <button className={view === id ? 'active' : ''} key={id} onClick={() => setView(id)}>{label}</button>)}</nav>
+        <div className="sidebar-footer">
+          <span>v0.2.0 Core Platform</span>
+          <button onClick={() => { writeAudit(`${session.name} signed out`); setSession(null); localStorage.removeItem('northstar.session'); }}>Sign out</button>
+        </div>
+      </aside>
+      <main>
+        <header><div><p className="eyebrow">KERAMOS DIGITAL TWIN</p><h1>{titleFor(view)}</h1><p className="subtitle">Operational command center for Keramos Dental Laboratory.</p></div><div className="user-card"><span className="user-avatar">DH</span><div><strong>{session.name}</strong><span>{session.role}</span></div></div></header>
+        {view === 'dashboard' && <Dashboard practices={practices} doctors={doctors} cases={cases} />}
+        {view === 'practices' && <Practices practices={practices} onAdd={(practice) => { const next = [...practices, practice]; setPractices(next); persist('northstar.practices', next); writeAudit(`Created practice ${practice.practiceName}`); }} />}
+        {view === 'doctors' && <Doctors doctors={doctors} practices={practices} onAdd={(doctor) => { const next = [...doctors, doctor]; setDoctors(next); persist('northstar.doctors', next); writeAudit(`Created doctor ${doctor.firstName} ${doctor.lastName}`); }} />}
+        {view === 'cases' && <Cases cases={cases} doctors={doctors} practices={practices} onAdd={(item) => { const next = [item, ...cases]; setCases(next); persist('northstar.cases', next); writeAudit(`Created case ${item.caseNumber}`); }} />}
+        {view === 'users' && <Users />}
+        {view === 'audit' && <Audit events={audit} />}
+      </main>
+    </div>
+  );
+}
+
+function Login({ onLogin }: { onLogin: (user: User) => void }) {
+  const [email, setEmail] = useState('dorianhabet@yahoo.com');
+  const [password, setPassword] = useState('NorthStar!2026');
+  const [error, setError] = useState('');
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    if (email.toLowerCase() === demoUser.email && password === 'NorthStar!2026') onLogin(demoUser);
+    else setError('Incorrect email or password.');
+  };
+  return <div className="login-page"><form className="login-card" onSubmit={submit}><div className="brand login-brand"><span className="brand-mark">NS</span><div><strong>CADence</strong><span>NorthStar</span></div></div><p className="eyebrow">KERAMOS DIGITAL TWIN</p><h1>Welcome back</h1><p>Sign in to enter the laboratory operating system.</p><label>Email<input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required /></label><label>Password<input value={password} onChange={(e) => setPassword(e.target.value)} type="password" required /></label>{error && <p className="error">{error}</p>}<button className="primary" type="submit">Sign in</button><small>Development credentials are prefilled for this milestone.</small></form></div>;
+}
+
+function Dashboard({ practices, doctors, cases }: { practices: Practice[]; doctors: Doctor[]; cases: LaboratoryCase[] }) {
+  const dueToday = new Date().toISOString().slice(0, 10);
+  const metrics = [
+    ['Active practices', practices.filter((p) => p.status === 'active').length],
+    ['Active doctors', doctors.filter((d) => d.active).length],
+    ['Open cases', cases.filter((c) => c.status !== 'completed').length],
+    ['In QC', cases.filter((c) => c.status === 'qc').length],
+    ['Ready to ship', cases.filter((c) => c.status === 'ready-to-ship').length],
+    ['Due today', cases.filter((c) => c.dueDate === dueToday).length]
+  ];
+  return <><section className="metrics">{metrics.map(([label, value]) => <article className="metric" key={label}><span>{label}</span><strong>{value}</strong></article>)}</section><section className="content-grid"><article className="panel"><p className="eyebrow">PRODUCTION FLOOR</p><h2>Current workload</h2>{['Receiving','Model','CAD','Mill / Print','Ceramics','QC','Shipping'].map((department) => <div className="department-row" key={department}><strong>{department}</strong><span>{cases.filter((item) => item.department === department).length} active cases</span></div>)}</article><article className="panel"><p className="eyebrow">PRIORITY CONTROL</p><h2>Cases requiring attention</h2>{cases.length ? cases.slice(0, 5).map((item) => <div className="priority" key={item.id}><div><strong>{item.caseNumber}</strong><span>{item.status}</span></div><p>{item.restorationType} · Tooth {item.toothNumbers}</p></div>) : <Empty text="No cases yet." />}</article></section></>;
+}
+
+function Practices({ practices, onAdd }: { practices: Practice[]; onAdd: (practice: Practice) => void }) {
+  const [open, setOpen] = useState(false);
+  return <section className="panel"><div className="panel-heading"><div><p className="eyebrow">DOCTOR CRM</p><h2>Practices</h2></div><button className="primary" onClick={() => setOpen(!open)}>{open ? 'Close form' : 'New practice'}</button></div>{open && <PracticeForm onSave={(item) => { onAdd(item); setOpen(false); }} />}
+  <div className="table"><div className="table-head"><span>Account</span><span>Practice</span><span>Contact</span><span>Scanner</span><span>Status</span></div>{practices.map((practice) => <div className="table-row" key={practice.id}><span>{practice.accountNumber}</span><strong>{practice.practiceName}</strong><span>{practice.phone}<small>{practice.email}</small></span><span>{practice.scannerType}</span><span className="badge">{practice.status}</span></div>)}</div></section>;
+}
+
+function PracticeForm({ onSave }: { onSave: (practice: Practice) => void }) {
+  const [form, setForm] = useState({ practiceName: '', phone: '', email: '', address: '', city: '', state: 'CA', postalCode: '', scannerType: 'iTero' });
+  const submit = (event: FormEvent) => { event.preventDefault(); onSave({ id: crypto.randomUUID(), accountNumber: `KDL-${1000 + Math.floor(Math.random()*8999)}`, status: 'active', taxExempt: false, createdAt: new Date().toISOString(), ...form }); };
+  return <form className="form-grid" onSubmit={submit}>{Object.entries(form).map(([key, value]) => <label key={key}>{labelize(key)}<input value={value} onChange={(e) => setForm({ ...form, [key]: e.target.value })} required={['practiceName','phone','email'].includes(key)} /></label>)}<button className="primary" type="submit">Save practice</button></form>;
+}
+
+function Doctors({ doctors, practices, onAdd }: { doctors: Doctor[]; practices: Practice[]; onAdd: (doctor: Doctor) => void }) {
+  const [open, setOpen] = useState(false);
+  return <section className="panel"><div className="panel-heading"><div><p className="eyebrow">DOCTOR CRM</p><h2>Doctors</h2></div><button className="primary" onClick={() => setOpen(!open)}>{open ? 'Close form' : 'New doctor'}</button></div>{open && <DoctorForm practices={practices} onSave={(item) => { onAdd(item); setOpen(false); }} />}<div className="table"><div className="table-head"><span>Doctor</span><span>Practice</span><span>Specialty</span><span>Contact</span><span>Status</span></div>{doctors.map((doctor) => <div className="table-row" key={doctor.id}><strong>Dr. {doctor.firstName} {doctor.lastName}</strong><span>{practices.find((p) => p.id === doctor.practiceId)?.practiceName ?? 'Unassigned'}</span><span>{doctor.specialty}</span><span>{doctor.email}<small>{doctor.phone}</small></span><span className="badge">{doctor.active ? 'active' : 'inactive'}</span></div>)}</div></section>;
+}
+
+function DoctorForm({ practices, onSave }: { practices: Practice[]; onSave: (doctor: Doctor) => void }) {
+  const [form, setForm] = useState({ practiceId: practices[0]?.id ?? '', firstName: '', lastName: '', specialty: 'General Dentistry', email: '', phone: '' });
+  const submit = (event: FormEvent) => { event.preventDefault(); onSave({ id: crypto.randomUUID(), active: true, createdAt: new Date().toISOString(), ...form }); };
+  return <form className="form-grid" onSubmit={submit}><label>Practice<select value={form.practiceId} onChange={(e) => setForm({ ...form, practiceId: e.target.value })}>{practices.map((practice) => <option key={practice.id} value={practice.id}>{practice.practiceName}</option>)}</select></label>{(['firstName','lastName','specialty','email','phone'] as const).map((key) => <label key={key}>{labelize(key)}<input value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })} required /></label>)}<button className="primary" type="submit">Save doctor</button></form>;
+}
+
+function Cases({ cases, doctors, practices, onAdd }: { cases: LaboratoryCase[]; doctors: Doctor[]; practices: Practice[]; onAdd: (item: LaboratoryCase) => void }) {
+  const [open, setOpen] = useState(false);
+  return <section className="panel"><div className="panel-heading"><div><p className="eyebrow">CASE CONTROL</p><h2>Laboratory cases</h2></div><button className="primary" onClick={() => setOpen(!open)}>{open ? 'Close form' : 'New case'}</button></div>{open && <CaseForm doctors={doctors} practices={practices} onSave={(item) => { onAdd(item); setOpen(false); }} />}<div className="table cases-table"><div className="table-head"><span>Case</span><span>Doctor</span><span>Restoration</span><span>Route</span><span>Due</span><span>Status</span></div>{cases.map((item) => <div className="table-row" key={item.id}><strong>{item.caseNumber}<small>{item.patientReference}</small></strong><span>{doctorName(item.doctorId, doctors)}</span><span>{item.restorationType}<small>Tooth {item.toothNumbers}</small></span><span>Route {item.route}<small>{item.department}</small></span><span>{item.dueDate}</span><span className="badge">{item.status}</span></div>)}</div></section>;
+}
+
+function CaseForm({ doctors, practices, onSave }: { doctors: Doctor[]; practices: Practice[]; onSave: (item: LaboratoryCase) => void }) {
+  const [form, setForm] = useState({ practiceId: practices[0]?.id ?? '', doctorId: doctors[0]?.id ?? '', patientReference: '', restorationType: 'Full Zirconia Crown', toothNumbers: '', intakeType: 'digital' as const, route: 'A' as const, department: 'Receiving', receivedDate: new Date().toISOString().slice(0,10), dueDate: '', notes: '' });
+  const submit = (event: FormEvent) => { event.preventDefault(); onSave({ id: crypto.randomUUID(), caseNumber: `NS-${new Date().toISOString().slice(2,10).replaceAll('-','')}-${String(casesSequence()).padStart(3,'0')}`, status: 'received', createdAt: new Date().toISOString(), ...form }); };
+  return <form className="form-grid case-form" onSubmit={submit}><label>Practice<select value={form.practiceId} onChange={(e) => setForm({ ...form, practiceId: e.target.value })}>{practices.map((p) => <option value={p.id} key={p.id}>{p.practiceName}</option>)}</select></label><label>Doctor<select value={form.doctorId} onChange={(e) => setForm({ ...form, doctorId: e.target.value })}>{doctors.map((d) => <option value={d.id} key={d.id}>Dr. {d.firstName} {d.lastName}</option>)}</select></label>{(['patientReference','restorationType','toothNumbers','department','receivedDate','dueDate'] as const).map((key) => <label key={key}>{labelize(key)}<input type={key.includes('Date') ? 'date' : 'text'} value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })} required /></label>)}<label>Route<select value={form.route} onChange={(e) => setForm({ ...form, route: e.target.value as 'A'|'B'|'C' })}><option value="A">A — Pure digital</option><option value="B">B — Hybrid</option><option value="C">C — Manual</option></select></label><label>Notes<textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></label><button className="primary" type="submit">Create case</button></form>;
+}
+
+function Users() { return <section className="panel"><p className="eyebrow">ACCESS CONTROL</p><h2>Users and roles</h2><div className="table"><div className="table-head"><span>Name</span><span>Email</span><span>Role</span><span>Status</span></div><div className="table-row"><strong>Dorian Habet</strong><span>dorianhabet@yahoo.com</span><span>Administrator</span><span className="badge">active</span></div></div><p className="note">User creation, password reset, and approval workflows are scheduled for the server-backed security milestone.</p></section>; }
+function Audit({ events }: { events: string[] }) { return <section className="panel"><p className="eyebrow">SYSTEM CONTROL</p><h2>Audit log</h2>{events.map((event, index) => <div className="audit-row" key={`${event}-${index}`}>{event}</div>)}</section>; }
+function Empty({ text }: { text: string }) { return <p className="empty">{text}</p>; }
+function doctorName(id: string, doctors: Doctor[]) { const doctor = doctors.find((item) => item.id === id); return doctor ? `Dr. ${doctor.firstName} ${doctor.lastName}` : 'Unassigned'; }
+function labelize(value: string) { return value.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase()); }
+function titleFor(view: View) { return ({ dashboard: 'Laboratory Status', practices: 'Practice Management', doctors: 'Doctor Management', cases: 'Case Intake & Control', users: 'User Administration', audit: 'Audit History' } as const)[view]; }
+function casesSequence() { const current = Number(localStorage.getItem('northstar.caseSequence') ?? '0') + 1; localStorage.setItem('northstar.caseSequence', String(current)); return current; }

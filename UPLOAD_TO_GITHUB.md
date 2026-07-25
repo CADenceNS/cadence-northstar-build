@@ -1,22 +1,9 @@
-# Upload this build to GitHub
+# Upload CADence NorthStar v0.2.0
 
-## Method A — GitHub website (easiest)
+Upload the contents of this folder into the repository root and allow GitHub to replace the existing v0.1.0 files.
 
-1. Open the `CADenceNS/cadence-northstar-build` repository.
-2. Choose **Add file → Upload files**.
-3. Extract this ZIP on your computer.
-4. Drag all extracted files and folders into the GitHub upload area.
-5. Enter commit message: `feat: initialize CADence NorthStar v0.1.0 foundation`
-6. Select **Commit directly to the main branch**.
-7. Click **Commit changes**.
+Recommended commit message:
 
-## Method B — Command line
+`feat: add NorthStar v0.2.0 core platform`
 
-```bash
-git clone https://github.com/CADenceNS/cadence-northstar-build.git
-cd cadence-northstar-build
-# Copy the extracted files into this folder
-git add .
-git commit -m "feat: initialize CADence NorthStar v0.1.0 foundation"
-git push origin main
-```
+The repository root should continue to show `apps`, `packages`, `docs`, `package.json`, and `pnpm-workspace.yaml` directly. Do not upload the outer folder as an extra nested directory.

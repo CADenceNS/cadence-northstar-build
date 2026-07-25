@@ -1,52 +1,37 @@
 # CADence NorthStar
 
-CADence NorthStar is the operating system for Keramos Dental Laboratory: case intake, doctor management, production routing, QC, shipping, billing, analytics, and future AI-assisted laboratory intelligence.
+CADence NorthStar is the laboratory operating system for Keramos Dental Laboratory.
 
 ## Current milestone
 
-**v0.1.0 — Foundation**
+**v0.2.0 — Core Platform**
 
-Included now:
+This milestone adds a working administrator login, persistent browser storage, Practice CRM, Doctor CRM, case intake, automatic account and case numbering, laboratory dashboard metrics, user-role foundation, and audit history.
 
-- pnpm monorepo
-- React + TypeScript web application
-- Express + TypeScript API
-- Shared domain package
-- Initial laboratory dashboard
-- Initial doctor and case data contracts
-- API health and dashboard endpoints
-- CI workflow for install, typecheck, and build
+## Development login
+
+- Email: `dorianhabet@yahoo.com`
+- Password: `NorthStar!2026`
+
+These are development-only credentials and must be replaced before production deployment.
 
 ## Local setup
 
-Requirements:
-
-- Node.js 20+
-- pnpm 9+
+Requirements: Node.js 20+ and pnpm 9+
 
 ```bash
 pnpm install
 pnpm dev
 ```
 
-Web application: `http://localhost:5173`
+- Web: `http://localhost:5173`
+- API: `http://localhost:4000`
+- API health: `http://localhost:4000/health`
 
-API: `http://localhost:4000`
+## Data persistence
 
-Health check: `http://localhost:4000/health`
-
-## Repository structure
-
-```text
-apps/
-  web/      React front end
-  api/      Express API
-packages/
-  shared/   Shared domain contracts
-
-docs/      Architecture and roadmap
-```
+v0.2.0 stores application records in browser localStorage so the milestone can be used immediately without database setup. PostgreSQL-backed persistence and production authentication are scheduled for the next security/data milestone.
 
 ## Security
 
-Do not commit patient data, passwords, API keys, access tokens, private health information, or production credentials.
+Never commit patient names, protected health information, passwords, access tokens, API keys, or production credentials.
