@@ -1,37 +1,14 @@
-# CADence NorthStar
+# CADence NorthStar Documentation
 
-CADence NorthStar is the laboratory operating system for Keramos Dental Laboratory.
+This directory is the source of truth for product, architecture, and engineering decisions.
 
-## Current milestone
+## Foundation Documents
 
-**v0.3.0 — Workflow Control & Data Safety**
+- [Product Requirements](PRODUCT_REQUIREMENTS.md)
+- [Software Design Specification](SOFTWARE_DESIGN_SPECIFICATION.md)
+- [Development Standards](DEVELOPMENT_STANDARDS.md)
+- [ADR-0001: Platform Foundation and Multi-Tenant Architecture](adr/0001-platform-foundation.md)
 
-This milestone adds editable Practice and Doctor CRM records, case editing and deletion, guarded relationship deletion, case-status progression, production workload controls, search and filtering, overdue case identification, and JSON backup/import recovery.
+## Documentation Rule
 
-## Development login
-
-- Email: `dorianhabet@yahoo.com`
-- Password: `NorthStar!2026`
-
-These are development-only credentials and must be replaced before production deployment.
-
-## Local setup
-
-Requirements: Node.js 20+ and pnpm 9+
-
-```bash
-pnpm install
-pnpm dev
-```
-
-- Web: `http://localhost:5173`
-- API: `http://localhost:4000`
-- API health: `http://localhost:4000/health`
-
-## Data persistence
-
-v0.3.0 continues to use browser localStorage and now includes Settings → Export backup / Import backup. PostgreSQL-backed persistence remains a future production milestone.
-
-## Security
-
-Never commit patient names, protected health information, passwords, access tokens, API keys, or production credentials.
+Material architectural, security, workflow, data-model, or business-rule changes must update the relevant document or add an Architecture Decision Record.
