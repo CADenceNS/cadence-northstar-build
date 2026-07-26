@@ -1,0 +1,95 @@
+name: Runtime Validation
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies and generate lockfile
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Upload generated lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: pnpm-lockfile
+          path: pnpm-lock.yaml
+          if-no-files-found: error
+
+      - name: Start API
+        run: |
+          pnpm --filter @northstar/api dev > /tmp/northstar-api.log 2>&1 &
+          echo $! > /tmp/northstar-api.pid
+
+      - name: Wait for API health
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:4000/health > /tmp/health.json; then
+              cat /tmp/health.json
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/northstar-api.log
+          exit 1
+
+      - name: Validate API authentication and dashboard
+        run: |
+          curl --fail --silent http://127.0.0.1:4000/api/dashboard > /tmp/dashboard.json
+          grep -q 'generatedAt' /tmp/dashboard.json
+          curl --fail --silent \
+            -H 'Content-Type: application/json' \
+            -d '{"email":"dorianhabet@yahoo.com","password":"NorthStar!2026"}' \
+            http://127.0.0.1:4000/api/auth/login > /tmp/login.json
+          grep -q 'administrator' /tmp/login.json
+          test "$(curl --silent --output /tmp/invalid-login.json --write-out '%{http_code}' \
+            -H 'Content-Type: application/json' \
+            -d '{"email":"dorianhabet@yahoo.com","password":"incorrect"}' \
+            http://127.0.0.1:4000/api/auth/login)" = '401'
+
+      - name: Start web application
+        run: |
+          pnpm --filter @northstar/web dev --host 127.0.0.1 > /tmp/northstar-web.log 2>&1 &
+          echo $! > /tmp/northstar-web.pid
+
+      - name: Validate web startup and API proxy
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:5173/ > /tmp/index.html; then
+              break
+            fi
+            sleep 1
+          done
+          grep -q '<div id="root"></div>' /tmp/index.html
+          curl --fail --silent http://127.0.0.1:5173/src/main.tsx > /tmp/main.tsx
+          grep -q 'ReactDOM.createRoot' /tmp/main.tsx
+          curl --fail --silent http://127.0.0.1:5173/api/dashboard > /tmp/proxied-dashboard.json
+          grep -q 'generatedAt' /tmp/proxied-dashboard.json
+
+      - name: Print service logs on failure
+        if: failure()
+        run: |
+          echo '--- API log ---'
+          cat /tmp/northstar-api.log || true
+          echo '--- Web log ---'
+          cat /tmp/northstar-web.log || true
