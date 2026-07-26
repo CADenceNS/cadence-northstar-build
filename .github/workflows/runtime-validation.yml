@@ -89,13 +89,13 @@ jobs:
           exit 1
 
       - name: Install Chromium
-        run: pnpm --filter @northstar/web exec playwright install --with-deps chromium
+        run: pnpm exec playwright install --with-deps chromium
 
       - name: Validate browser authentication lifecycle
         shell: bash
         run: |
           set -o pipefail
-          pnpm --filter @northstar/web test:e2e 2>&1 | tee /tmp/playwright-results.txt
+          pnpm test:e2e 2>&1 | tee /tmp/playwright-results.txt
 
       - name: Upload Playwright results
         if: always()
