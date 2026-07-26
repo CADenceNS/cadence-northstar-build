@@ -3,8 +3,22 @@
 ## Active
 
 - [ ] Merge PR #2 after review.
+- [ ] Complete and verify Sprint 3 Practice & Doctor Management.
 - [ ] Replace development-only credentials with production identity and secure server sessions.
 - [ ] Add server-side authorization enforcement for protected API resources.
+- [ ] Replace process-memory Practice and Doctor storage with database persistence.
+
+## Sprint 3 — Practice & Doctor Management
+
+- [x] Define shared Practice, Doctor, office-manager, notes, and communication contracts.
+- [x] Add Practice CRUD, search, status filtering, validation, account generation, and communication API endpoints.
+- [x] Add Doctor CRUD, search, practice/status filtering, validation, and communication API endpoints.
+- [x] Protect practice deletion when doctors remain linked.
+- [x] Build authenticated Practice Management and Doctor Management pages.
+- [x] Add dashboard counts backed by active API records.
+- [x] Add Playwright management lifecycle coverage.
+- [ ] Pass frozen install, typecheck, build, startup, API lifecycle, and Playwright verification.
+- [ ] Open focused Sprint 3 draft pull request stacked on PR #2.
 
 ## Completed in PR #2
 
