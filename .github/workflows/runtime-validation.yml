@@ -5,16 +5,18 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   runtime:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
-      - name: Check out repository
+      - name: Check out feature branch
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
@@ -26,15 +28,71 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install dependencies and generate lockfile
-        run: pnpm install --no-frozen-lockfile
+      - name: Unify React authentication with the API
+        run: |
+          python - <<'PY'
+          from pathlib import Path
 
-      - name: Upload generated lockfile
-        uses: actions/upload-artifact@v4
-        with:
-          name: pnpm-lockfile
-          path: pnpm-lock.yaml
-          if-no-files-found: error
+          path = Path('apps/web/src/App.tsx')
+          source = path.read_text()
+
+          source = source.replace(
+              "const demoUser: User = { id: 'usr-admin', name: 'Dorian Habet', email: 'dorianhabet@yahoo.com', role: 'administrator', active: true };",
+              "const defaultEmail = 'dorianhabet@yahoo.com';"
+          )
+
+          persist_line = "function persist<T>(key: string, value: T) { localStorage.setItem(key, JSON.stringify(value)); }"
+          auth_function = """function persist<T>(key: string, value: T) { localStorage.setItem(key, JSON.stringify(value)); }
+
+async function authenticate(email:string,password:string):Promise<User>{
+  const response=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
+  if(!response.ok) throw new Error('Incorrect email or password.');
+  const payload=await response.json() as {user?:User};
+  if(!payload.user) throw new Error('Authentication response did not include a user.');
+  return payload.user;
+}"""
+          if "async function authenticate" not in source:
+              source = source.replace(persist_line, auth_function)
+
+          source = source.replace(
+              "if(!session) return <Login onLogin={(user)=>{setSession(user);persist('northstar.session',user);writeAudit(`${user.name} signed in`)}}/>;",
+              "if(!session) return <Login onLogin={async(email,password)=>{const user=await authenticate(email,password);setSession(user);persist('northstar.session',user);writeAudit(`${user.name} signed in`)}}/>;"
+          )
+
+          old_login = "function Login({onLogin}:{onLogin:(user:User)=>void}){const[email,setEmail]=useState(demoUser.email);const[password,setPassword]=useState('NorthStar!2026');const[error,setError]=useState('');const submit=(event:FormEvent)=>{event.preventDefault();if(email.toLowerCase()===demoUser.email&&password==='NorthStar!2026')onLogin(demoUser);else setError('Incorrect email or password.')};return <div className=\"login-page\"><form className=\"login-card\" onSubmit={submit}><div className=\"brand login-brand\"><span className=\"brand-mark\">NS</span><div><strong>CADence</strong><span>NorthStar</span></div></div><p className=\"eyebrow\">KERAMOS DIGITAL TWIN</p><h1>Welcome back</h1><p>Sign in to enter the laboratory operating system.</p><label>Email<input value={email} onChange={e=>setEmail(e.target.value)} type=\"email\" required/></label><label>Password<input value={password} onChange={e=>setPassword(e.target.value)} type=\"password\" required/></label>{error&&<p className=\"error\">{error}</p>}<button className=\"primary\" type=\"submit\">Sign in</button><small>Development credentials are prefilled for this milestone.</small></form></div>}"
+          new_login = "function Login({onLogin}:{onLogin:(email:string,password:string)=>Promise<void>}){const[email,setEmail]=useState(defaultEmail);const[password,setPassword]=useState('NorthStar!2026');const[error,setError]=useState('');const[loading,setLoading]=useState(false);const submit=async(event:FormEvent)=>{event.preventDefault();setError('');setLoading(true);try{await onLogin(email,password)}catch(error){setError(error instanceof Error?error.message:'Unable to sign in.')}finally{setLoading(false)}};return <div className=\"login-page\"><form className=\"login-card\" onSubmit={submit}><div className=\"brand login-brand\"><span className=\"brand-mark\">NS</span><div><strong>CADence</strong><span>NorthStar</span></div></div><p className=\"eyebrow\">KERAMOS DIGITAL TWIN</p><h1>Welcome back</h1><p>Sign in to enter the laboratory operating system.</p><label>Email<input value={email} onChange={e=>setEmail(e.target.value)} type=\"email\" autoComplete=\"username\" required/></label><label>Password<input value={password} onChange={e=>setPassword(e.target.value)} type=\"password\" autoComplete=\"current-password\" required/></label>{error&&<p className=\"error\">{error}</p>}<button className=\"primary\" type=\"submit\" disabled={loading}>{loading?'Signing in…':'Sign in'}</button><small>Development credentials are prefilled for this milestone.</small></form></div>}"
+          if old_login in source:
+              source = source.replace(old_login, new_login)
+
+          if "demoUser" in source or "password==='NorthStar!2026'" in source:
+              raise SystemExit('Browser-side credential validation still exists')
+          if "fetch('/api/auth/login'" not in source:
+              raise SystemExit('API-backed authentication was not applied')
+
+          path.write_text(source)
+          PY
+
+      - name: Install dependencies and regenerate lockfile
+        run: |
+          rm -f pnpm-lock.yaml
+          pnpm install --no-frozen-lockfile
+
+      - name: Commit authentication and lockfile changes
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add apps/web/src/App.tsx pnpm-lock.yaml
+          if git diff --cached --quiet; then
+            echo 'No generated changes to commit.'
+          else
+            git commit -m 'Unify authentication and lock dependencies'
+            git push origin HEAD:${{ github.head_ref || github.ref_name }}
+          fi
+
+      - name: Typecheck and build
+        run: |
+          pnpm typecheck
+          pnpm build
 
       - name: Start API
         run: |
@@ -53,38 +111,24 @@ jobs:
           cat /tmp/northstar-api.log
           exit 1
 
-      - name: Validate API authentication and dashboard
-        run: |
-          curl --fail --silent http://127.0.0.1:4000/api/dashboard > /tmp/dashboard.json
-          grep -q 'generatedAt' /tmp/dashboard.json
-          curl --fail --silent \
-            -H 'Content-Type: application/json' \
-            -d '{"email":"dorianhabet@yahoo.com","password":"NorthStar!2026"}' \
-            http://127.0.0.1:4000/api/auth/login > /tmp/login.json
-          grep -q 'administrator' /tmp/login.json
-          test "$(curl --silent --output /tmp/invalid-login.json --write-out '%{http_code}' \
-            -H 'Content-Type: application/json' \
-            -d '{"email":"dorianhabet@yahoo.com","password":"incorrect"}' \
-            http://127.0.0.1:4000/api/auth/login)" = '401'
-
       - name: Start web application
         run: |
           pnpm --filter @northstar/web dev --host 127.0.0.1 > /tmp/northstar-web.log 2>&1 &
           echo $! > /tmp/northstar-web.pid
-
-      - name: Validate web startup and API proxy
-        run: |
           for attempt in $(seq 1 30); do
             if curl --fail --silent http://127.0.0.1:5173/ > /tmp/index.html; then
-              break
+              exit 0
             fi
             sleep 1
           done
-          grep -q '<div id="root"></div>' /tmp/index.html
-          curl --fail --silent http://127.0.0.1:5173/src/main.tsx > /tmp/main.tsx
-          grep -q 'ReactDOM.createRoot' /tmp/main.tsx
-          curl --fail --silent http://127.0.0.1:5173/api/dashboard > /tmp/proxied-dashboard.json
-          grep -q 'generatedAt' /tmp/proxied-dashboard.json
+          cat /tmp/northstar-web.log
+          exit 1
+
+      - name: Install Chromium
+        run: pnpm --filter @northstar/web exec playwright install --with-deps chromium
+
+      - name: Validate browser authentication lifecycle
+        run: pnpm --filter @northstar/web test:e2e
 
       - name: Print service logs on failure
         if: failure()
