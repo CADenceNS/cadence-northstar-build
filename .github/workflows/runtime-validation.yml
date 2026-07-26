@@ -95,7 +95,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          pnpm --filter @northstar/web test:e2e -- --reporter=line 2>&1 | tee /tmp/playwright-results.txt
+          pnpm --filter @northstar/web test:e2e 2>&1 | tee /tmp/playwright-results.txt
 
       - name: Upload Playwright results
         if: always()
