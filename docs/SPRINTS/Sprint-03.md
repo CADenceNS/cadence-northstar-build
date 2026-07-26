@@ -1,5 +1,9 @@
 # Sprint 03 — Practice & Doctor Management
 
+## Status
+
+Validation in progress on draft PR #4.
+
 ## Objective
 
 Deliver API-backed Practice Management and Doctor Management inside the authenticated CADence NorthStar application.
