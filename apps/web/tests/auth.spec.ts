@@ -26,6 +26,7 @@ test('uses the API for login and protects the application shell', async ({ page 
   await page.getByRole('button', { name: 'Sign in' }).click();
   await expect((await loginResponse).status()).toBe(200);
   await expect(page.getByRole('heading', { name: 'Laboratory Status' })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('northstar.session'))).not.toBeNull();
 
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Laboratory Status' })).toBeVisible();
@@ -37,6 +38,7 @@ test('uses the API for login and protects the application shell', async ({ page 
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Practice Management' })).not.toBeVisible();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('northstar.session'))).toBeNull();
 
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
