@@ -27,12 +27,14 @@ Unify the application authentication lifecycle around the Express API and verify
 
 ## Verification gates
 
-- [ ] Clean install generates `pnpm-lock.yaml`.
-- [ ] Subsequent install passes with `--frozen-lockfile`.
-- [ ] TypeScript validation passes.
-- [ ] Production build passes.
-- [ ] API and web services start.
-- [ ] Playwright authentication lifecycle passes.
+- [x] Clean install generates and commits `pnpm-lock.yaml`.
+- [x] Subsequent install passes with `--frozen-lockfile`.
+- [x] TypeScript validation passes.
+- [x] Production build passes.
+- [x] API and web services start.
+- [x] Playwright authentication lifecycle passes.
+
+Verified by Runtime Validation run `30225100736`.
 
 ## Out of scope
 
