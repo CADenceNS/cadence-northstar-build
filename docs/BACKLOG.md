@@ -2,7 +2,7 @@
 
 ## Active
 
-- [ ] Merge PR #2 after CI, clean install, runtime, and browser authentication checks pass.
+- [ ] Merge PR #2 after review.
 - [ ] Replace development-only credentials with production identity and secure server sessions.
 - [ ] Add server-side authorization enforcement for protected API resources.
 
@@ -16,5 +16,6 @@
 - [x] Clear authentication state and return to login on logout.
 - [x] Load dashboard API data only after authentication.
 - [x] Add Playwright coverage for invalid login, successful login, persistence, authenticated navigation, logout, and protected-shell behavior.
-- [ ] Commit a generated `pnpm-lock.yaml` from a successful clean install.
-- [ ] Record passing Playwright and frozen-lockfile CI results.
+- [x] Commit a generated `pnpm-lock.yaml` from a successful clean install.
+- [x] Verify a subsequent install with `--frozen-lockfile`.
+- [x] Record passing typecheck, build, API startup, web startup, and Playwright authentication results.
