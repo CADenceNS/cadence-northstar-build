@@ -1,0 +1,86 @@
+name: Sprint 03 Validation
+
+on:
+  push:
+    branches:
+      - feature/sprint-03-practice-doctor-management
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/sprint-03-practice-doctor-management
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Integrate management pages with authenticated shell
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path=Path('apps/web/src/App.tsx')
+          source=path.read_text()
+          import_line="import type { CaseStatus, DashboardSnapshot, Doctor, LaboratoryCase, Practice, User } from '@northstar/shared';"
+          if "DirectoryManagement" not in source:
+            source=source.replace(import_line,import_line+"\nimport { DoctorManagement, PracticeManagement } from './DirectoryManagement';")
+          source=source.replace("  const [dashboardError,setDashboardError]=useState('');","  const [dashboardError,setDashboardError]=useState('');\n  const [directoryRevision,setDirectoryRevision]=useState(0);")
+          marker="  const handleLogin=(user:User)=>{setSession(user);persist(sessionKey,user);writeAudit(`${user.name} signed in`)};"
+          loader="""  useEffect(()=>{
+            if(!session)return;
+            Promise.all([fetch('/api/practices'),fetch('/api/doctors')])
+              .then(async([practiceResponse,doctorResponse])=>{
+                if(!practiceResponse.ok||!doctorResponse.ok)throw new Error('Directory request failed');
+                const [practiceRows,doctorRows]=await Promise.all([practiceResponse.json() as Promise<Practice[]>,doctorResponse.json() as Promise<Doctor[]>]);
+                setPractices(practiceRows);setDoctors(doctorRows);
+              })
+              .catch(()=>setDashboardError('Practice and doctor data is temporarily unavailable.'));
+          },[session,directoryRevision]);
+
+"""
+          if loader.strip() not in source:
+            source=source.replace(marker,loader+marker)
+          source=source.replace("  },[session]);","  },[session,directoryRevision]);",1)
+          old_practice="{view==='practices'&&<Practices practices={practices} doctors={doctors} onSave={(item)=>{const exists=practices.some(p=>p.id===item.id);savePractices(exists?practices.map(p=>p.id===item.id?item:p):[...practices,item]);writeAudit(`${exists?'Updated':'Created'} practice ${item.practiceName}`)}} onDelete={(id)=>{if(doctors.some(d=>d.practiceId===id)||cases.some(c=>c.practiceId===id)) return alert('This practice is linked to a doctor or case and cannot be deleted.'); const target=practices.find(p=>p.id===id);savePractices(practices.filter(p=>p.id!==id));writeAudit(`Deleted practice ${target?.practiceName??id}`)}}/>}"
+          old_doctor="{view==='doctors'&&<Doctors doctors={doctors} practices={practices} cases={cases} onSave={(item)=>{const exists=doctors.some(d=>d.id===item.id);saveDoctors(exists?doctors.map(d=>d.id===item.id?item:d):[...doctors,item]);writeAudit(`${exists?'Updated':'Created'} doctor ${item.firstName} ${item.lastName}`)}} onDelete={(id)=>{if(cases.some(c=>c.doctorId===id)) return alert('This doctor is linked to a case and cannot be deleted.'); const target=doctors.find(d=>d.id===id);saveDoctors(doctors.filter(d=>d.id!==id));writeAudit(`Deleted doctor ${target?.firstName??''} ${target?.lastName??''}`)}}/>}"
+          source=source.replace(old_practice,"{view==='practices'&&<PracticeManagement onCountsChanged={()=>setDirectoryRevision(value=>value+1)}/>}")
+          source=source.replace(old_doctor,"{view==='doctors'&&<DoctorManagement onCountsChanged={()=>setDirectoryRevision(value=>value+1)}/>}")
+          path.write_text(source)
+          PY
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add apps/web/src/App.tsx
+          if ! git diff --cached --quiet; then git commit -m 'Integrate Sprint 3 management pages'; git push origin HEAD:feature/sprint-03-practice-doctor-management; fi
+
+      - name: Install reproducibly
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck and build
+        run: pnpm typecheck && pnpm build
+      - name: Start services
+        run: |
+          pnpm --filter @northstar/api dev > /tmp/api.log 2>&1 &
+          pnpm --filter @northstar/web dev --host 127.0.0.1 > /tmp/web.log 2>&1 &
+          for attempt in $(seq 1 30); do curl -fsS http://127.0.0.1:4000/health && curl -fsS http://127.0.0.1:5173/ && exit 0; sleep 1; done
+          cat /tmp/api.log /tmp/web.log; exit 1
+      - name: Validate management APIs
+        run: |
+          curl -fsS http://127.0.0.1:4000/api/practices | grep -q 'KDL-1001'
+          curl -fsS http://127.0.0.1:4000/api/doctors | grep -q 'Beibei'
+          curl -fsS -H 'Content-Type: application/json' -d '{"practiceName":"API Test Practice","status":"active","phone":"747-240-4008","email":"api@example.com","address":"","city":"Northridge","state":"CA","postalCode":"91324","taxExempt":false,"scannerType":"iTero","officeManager":{"name":"API Manager","email":"manager-api@example.com","phone":""},"notes":"Verified"}' http://127.0.0.1:4000/api/practices | grep -q 'KDL-1002'
+          curl -fsS http://127.0.0.1:4000/api/dashboard | grep -q 'activePractices'
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Run Playwright lifecycle
+        run: pnpm test:e2e
+      - name: Print logs on failure
+        if: failure()
+        run: cat /tmp/api.log /tmp/web.log || true
