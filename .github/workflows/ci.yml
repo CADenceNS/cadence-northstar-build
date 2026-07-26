@@ -29,10 +29,25 @@ jobs:
           node-version: 20
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --no-frozen-lockfile --reporter=silent
 
       - name: Typecheck
-        run: pnpm typecheck
+        id: typecheck
+        shell: bash
+        run: |
+          set +e
+          pnpm typecheck > typecheck.log 2>&1
+          status=$?
+          cat typecheck.log
+          exit "$status"
+
+      - name: Upload typecheck diagnostics
+        if: failure() && steps.typecheck.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: typecheck-diagnostics
+          path: typecheck.log
+          if-no-files-found: error
 
       - name: Build
         run: pnpm build
