@@ -92,7 +92,15 @@ jobs:
         run: pnpm --filter @northstar/web exec playwright install --with-deps chromium
 
       - name: Validate browser authentication lifecycle
-        run: pnpm --filter @northstar/web test:e2e
+        run: pnpm --filter @northstar/web exec playwright test --reporter=json > /tmp/playwright-results.json
+
+      - name: Upload Playwright results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-auth-results
+          path: /tmp/playwright-results.json
+          if-no-files-found: error
 
       - name: Print service logs on failure
         if: failure()
