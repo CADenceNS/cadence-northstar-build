@@ -19,7 +19,7 @@
 - [x] Remove duplicate Doctor active-state representation and use `status` exclusively.
 - [x] Align legacy Practice and Doctor seed data, default forms, edit flows, and UI state with strict Sprint 3 contracts.
 - [x] Add Playwright authentication and management lifecycle coverage.
-- [x] Pass frozen install, typecheck, production build, API startup, web startup, and Playwright verification.
+- [x] Pass frozen install, typecheck, production build, API startup, web startup, and Playwright verification in Runtime Validation run `30227945017`.
 - [x] Open focused Sprint 3 pull request #4 stacked on PR #2.
 
 ## Completed in PR #2
