@@ -8,7 +8,7 @@
 - [ ] Review and merge PR #6 after PR #5.
 - [ ] Review and merge PR #7 after PR #6.
 - [ ] Review and merge PR #8 after PR #7.
-- [ ] Complete and verify Sprint 8 Billing & Financial Engine.
+- [ ] Review and merge PR #9 after PR #8.
 - [ ] Sprint 9: implement PostgreSQL repositories for operational and financial domains.
 - [ ] Add transactional invoice, line, adjustment, payment, statement, shipment-link, and audit tables with decimal money columns and unique constraints.
 - [ ] Add migration, seed, backfill, rollback, and repository-contract integration tests for PostgreSQL.
@@ -17,7 +17,7 @@
 - [ ] Replace all process-memory operational storage with durable database persistence.
 - [ ] Replace base64 process-memory attachments and generated financial documents with durable encrypted object storage, malware scanning, and retention controls.
 
-## Sprint 8 — Billing & Financial Engine
+## Completed — Sprint 8 Billing & Financial Engine
 
 - [x] Define strict invoice, line, adjustment, payment, terms, statement, aging, and financial-metric contracts.
 - [x] Add a `FinancialRepository` persistence boundary and in-memory implementation.
@@ -28,8 +28,8 @@
 - [x] Add AR aging, monthly statements, and dashboard financial metrics.
 - [x] Add authenticated Billing React workspace and financial API endpoints.
 - [x] Add Playwright coverage for delivery-to-invoice, adjustment, payment, statement, aging, and dashboard updates.
-- [ ] Pass frozen install, typecheck, production build, service startup, financial API lifecycle, runtime regression, and all browser tests.
-- [ ] Mark Sprint 8 complete only after every validation gate passes.
+- [x] Pass Sprint 08 Validation run `30237624951` and Runtime Validation run `30237624909`.
+- [x] Open focused Sprint 8 pull request #9 stacked on PR #8.
 
 ## Completed — Sprint 7 Shipping & Logistics
 
