@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import type { ClinicalCase, DashboardSnapshot } from '@northstar/shared';
+import type { ClinicalCase, DashboardSnapshot, QualityDashboardSnapshot } from '@northstar/shared';
 import { createQcEngine } from './qc.js';
 
 process.env.PORT='4001';
@@ -17,7 +17,7 @@ async function fetchCase(caseId:string):Promise<ClinicalCase|null>{const respons
 async function updateCase(caseId:string,value:ClinicalCase){const response=await fetch(`${upstream}/api/cases/${caseId}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({patientId:value.patientId,practiceId:value.practiceId,doctorId:value.doctorId,status:value.status,toothNumbers:value.toothNumbers,arch:value.arch,restoration:value.restoration,material:value.material,shade:value.shade,stumpShade:value.stumpShade,rushPriority:value.rushPriority,receivedDate:value.receivedDate,prescriptionNotes:value.prescriptionNotes})});if(!response.ok)throw new Error('Unable to synchronize QC outcome with the clinical case.')}
 const qc=createQcEngine(app,now,fetchCase,updateCase);
 
-app.get('/api/dashboard',async(_req,res)=>{const response=await fetch(`${upstream}/api/dashboard`);if(!response.ok)return res.status(response.status).send(await response.text());const snapshot=await response.json() as DashboardSnapshot;const metrics=qc.metrics();return res.json({...snapshot,qcPassRate:metrics.passRate,qcRemakeRate:metrics.remakeRate,qcReworkRate:metrics.reworkRate,qcFirstPassYield:metrics.firstPassYield,qcDefectTrends:metrics.defectTrends})});
+app.get('/api/dashboard',async(_req,res)=>{const response=await fetch(`${upstream}/api/dashboard`);if(!response.ok)return res.status(response.status).send(await response.text());const snapshot=await response.json() as DashboardSnapshot;const metrics=qc.metrics();const qualitySnapshot:QualityDashboardSnapshot={...snapshot,qcPassRate:metrics.passRate,qcRemakeRate:metrics.remakeRate,qcReworkRate:metrics.reworkRate,qcFirstPassYield:metrics.firstPassYield,qcDefectTrends:metrics.defectTrends};return res.json(qualitySnapshot)});
 
 app.use(async(req,res)=>{const headers=new Headers();for(const [key,value] of Object.entries(req.headers)){if(typeof value==='string'&&key.toLowerCase()!=='host'&&key.toLowerCase()!=='content-length')headers.set(key,value)}const hasBody=!['GET','HEAD'].includes(req.method);const response=await fetch(`${upstream}${req.originalUrl}`,{method:req.method,headers,body:hasBody?JSON.stringify(req.body):undefined});res.status(response.status);response.headers.forEach((value,key)=>{if(key.toLowerCase()!=='content-encoding'&&key.toLowerCase()!=='content-length')res.setHeader(key,value)});const buffer=Buffer.from(await response.arrayBuffer());return res.send(buffer)});
 
