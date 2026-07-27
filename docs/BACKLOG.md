@@ -4,13 +4,13 @@
 
 - [ ] Merge PR #2 after review.
 - [ ] Review and merge PR #4 after PR #2.
-- [ ] Complete and verify Sprint 4 Patient & Case Intake.
+- [ ] Review and merge PR #5 after PR #4.
 - [ ] Replace development-only credentials with production identity and secure server sessions.
 - [ ] Add server-side authorization enforcement for protected API resources.
 - [ ] Replace process-memory Practice, Doctor, Patient, and Case storage with database persistence.
 - [ ] Replace base64 process-memory attachments with durable encrypted object storage.
 
-## Sprint 4 — Patient & Case Intake
+## Completed — Sprint 4 Patient & Case Intake
 
 - [x] Define strict Patient, Clinical Case, attachment, arch, tooth, shade, and rush-priority contracts.
 - [x] Add Patient CRUD, search, status filtering, validation, and Practice/Doctor associations.
@@ -20,8 +20,9 @@
 - [x] Add authenticated Patient Management and Case Intake pages.
 - [x] Add dashboard active-patient, open-case, rush-case, due-today, and at-risk metrics.
 - [x] Add Playwright Patient and Case lifecycle coverage.
-- [ ] Pass frozen install, typecheck, production build, API startup, web startup, API lifecycle, and Playwright verification.
-- [ ] Mark Sprint 4 complete only after every validation gate passes.
+- [x] Pass frozen install, typecheck, production build, API startup, web startup, API lifecycle, and Playwright verification in Sprint 04 Validation run `30228941923`.
+- [x] Pass the inherited authentication and runtime regression pipeline in Runtime Validation run `30228941920`.
+- [x] Open focused Sprint 4 pull request #5 stacked on PR #4.
 
 ## Completed — Sprint 3 Practice & Doctor Management
 
