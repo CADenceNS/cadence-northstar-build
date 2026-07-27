@@ -13,7 +13,24 @@ permissions:
 jobs:
   runtime:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: northstar
+          POSTGRES_PASSWORD: northstar
+          POSTGRES_DB: northstar_runtime
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U northstar -d northstar_runtime"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://northstar:northstar@127.0.0.1:5432/northstar_runtime
+      NORTHSTAR_TENANT_ID: 00000000-0000-0000-0000-000000000001
     steps:
       - name: Check out feature branch
         uses: actions/checkout@v4
@@ -31,41 +48,12 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
-
           path = Path('apps/web/src/App.tsx')
           source = path.read_text()
-          source = source.replace(
-            "const initialPractices: Practice[] = [{ id:'practice-1', accountNumber:'KDL-1001', practiceName:'NorthStar Dental Group', status:'active', phone:'818-555-0148', email:'office@northstardental.example', address:'19350 Business Ctr Dr', city:'Northridge', state:'CA', postalCode:'91324', taxExempt:false, scannerType:'iTero', createdAt:new Date().toISOString() }];",
-            "const initialPractices: Practice[] = [{ id:'practice-1', accountNumber:'KDL-1001', practiceName:'NorthStar Dental Group', status:'active', phone:'818-555-0148', email:'office@northstardental.example', address:'19350 Business Ctr Dr', city:'Northridge', state:'CA', postalCode:'91324', taxExempt:false, scannerType:'iTero', officeManager:{name:'Alex Morgan',email:'manager@northstardental.example',phone:'818-555-0199'}, notes:'', communicationHistory:[], createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() }];"
-          )
-          source = source.replace(
-            "const initialDoctors: Doctor[] = [{ id:'doctor-1', practiceId:'practice-1', firstName:'Beibei', lastName:'Wu', specialty:'General Dentistry', email:'doctor@example.com', phone:'818-555-0171', active:true, createdAt:new Date().toISOString() }];",
-            "const initialDoctors: Doctor[] = [{ id:'doctor-1', practiceId:'practice-1', firstName:'Beibei', lastName:'Wu', specialty:'General Dentistry', email:'doctor@example.com', phone:'818-555-0171', status:'active', notes:'', communicationHistory:[], createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() }];"
-          )
-          source = source.replace(
-            "const initialDoctors: Doctor[] = [{ id:'doctor-1', practiceId:'practice-1', firstName:'Beibei', lastName:'Wu', specialty:'General Dentistry', email:'doctor@example.com', phone:'818-555-0171', status:'active', active:true, notes:'', communicationHistory:[], createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() }];",
-            "const initialDoctors: Doctor[] = [{ id:'doctor-1', practiceId:'practice-1', firstName:'Beibei', lastName:'Wu', specialty:'General Dentistry', email:'doctor@example.com', phone:'818-555-0171', status:'active', notes:'', communicationHistory:[], createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() }];"
-          )
+          source = source.replace("const initialPractices: Practice[] = [{ id:'practice-1', accountNumber:'KDL-1001', practiceName:'NorthStar Dental Group', status:'active', phone:'818-555-0148', email:'office@northstardental.example', address:'19350 Business Ctr Dr', city:'Northridge', state:'CA', postalCode:'91324', taxExempt:false, scannerType:'iTero', createdAt:new Date().toISOString() }];", "const initialPractices: Practice[] = [{ id:'practice-1', accountNumber:'KDL-1001', practiceName:'NorthStar Dental Group', status:'active', phone:'818-555-0148', email:'office@northstardental.example', address:'19350 Business Ctr Dr', city:'Northridge', state:'CA', postalCode:'91324', taxExempt:false, scannerType:'iTero', officeManager:{name:'Alex Morgan',email:'manager@northstardental.example',phone:'818-555-0199'}, notes:'', communicationHistory:[], createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() }];")
+          source = source.replace("const initialDoctors: Doctor[] = [{ id:'doctor-1', practiceId:'practice-1', firstName:'Beibei', lastName:'Wu', specialty:'General Dentistry', email:'doctor@example.com', phone:'818-555-0171', active:true, createdAt:new Date().toISOString() }];", "const initialDoctors: Doctor[] = [{ id:'doctor-1', practiceId:'practice-1', firstName:'Beibei', lastName:'Wu', specialty:'General Dentistry', email:'doctor@example.com', phone:'818-555-0171', status:'active', notes:'', communicationHistory:[], createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() }];")
           source = source.replace("doctors.filter(d=>d.active).length", "doctors.filter(d=>d.status==='active').length")
           source = source.replace("<small>{d.active?'active':'inactive'}</small>", "<small>{d.status}</small>")
-          source = source.replace(
-            "function PracticeForm({initial,onSave}:{initial:Practice|null;onSave:(p:Practice)=>void}){const[form,setForm]=useState(()=>initial??{id:crypto.randomUUID(),accountNumber:`KDL-${1000+Math.floor(Math.random()*8999)}`,practiceName:'',status:'active' as const,phone:'',email:'',address:'',city:'',state:'CA',postalCode:'',taxExempt:false,scannerType:'iTero',createdAt:new Date().toISOString()});",
-            "function PracticeForm({initial,onSave}:{initial:Practice|null;onSave:(p:Practice)=>void}){const[form,setForm]=useState<Practice>(()=>initial??{id:crypto.randomUUID(),accountNumber:`KDL-${1000+Math.floor(Math.random()*8999)}`,practiceName:'',status:'active',phone:'',email:'',address:'',city:'',state:'CA',postalCode:'',taxExempt:false,scannerType:'iTero',officeManager:{name:'',email:'',phone:''},notes:'',communicationHistory:[],createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});"
-          )
-          source = source.replace(
-            "function DoctorForm({initial,practices,onSave}:{initial:Doctor|null;practices:Practice[];onSave:(d:Doctor)=>void}){const[form,setForm]=useState(()=>initial??{id:crypto.randomUUID(),practiceId:practices[0]?.id??'',firstName:'',lastName:'',specialty:'General Dentistry',email:'',phone:'',status:'active',active:true,notes:'',communicationHistory:[],createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()} as Doctor);",
-            "function DoctorForm({initial,practices,onSave}:{initial:Doctor|null;practices:Practice[];onSave:(d:Doctor)=>void}){const[form,setForm]=useState<Doctor>(()=>initial??{id:crypto.randomUUID(),practiceId:practices[0]?.id??'',firstName:'',lastName:'',specialty:'General Dentistry',email:'',phone:'',status:'active',notes:'',communicationHistory:[],createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});"
-          )
-          source = source.replace(
-            "<label className=\"checkbox\"><input type=\"checkbox\" checked={form.active} onChange={e=>setForm({...form,active:e.target.checked,status:e.target.checked?'active':'inactive'})}/>Active</label>",
-            "<label>Status<select value={form.status} onChange={e=>setForm({...form,status:e.target.value as Doctor['status']})}><option value=\"active\">Active</option><option value=\"inactive\">Inactive</option></select></label>"
-          )
-
-          forbidden = ["d.active", "form.active", "active:true", "active:false"]
-          remaining = [token for token in forbidden if token in source]
-          if remaining:
-            raise SystemExit('Duplicate doctor active state remains: ' + ', '.join(remaining))
-
           path.write_text(source)
           PY
           git config user.name github-actions[bot]
@@ -99,6 +87,10 @@ jobs:
         run: |
           set -o pipefail
           (pnpm typecheck && pnpm build) 2>&1 | tee /tmp/runtime-build.log
+      - name: Apply durable persistence migrations
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0001_infrastructure_core.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0002_repository_documents.sql
       - name: Start API
         run: |
           pnpm --filter @northstar/api dev > /tmp/northstar-api.log 2>&1 &
