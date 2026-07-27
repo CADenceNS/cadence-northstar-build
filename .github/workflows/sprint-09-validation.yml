@@ -1,0 +1,73 @@
+name: Sprint 09 Validation
+
+on:
+  push:
+    branches:
+      - feature/sprint-09-infrastructure-durable-persistence
+  pull_request:
+    branches:
+      - feature/sprint-08-billing-financial-engine
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: northstar
+          POSTGRES_PASSWORD: northstar
+          POSTGRES_DB: northstar_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U northstar -d northstar_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://northstar:northstar@127.0.0.1:5432/northstar_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Refresh lockfile for infrastructure dependencies
+        run: pnpm install --no-frozen-lockfile
+      - name: Verify reproducible installation
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck and build
+        run: pnpm typecheck && pnpm build
+      - name: Run repository contracts
+        run: pnpm --filter @northstar/api test:repositories
+      - name: Run migration contracts
+        run: pnpm --filter @northstar/api test:migrations
+      - name: Apply, rollback, and reapply PostgreSQL migration
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0001_infrastructure_core.sql
+          psql "$DATABASE_URL" -c "SELECT count(*) FROM information_schema.tables WHERE table_schema='public';"
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0001_infrastructure_core.rollback.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0001_infrastructure_core.sql
+          psql "$DATABASE_URL" -c "INSERT INTO tenants(name) VALUES ('NorthStar Test');"
+      - name: Start existing application services
+        run: |
+          pnpm --filter @northstar/api dev > /tmp/sprint09-api.log 2>&1 &
+          pnpm --filter @northstar/web dev --host 127.0.0.1 > /tmp/sprint09-web.log 2>&1 &
+          for attempt in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4000/health >/dev/null && curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/sprint09-api.log /tmp/sprint09-web.log
+          exit 1
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Run all browser regressions
+        run: pnpm test:e2e
+      - name: Print logs on failure
+        if: failure()
+        run: cat /tmp/sprint09-api.log /tmp/sprint09-web.log || true
