@@ -6,7 +6,16 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api': 'http://localhost:4000'
+      '/api': {
+        target: 'http://localhost:4000',
+        configure(proxy) {
+          proxy.on('proxyReq', (proxyRequest, request) => {
+            const publicHost = request.headers.host;
+            if (publicHost) proxyRequest.setHeader('x-forwarded-host', publicHost);
+            proxyRequest.setHeader('x-forwarded-proto', 'http');
+          });
+        }
+      }
     }
   }
 });
