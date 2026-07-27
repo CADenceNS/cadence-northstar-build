@@ -1,0 +1,44 @@
+name: Sprint 08 Validation
+on:
+  push:
+    branches: [feature/sprint-08-billing-financial-engine]
+  pull_request:
+    branches: [feature/sprint-07-shipping-logistics]
+  workflow_dispatch:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: {version: 9.15.0}
+      - uses: actions/setup-node@v4
+        with: {node-version: 20}
+      - name: Install reproducibly
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck and build
+        run: pnpm typecheck && pnpm build
+      - name: Start services
+        run: |
+          pnpm --filter @northstar/api dev > /tmp/sprint08-api.log 2>&1 &
+          pnpm --filter @northstar/web dev --host 127.0.0.1 > /tmp/sprint08-web.log 2>&1 &
+          for attempt in $(seq 1 45); do
+            if curl -fsS http://127.0.0.1:4000/health >/dev/null && curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/sprint08-api.log /tmp/sprint08-web.log
+          exit 1
+      - name: Validate financial APIs
+        run: |
+          curl -fsS http://127.0.0.1:4000/api/billing/invoices | grep -q '\['
+          curl -fsS http://127.0.0.1:4000/api/billing/aging | grep -q 'days31To60'
+          curl -fsS http://127.0.0.1:4000/api/billing/metrics | grep -q 'outstandingAR'
+          curl -fsS http://127.0.0.1:4000/api/dashboard | grep -q 'financial'
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Run browser lifecycle
+        run: pnpm test:e2e
+      - name: Print logs on failure
+        if: failure()
+        run: cat /tmp/sprint08-api.log /tmp/sprint08-web.log || true
