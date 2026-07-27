@@ -11,7 +11,8 @@
 - [ ] Review and merge PR #9 after PR #8.
 - [ ] Review and merge PR #10 after PR #9.
 - [ ] Review and merge architecture-planning PR #11 after PR #10.
-- [ ] Complete Sprint 10 final CI, Runtime Validation, security integration, and Playwright gates.
+- [ ] Review and merge Sprint 10 PR #12 after PR #11.
+- [ ] Complete Sprint 11 communications integration, CI, Runtime Validation, and Playwright gates.
 - [ ] Add production email delivery for password reset and email verification.
 - [ ] Add user, membership, session, and role administration workflows.
 - [ ] Add future OIDC/SSO, SCIM, WebAuthn/passkey, TOTP, and step-up authentication integrations.
@@ -20,21 +21,35 @@
 - [ ] Add durable generation and cloud storage for invoice PDFs and shipping documents when those existing domains begin producing binary artifacts.
 - [ ] Evaluate read replicas, partitioning, connection-pooling proxies, and tenant-specific data residency when operational scale requires them.
 
-## Sprint 10 — Production Identity & Security
+## Sprint 11 — Clinical Communications Platform
+
+- [x] Add append-only communication threads, events, attachment references, and notifications schema.
+- [x] Add chronological timeline and threaded-history APIs.
+- [x] Add ObjectStorage-backed communication attachments without duplicating binary storage.
+- [x] Add tenant-scoped communication search by entity, actor, date, event type, and keyword.
+- [x] Add notification retrieval, priority/category targeting, unread state, and read transitions.
+- [x] Integrate timelines into Practice, Doctor, Patient, Case, Shipment, and Invoice views.
+- [x] Add an authenticated in-application notification center.
+- [x] Add communication repository, ordering, attachment, search, notification, and authorization integration coverage.
+- [x] Add dedicated Sprint 11 validation workflow and Runtime Validation migration support.
+- [ ] Pass strict TypeScript and production builds on final head.
+- [ ] Pass Sprint 11 integration and migration rollback/reapplication gates.
+- [ ] Pass Runtime Validation and complete Playwright regressions on final head.
+- [ ] Mark Sprint 11 complete only after all acceptance gates pass.
+
+## Completed — Sprint 10 Production Identity & Security
 
 - [x] Add PostgreSQL credential, membership, session, and one-time-token schema with rollback.
 - [x] Replace plaintext password comparison with salted, parameterized `scrypt` verification.
 - [x] Add HttpOnly server-side sessions with idle and absolute expiry, revocation, device metadata, and concurrency limits.
 - [x] Add temporary account lockout and immutable authentication failure audits.
-- [x] Add CSRF protection and same-origin mutation validation.
+- [x] Add CSRF protection, proxy-aware same-origin validation, and CSRF rotation on session restoration.
 - [x] Add centralized request identity, permission evaluation, practice scope enforcement, and stable security errors.
 - [x] Add role coverage for administrators, laboratory operations, Doctor users, and read-only auditors.
 - [x] Replace browser-local authentication authority with server session restoration and logout invalidation.
 - [x] Add security integration tests and dedicated Sprint 10 validation workflow.
+- [x] Pass final Sprint 10 CI, Runtime Validation, and the complete Playwright suite.
 - [x] Add `docs/SECURITY.md`, `docs/AUTHORIZATION.md`, and `docs/SPRINTS/Sprint-10.md`.
-- [ ] Pass final Sprint 10 CI and Runtime Validation.
-- [ ] Pass the complete existing Playwright regression suite.
-- [ ] Mark Sprint 10 complete only after every acceptance gate passes.
 
 ## Completed — Sprint 9 Infrastructure Core: Durable Persistence
 
