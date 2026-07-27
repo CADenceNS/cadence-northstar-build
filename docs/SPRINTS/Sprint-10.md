@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress. Production identity and browser integration are implemented. Sprint 10 remains incomplete until Sprint 10 Validation, Runtime Validation, and the complete Playwright suite pass on the final documentation head.
+Complete. Production identity, server-side authorization, and browser authentication integration are implemented and verified without weakening security controls or changing established ERP workflows.
 
 ## Objective
 
@@ -37,10 +37,12 @@ The initial Playwright regression had three related causes:
 
 ## Sprint 10A resolution
 
-- Origin validation now accepts the configured public origin or the proxy-preserved `X-Forwarded-Host`/request host. It does not disable origin validation.
+- Origin validation accepts the configured public origin or the proxy-preserved `X-Forwarded-Host`/request host. Origin validation remains enforced.
+- The Vite proxy preserves the browser-facing host and protocol through standard forwarded headers.
 - Session restoration rotates a fresh cryptographically random CSRF token, stores only its hash, and returns the new token to the authenticated browser.
-- Playwright now verifies the real HttpOnly, SameSite=Strict cookie, confirms `localStorage` is not authentication authority, reloads through `/api/auth/session`, and verifies logout invalidation.
-- CRUD regressions wait for and assert the protected API response status so CSRF or authorization failures cannot be hidden by a UI timeout.
+- Security integration tests prove that the previous CSRF token is rejected after rotation and the current token succeeds.
+- Playwright verifies the real HttpOnly, SameSite=Strict cookie, confirms `localStorage` is not authentication authority, reloads through `/api/auth/session`, and verifies logout invalidation.
+- CRUD regressions wait for and assert protected API response status so CSRF or authorization failures cannot be hidden by a UI timeout.
 - Existing coverage was strengthened rather than weakened.
 
 ## Browser integration notes
@@ -52,21 +54,43 @@ The initial Playwright regression had three related causes:
 - Logout revokes the durable session and expires the cookie.
 - Session expiration clears browser CSRF state and returns the application to the existing login screen.
 
+## Verified
+
+Sprint 10 Validation run `30301080425` passed:
+
+- Frozen dependency installation.
+- Strict TypeScript validation and production builds.
+- PostgreSQL identity migration application.
+- Existing persistence contracts.
+- Authentication, authorization, permission, lockout, session, CSRF rotation, and immutable-audit integration tests.
+- Identity migration rollback and reapplication.
+- Secure API and web startup.
+- Secure session API lifecycle.
+- Complete Playwright regression suite.
+
+Runtime Validation run `30301080443` passed:
+
+- Reproducible installation.
+- Strict TypeScript and production builds.
+- Durable persistence and identity migrations.
+- Secure API health and frontend startup.
+- Browser login, server-session restoration, protected navigation, CSRF-protected mutations, logout invalidation, and all established ERP browser workflows.
+
 ## Acceptance gates
 
-- [ ] Frozen-lockfile installation passes on final head.
-- [ ] Strict TypeScript passes on final head.
-- [ ] Production build passes on final head.
-- [ ] Migration 0003 applies, rolls back, and reapplies.
-- [ ] Authentication integration tests pass.
-- [ ] Permission matrix and authorization tests pass.
-- [ ] Session lifecycle, revocation, lockout, and CSRF tests pass.
-- [ ] Tenant and practice isolation tests pass.
-- [ ] Runtime Validation passes with PostgreSQL identity storage.
-- [ ] Existing Playwright regressions pass.
-- [ ] Security-focused browser scenarios pass.
+- [x] Frozen-lockfile installation passes on final implementation head.
+- [x] Strict TypeScript passes.
+- [x] Production build passes.
+- [x] Migration 0003 applies, rolls back, and reapplies.
+- [x] Authentication integration tests pass.
+- [x] Permission matrix and authorization tests pass.
+- [x] Session lifecycle, revocation, lockout, CSRF validation, and CSRF rotation tests pass.
+- [x] Tenant and practice isolation tests pass.
+- [x] Runtime Validation passes with PostgreSQL identity storage.
+- [x] Existing Playwright regressions pass.
+- [x] Security-focused browser scenarios pass.
 - [x] Root cause and browser testing assumptions are documented.
-- [ ] Final documentation accurately distinguishes implemented, verified, and deferred work.
+- [x] Final documentation accurately distinguishes implemented, verified, and deferred work.
 
 ## Deferred
 
@@ -77,6 +101,6 @@ The initial Playwright regression had three related causes:
 - Distributed rate limiting and risk-based anomaly detection.
 - Managed secrets and automated credential rotation.
 
-## Completion rule
+## Remaining blockers
 
-Do not mark Sprint 10 complete or move the pull request out of draft until every acceptance gate passes on the final head. No security control may be weakened to satisfy browser tests.
+None for the Sprint 10 definition of done.
