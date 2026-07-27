@@ -6,12 +6,29 @@
 - [ ] Review and merge PR #4 after PR #2.
 - [ ] Review and merge PR #5 after PR #4.
 - [ ] Review and merge PR #6 after PR #5.
+- [ ] Complete and verify Sprint 6 Quality Control Engine.
 - [ ] Replace development-only credentials with production identity and secure server sessions.
 - [ ] Add server-side authorization enforcement for protected API resources.
 - [ ] Replace all process-memory operational storage with durable database persistence.
 - [ ] Migrate production routes, assignments, transitions, SLA events, and status history to transactional database tables.
-- [ ] Add immutable production-event audit storage and indexes for department queues, technician assignments, and overdue SLA queries.
-- [ ] Replace base64 process-memory attachments with durable encrypted object storage.
+- [ ] Migrate QC templates, template versions, inspection results, defects, outcomes, inspector sign-offs, and QC history to transactional database tables.
+- [ ] Add immutable production and QC event audit storage with indexes for queues, technician assignments, outcomes, defects, and SLA queries.
+- [ ] Replace base64 process-memory attachments and QC photos with durable encrypted object storage, malware scanning, and retention controls.
+
+## Sprint 6 — Quality Control Engine
+
+- [x] Define strict template, checklist, outcome, defect, photo, sign-off, history, and quality-metric contracts.
+- [x] Add configurable QC templates by restoration type.
+- [x] Add Pass, Rework, Hold, Remake, and Doctor Clarification outcomes.
+- [x] Add required checklist enforcement and categorized defect validation.
+- [x] Add inspector-attributed digital sign-off and timestamped QC history.
+- [x] Add QC photo attachment support.
+- [x] Add pass rate, remake rate, rework rate, first-pass yield, outcome counts, and defect trends.
+- [x] Add authenticated QC React workspace and dashboard quality metrics.
+- [x] Add QC template, inspection, photo, history, and metric API endpoints.
+- [x] Add Playwright coverage for QC sign-off, defects, photos, history, and dashboard metrics.
+- [ ] Pass frozen install, typecheck, production build, service startup, QC API lifecycle, runtime regression, and all browser tests.
+- [ ] Mark Sprint 6 complete only after every validation gate passes.
 
 ## Completed — Sprint 5 Production Workflow Engine
 
@@ -24,20 +41,15 @@
 - [x] Add authenticated Production Workflow React UI.
 - [x] Add API endpoints for technicians, work items, assignments, transitions, queues, and workload.
 - [x] Add Playwright coverage for the complete production route.
-- [x] Pass frozen install, typecheck, production build, service startup, production API lifecycle, and Playwright verification in Sprint 05 Validation run `30231185477`.
-- [x] Pass clean install, frozen-lockfile verification, runtime startup, authentication, and all browser regressions in Runtime Validation run `30231185467`.
+- [x] Pass Sprint 5 validation and runtime regression pipelines.
 - [x] Open focused Sprint 5 pull request #6 stacked on PR #5.
 
 ## Completed — Sprint 4 Patient & Case Intake
 
 - [x] Define strict Patient, Clinical Case, attachment, arch, tooth, shade, and rush-priority contracts.
-- [x] Add Patient CRUD, search, status filtering, validation, and Practice/Doctor associations.
-- [x] Add Case CRUD, automatic case numbering, Universal tooth validation, arch selection, and clinical validation.
-- [x] Add restoration, material, shade, stump shade, rush priority, and turnaround-date calculation.
-- [x] Add STL, OBJ, PLY, DICOM/CBCT, RX, and photo attachment endpoints and UI upload support.
+- [x] Add Patient and Case CRUD, associations, clinical validation, numbering, turnaround, and attachment support.
 - [x] Add authenticated Patient Management and Case Intake pages.
-- [x] Add dashboard active-patient, open-case, rush-case, due-today, and at-risk metrics.
-- [x] Add Playwright Patient and Case lifecycle coverage.
+- [x] Add dashboard clinical metrics and Playwright lifecycle coverage.
 - [x] Pass Sprint 4 validation and runtime regression pipelines.
 - [x] Open focused Sprint 4 pull request #5 stacked on PR #4.
 
