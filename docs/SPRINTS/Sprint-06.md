@@ -2,7 +2,7 @@
 
 ## Status
 
-Implementation complete; validation pending on the Sprint 6 pull request.
+Complete and verified on PR #7.
 
 ## Objective
 
@@ -24,21 +24,26 @@ Deliver authenticated, template-driven final quality control with auditable digi
 
 ## Acceptance gates
 
-- [ ] Frozen-lockfile installation passes.
-- [ ] TypeScript validation passes without contract weakening.
-- [ ] Production build passes.
-- [ ] API gateway, upstream API, and frontend start successfully.
-- [ ] Template creation and update validation pass.
-- [ ] Restoration-to-template compatibility validation passes.
-- [ ] Required checklist enforcement passes.
-- [ ] Failed checklist items require categorized defects.
-- [ ] Passing outcomes cannot contain failed checklist items.
-- [ ] Digital sign-off captures inspector and timestamp.
-- [ ] Photo attachment and QC history pass.
-- [ ] Case status synchronizes with QC outcome.
-- [ ] Pass, remake, rework, first-pass-yield, and defect-trend metrics pass.
-- [ ] Authentication and Sprint 3–5 browser regressions pass.
-- [ ] Sprint 6 Playwright lifecycle passes.
+- [x] Frozen-lockfile installation passes.
+- [x] TypeScript validation passes without contract weakening.
+- [x] Production build passes.
+- [x] API gateway, upstream API, and frontend start successfully.
+- [x] Template creation and update validation pass.
+- [x] Restoration-to-template compatibility validation passes.
+- [x] Required checklist enforcement passes.
+- [x] Failed checklist items require categorized defects.
+- [x] Passing outcomes cannot contain failed checklist items.
+- [x] Digital sign-off captures inspector and timestamp.
+- [x] Photo attachment and QC history pass.
+- [x] Case status synchronizes with QC outcome.
+- [x] Pass, remake, rework, first-pass-yield, and defect-trend metrics pass.
+- [x] Authentication and Sprint 3–5 browser regressions pass.
+- [x] Sprint 6 Playwright lifecycle passes.
+
+## Verified runs
+
+- Sprint 06 Validation: `30234013933`
+- Runtime Validation: `30234013970`
 
 ## Persistence note
 
