@@ -24,7 +24,10 @@ jobs:
       - name: Install reproducibly
         run: pnpm install --frozen-lockfile
       - name: Typecheck and build
-        run: pnpm typecheck && pnpm build
+        shell: bash
+        run: |
+          set -o pipefail
+          (pnpm typecheck && pnpm build) 2>&1 | tee /tmp/sprint05-build.log
       - name: Start services
         run: |
           pnpm --filter @northstar/api dev > /tmp/sprint05-api.log 2>&1 &
@@ -52,6 +55,16 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
       - name: Run browser lifecycle
         run: pnpm test:e2e
+      - name: Upload Sprint 5 diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sprint05-diagnostics
+          path: |
+            /tmp/sprint05-build.log
+            /tmp/sprint05-api.log
+            /tmp/sprint05-web.log
+          if-no-files-found: ignore
       - name: Print logs on failure
         if: failure()
-        run: cat /tmp/sprint05-api.log /tmp/sprint05-web.log || true
+        run: cat /tmp/sprint05-build.log /tmp/sprint05-api.log /tmp/sprint05-web.log || true
