@@ -1,10 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { Sprint5App } from './Sprint5App';
+import { Sprint6App } from './Sprint6App';
 import './styles.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <Sprint5App />
+    <Sprint6App />
   </React.StrictMode>
 );
