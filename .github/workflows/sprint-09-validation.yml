@@ -47,12 +47,19 @@ jobs:
         run: pnpm --filter @northstar/api test:repositories
       - name: Run migration contracts
         run: pnpm --filter @northstar/api test:migrations
-      - name: Apply, rollback, and reapply PostgreSQL migration
+      - name: Apply PostgreSQL migrations
         run: |
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0001_infrastructure_core.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0002_repository_documents.sql
           psql "$DATABASE_URL" -c "SELECT count(*) FROM information_schema.tables WHERE table_schema='public';"
+      - name: Run PostgreSQL repository integrations
+        run: pnpm --filter @northstar/api test:postgres-repositories
+      - name: Roll back and reapply PostgreSQL migrations
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0002_repository_documents.rollback.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0001_infrastructure_core.rollback.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0001_infrastructure_core.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0002_repository_documents.sql
           psql "$DATABASE_URL" -c "INSERT INTO tenants(name) VALUES ('NorthStar Test');"
       - name: Start existing application services
         run: |
