@@ -29,7 +29,7 @@ test('uses the API for login and protects the application shell', async ({ page 
   await expect(page.getByRole('heading', { name: 'Laboratory Status' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Practices' }).click();
-  await expect(page.getByRole('heading', { name: 'Practice Management' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Practice Management', level: 1 })).toBeVisible();
 
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
