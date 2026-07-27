@@ -42,6 +42,10 @@ jobs:
             "const initialDoctors: Doctor[] = [{ id:'doctor-1', practiceId:'practice-1', firstName:'Beibei', lastName:'Wu', specialty:'General Dentistry', email:'doctor@example.com', phone:'818-555-0171', active:true, createdAt:new Date().toISOString() }];",
             "const initialDoctors: Doctor[] = [{ id:'doctor-1', practiceId:'practice-1', firstName:'Beibei', lastName:'Wu', specialty:'General Dentistry', email:'doctor@example.com', phone:'818-555-0171', status:'active', notes:'', communicationHistory:[], createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() }];"
           )
+          source = source.replace(
+            "const initialDoctors: Doctor[] = [{ id:'doctor-1', practiceId:'practice-1', firstName:'Beibei', lastName:'Wu', specialty:'General Dentistry', email:'doctor@example.com', phone:'818-555-0171', status:'active', active:true, notes:'', communicationHistory:[], createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() }];",
+            "const initialDoctors: Doctor[] = [{ id:'doctor-1', practiceId:'practice-1', firstName:'Beibei', lastName:'Wu', specialty:'General Dentistry', email:'doctor@example.com', phone:'818-555-0171', status:'active', notes:'', communicationHistory:[], createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() }];"
+          )
           source = source.replace("doctors.filter(d=>d.active).length", "doctors.filter(d=>d.status==='active').length")
           source = source.replace("<small>{d.active?'active':'inactive'}</small>", "<small>{d.status}</small>")
           source = source.replace(
