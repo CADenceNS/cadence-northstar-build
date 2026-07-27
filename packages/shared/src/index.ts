@@ -14,6 +14,9 @@ export type QCDefectCategory = 'fit' | 'contacts' | 'occlusion' | 'margin' | 'an
 export type QCChecklistResult = 'pass' | 'fail' | 'not-applicable';
 export type ShipmentStatus = 'ready-to-ship' | 'awaiting-pickup' | 'shipped' | 'delivered';
 export type Courier = 'local-delivery' | 'ups' | 'fedex' | 'usps' | 'dhl' | 'other';
+export type InvoiceStatus = 'draft' | 'open' | 'partially-paid' | 'paid' | 'void';
+export type PaymentMethod = 'ach' | 'check' | 'credit-card' | 'cash' | 'other';
+export type PaymentTerms = 'due-on-receipt' | 'net-15' | 'net-30' | 'net-45';
 
 export interface User { id:string; name:string; email:string; role:UserRole; active:boolean; }
 export interface Contact { name:string; email:string; phone:string; }
@@ -51,8 +54,20 @@ export interface Shipment { id:string; shipmentNumber:string; barcodeValue:strin
 export interface ShipmentInput { caseIds:string[]; courier:Courier; courierName:string; trackingNumber:string; packingChecklist:Array<Omit<PackingChecklistItem,'id'>>; notes:string; actorId:string; actorName:string; }
 export interface ShipmentTransitionInput { status:ShipmentStatus; trackingNumber:string; note:string; actorId:string; actorName:string; occurredAt:string; }
 export interface LogisticsMetrics { readyToShip:number; awaitingPickup:number; shipped:number; delivered:number; totalShipments:number; deliveredOnTime:number; }
+export interface InvoiceLine { id:string; caseId:string; caseNumber:string; description:string; quantity:number; unitPrice:number; amount:number; }
+export interface InvoiceAdjustment { id:string; type:'discount'|'fee'|'credit'; description:string; amount:number; createdBy:string; createdAt:string; }
+export interface Payment { id:string; invoiceId:string; amount:number; method:PaymentMethod; reference:string; receivedAt:string; recordedBy:string; }
+export interface Invoice { id:string; invoiceNumber:string; practiceId:string; practiceName:string; shipmentIds:string[]; caseIds:string[]; status:InvoiceStatus; terms:PaymentTerms; issuedAt:string; dueAt:string; subtotal:number; discountTotal:number; adjustmentTotal:number; taxableAmount:number; taxRate:number; taxAmount:number; total:number; amountPaid:number; balance:number; lines:InvoiceLine[]; adjustments:InvoiceAdjustment[]; payments:Payment[]; notes:string; createdAt:string; updatedAt:string; }
+export interface InvoiceUpdateInput { terms:PaymentTerms; taxRate:number; notes:string; }
+export interface AdjustmentInput { type:'discount'|'fee'|'credit'; description:string; amount:number; actorName:string; }
+export interface PaymentInput { amount:number; method:PaymentMethod; reference:string; receivedAt:string; recordedBy:string; }
+export interface AgingBucket { current:number; days1To30:number; days31To60:number; days61To90:number; over90:number; total:number; }
+export interface MonthlyStatement { id:string; statementNumber:string; practiceId:string; practiceName:string; period:string; generatedAt:string; invoiceIds:string[]; openingBalance:number; charges:number; payments:number; closingBalance:number; aging:AgingBucket; }
+export interface FinancialMetrics { invoicedTotal:number; collectedTotal:number; outstandingAR:number; overdueAR:number; invoiceCount:number; paidInvoiceCount:number; averageDaysToPay:number; aging:AgingBucket; }
+export interface FinancialRepository { listInvoices():Promise<Invoice[]>; getInvoice(id:string):Promise<Invoice|null>; saveInvoice(invoice:Invoice):Promise<void>; listStatements():Promise<MonthlyStatement[]>; saveStatement(statement:MonthlyStatement):Promise<void>; }
 export interface LaboratoryCase { id:string; caseNumber:string; practiceId:string; doctorId:string; patientReference:string; restorationType:string; toothNumbers:string; intakeType:IntakeType; route:WorkflowRoute; department:string; status:CaseStatus; receivedDate:string; dueDate:string; notes:string; createdAt:string; }
 export interface AuditEvent { id:string; actor:string; action:string; entityType:string; entityId:string; createdAt:string; }
 export interface DashboardSnapshot { generatedAt:string; casesReceivedToday:number; casesDueToday:number; casesAtRisk:number; casesInQc:number; shipmentsReady:number; monthRevenue:number; activeDoctors:number; activePractices:number; activePatients:number; openCases:number; rushCases:number; productionOverdue:number; productionInProgress:number; departmentWorkload:DepartmentWorkload[]; }
 export interface QualityDashboardSnapshot extends DashboardSnapshot { qcPassRate:number; qcRemakeRate:number; qcReworkRate:number; qcFirstPassYield:number; qcDefectTrends:Array<{category:QCDefectCategory;count:number}>; }
 export interface LogisticsDashboardSnapshot extends QualityDashboardSnapshot { logistics:LogisticsMetrics; }
+export interface FinancialDashboardSnapshot extends LogisticsDashboardSnapshot { financial:FinancialMetrics; }
