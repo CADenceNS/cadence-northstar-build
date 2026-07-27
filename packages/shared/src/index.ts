@@ -38,7 +38,6 @@ export interface Doctor {
   email: string;
   phone: string;
   status: EntityStatus;
-  active: boolean;
   notes: string;
   communicationHistory: CommunicationEntry[];
   createdAt: string;
@@ -46,7 +45,7 @@ export interface Doctor {
 }
 
 export type PracticeInput = Omit<Practice, 'id' | 'accountNumber' | 'communicationHistory' | 'createdAt' | 'updatedAt'>;
-export type DoctorInput = Omit<Doctor, 'id' | 'communicationHistory' | 'createdAt' | 'updatedAt' | 'active'> & { active?: boolean };
+export type DoctorInput = Omit<Doctor, 'id' | 'communicationHistory' | 'createdAt' | 'updatedAt'>;
 
 export interface LaboratoryCase { id: string; caseNumber: string; practiceId: string; doctorId: string; patientReference: string; restorationType: string; toothNumbers: string; intakeType: IntakeType; route: WorkflowRoute; department: string; status: CaseStatus; receivedDate: string; dueDate: string; notes: string; createdAt: string; }
 export interface AuditEvent { id: string; actor: string; action: string; entityType: string; entityId: string; createdAt: string; }
