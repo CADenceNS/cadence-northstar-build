@@ -23,45 +23,58 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+
       - name: Align legacy records with Sprint 3 contracts
         run: |
           python - <<'PY'
           from pathlib import Path
-          path=Path('apps/web/src/App.tsx')
-          source=path.read_text()
-          source=source.replace(
-            "scannerType:'iTero', createdAt:new Date().toISOString() }];",
-            "scannerType:'iTero', officeManager:{name:'Alex Morgan',email:'manager@northstardental.example',phone:'818-555-0199'}, notes:'', communicationHistory:[], createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() }];",
-            1
-          )
-          source=source.replace(
-            "phone:'818-555-0171', active:true, createdAt:new Date().toISOString() }];",
-            "phone:'818-555-0171', status:'active', active:true, notes:'', communicationHistory:[], createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() }];",
-            1
-          )
-          source=source.replace(
-            "scannerType:'iTero',createdAt:new Date().toISOString()});",
-            "scannerType:'iTero',officeManager:{name:'',email:'',phone:''},notes:'',communicationHistory:[],createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()} as Practice);",
-            1
-          )
-          source=source.replace(
-            "phone:'',active:true,createdAt:new Date().toISOString()});",
-            "phone:'',status:'active',active:true,notes:'',communicationHistory:[],createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()} as Doctor);",
-            1
-          )
-          source=source.replace(
-            "onChange={e=>setForm({...form,active:e.target.checked})}",
-            "onChange={e=>setForm({...form,active:e.target.checked,status:e.target.checked?'active':'inactive'})}"
-          )
+
+          path = Path('apps/web/src/App.tsx')
+          source = path.read_text()
+
+          replacements = [
+            (
+              "const initialPractices: Practice[] = [{ id:'practice-1', accountNumber:'KDL-1001', practiceName:'NorthStar Dental Group', status:'active', phone:'818-555-0148', email:'office@northstardental.example', address:'19350 Business Ctr Dr', city:'Northridge', state:'CA', postalCode:'91324', taxExempt:false, scannerType:'iTero', createdAt:new Date().toISOString() }];",
+              "const initialPractices: Practice[] = [{ id:'practice-1', accountNumber:'KDL-1001', practiceName:'NorthStar Dental Group', status:'active', phone:'818-555-0148', email:'office@northstardental.example', address:'19350 Business Ctr Dr', city:'Northridge', state:'CA', postalCode:'91324', taxExempt:false, scannerType:'iTero', officeManager:{name:'Alex Morgan',email:'manager@northstardental.example',phone:'818-555-0199'}, notes:'', communicationHistory:[], createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() }];"
+            ),
+            (
+              "const initialDoctors: Doctor[] = [{ id:'doctor-1', practiceId:'practice-1', firstName:'Beibei', lastName:'Wu', specialty:'General Dentistry', email:'doctor@example.com', phone:'818-555-0171', active:true, createdAt:new Date().toISOString() }];",
+              "const initialDoctors: Doctor[] = [{ id:'doctor-1', practiceId:'practice-1', firstName:'Beibei', lastName:'Wu', specialty:'General Dentistry', email:'doctor@example.com', phone:'818-555-0171', status:'active', notes:'', communicationHistory:[], createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() }];"
+            ),
+            ("doctors.filter(d=>d.active).length", "doctors.filter(d=>d.status==='active').length"),
+            ("<small>{d.active?'active':'inactive'}</small>", "<small>{d.status}</small>"),
+            (
+              "function PracticeForm({initial,onSave}:{initial:Practice|null;onSave:(p:Practice)=>void}){const[form,setForm]=useState(()=>initial??{id:crypto.randomUUID(),accountNumber:`KDL-${1000+Math.floor(Math.random()*8999)}`,practiceName:'',status:'active' as const,phone:'',email:'',address:'',city:'',state:'CA',postalCode:'',taxExempt:false,scannerType:'iTero',createdAt:new Date().toISOString()});",
+              "function PracticeForm({initial,onSave}:{initial:Practice|null;onSave:(p:Practice)=>void}){const[form,setForm]=useState<Practice>(()=>initial??{id:crypto.randomUUID(),accountNumber:`KDL-${1000+Math.floor(Math.random()*8999)}`,practiceName:'',status:'active',phone:'',email:'',address:'',city:'',state:'CA',postalCode:'',taxExempt:false,scannerType:'iTero',officeManager:{name:'',email:'',phone:''},notes:'',communicationHistory:[],createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});"
+            ),
+            (
+              "function DoctorForm({initial,practices,onSave}:{initial:Doctor|null;practices:Practice[];onSave:(d:Doctor)=>void}){const[form,setForm]=useState(()=>initial??{id:crypto.randomUUID(),practiceId:practices[0]?.id??'',firstName:'',lastName:'',specialty:'General Dentistry',email:'',phone:'',status:'active',active:true,notes:'',communicationHistory:[],createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()} as Doctor);",
+              "function DoctorForm({initial,practices,onSave}:{initial:Doctor|null;practices:Practice[];onSave:(d:Doctor)=>void}){const[form,setForm]=useState<Doctor>(()=>initial??{id:crypto.randomUUID(),practiceId:practices[0]?.id??'',firstName:'',lastName:'',specialty:'General Dentistry',email:'',phone:'',status:'active',notes:'',communicationHistory:[],createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});"
+            ),
+            (
+              "<label className=\"checkbox\"><input type=\"checkbox\" checked={form.active} onChange={e=>setForm({...form,active:e.target.checked,status:e.target.checked?'active':'inactive'})}/>Active</label>",
+              "<label>Status<select value={form.status} onChange={e=>setForm({...form,status:e.target.value as Doctor['status']})}><option value=\"active\">Active</option><option value=\"inactive\">Inactive</option></select></label>"
+            )
+          ]
+
+          for old, new in replacements:
+            source = source.replace(old, new)
+
+          if '.active' in source or 'active:' in source and 'User' not in source:
+            remaining = [line for line in source.splitlines() if '.active' in line or 'active:' in line]
+            if remaining:
+              raise SystemExit('Legacy doctor active state remains: ' + '\n'.join(remaining))
+
           path.write_text(source)
           PY
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add apps/web/src/App.tsx
           if ! git diff --cached --quiet; then
-            git commit -m 'Align legacy directory records with Sprint 3 contracts'
+            git commit -m 'Align legacy directory state with Sprint 3 contracts'
             git push origin HEAD:feature/sprint-03-practice-doctor-management
           fi
+
       - name: Install reproducibly
         run: pnpm install --frozen-lockfile
       - name: Typecheck and build
