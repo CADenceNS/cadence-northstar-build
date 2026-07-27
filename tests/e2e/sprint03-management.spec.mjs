@@ -3,18 +3,25 @@ import { expect, test } from '@playwright/test';
 const email = 'dorianhabet@yahoo.com';
 const password = 'NorthStar!2026';
 
-async function login(page) {
+async function login(page, context) {
+  await context.clearCookies();
   await page.goto('/');
-  await page.evaluate(() => localStorage.clear());
+  await page.evaluate(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
   await page.reload();
   await page.getByLabel('Email').fill(email);
   await page.getByLabel('Password').fill(password);
+  const loginResponse = page.waitForResponse(response => response.url().endsWith('/api/auth/login') && response.request().method() === 'POST');
   await page.getByRole('button', { name: 'Sign in' }).click();
+  expect((await loginResponse).status()).toBe(200);
   await expect(page.getByRole('heading', { name: 'Laboratory Status' })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => sessionStorage.getItem('northstar.csrf'))).not.toBeNull();
 }
 
-test('practice and doctor management CRUD lifecycle', async ({ page }) => {
-  await login(page);
+test('practice and doctor management CRUD lifecycle', async ({ page, context }) => {
+  await login(page, context);
 
   await page.getByRole('button', { name: 'Practices' }).click();
   await expect(page.getByRole('heading', { name: 'Practice Management', level: 1 })).toBeVisible();
@@ -24,7 +31,9 @@ test('practice and doctor management CRUD lifecycle', async ({ page }) => {
   await page.getByLabel('Office manager name').fill('Roxanna Test');
   await page.getByLabel('Office manager email').fill('manager@example.com');
   await page.getByLabel('Practice notes').fill('Sprint 3 verified practice.');
+  const practiceResponse = page.waitForResponse(response => response.url().endsWith('/api/practices') && response.request().method() === 'POST');
   await page.getByRole('button', { name: 'Create practice' }).click();
+  expect((await practiceResponse).status()).toBe(201);
   await expect(page.getByText('Keramos Test Practice')).toBeVisible();
   await expect(page.getByText('KDL-1002')).toBeVisible();
   await page.getByLabel('Search practices').fill('Keramos Test');
@@ -37,7 +46,9 @@ test('practice and doctor management CRUD lifecycle', async ({ page }) => {
   await page.getByLabel('Doctor last name').fill('Rivera');
   await page.getByLabel('Doctor email').fill('jamie.rivera@example.com');
   await page.getByLabel('Doctor notes').fill('Primary restorative contact.');
+  const doctorResponse = page.waitForResponse(response => response.url().endsWith('/api/doctors') && response.request().method() === 'POST');
   await page.getByRole('button', { name: 'Create doctor' }).click();
+  expect((await doctorResponse).status()).toBe(201);
   await expect(page.getByText('Dr. Jamie Rivera')).toBeVisible();
 
   await page.getByLabel('Search doctors').fill('Jamie Rivera');
