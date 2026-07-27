@@ -14,28 +14,23 @@ jobs:
   runtime:
     runs-on: ubuntu-latest
     timeout-minutes: 25
-
     steps:
       - name: Check out feature branch
         uses: actions/checkout@v4
         with:
           ref: ${{ github.head_ref || github.ref_name }}
-
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 9.15.0
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-
       - name: Generate lockfile from clean install
         run: |
           rm -rf node_modules apps/*/node_modules packages/*/node_modules
           pnpm install --no-frozen-lockfile
-
       - name: Commit generated lockfile
         run: |
           git config user.name github-actions[bot]
@@ -47,64 +42,55 @@ jobs:
             git commit -m 'Lock workspace dependencies'
             git push origin HEAD:${{ github.head_ref || github.ref_name }}
           fi
-
       - name: Verify reproducible install
         run: |
           rm -rf node_modules apps/*/node_modules packages/*/node_modules
           pnpm install --frozen-lockfile
-
       - name: Typecheck and build
+        shell: bash
         run: |
-          pnpm typecheck
-          pnpm build
-
+          set -o pipefail
+          (pnpm typecheck && pnpm build) 2>&1 | tee /tmp/runtime-build.log
       - name: Start API
         run: |
           pnpm --filter @northstar/api dev > /tmp/northstar-api.log 2>&1 &
           echo $! > /tmp/northstar-api.pid
-
       - name: Wait for API health
         run: |
           for attempt in $(seq 1 30); do
-            if curl --fail --silent http://127.0.0.1:4000/health > /tmp/health.json; then
-              cat /tmp/health.json
-              exit 0
-            fi
+            if curl --fail --silent http://127.0.0.1:4000/health > /tmp/health.json; then cat /tmp/health.json; exit 0; fi
             sleep 1
           done
           cat /tmp/northstar-api.log
           exit 1
-
       - name: Start web application
         run: |
           pnpm --filter @northstar/web dev --host 127.0.0.1 > /tmp/northstar-web.log 2>&1 &
           echo $! > /tmp/northstar-web.pid
           for attempt in $(seq 1 30); do
-            if curl --fail --silent http://127.0.0.1:5173/ > /tmp/index.html; then
-              exit 0
-            fi
+            if curl --fail --silent http://127.0.0.1:5173/ > /tmp/index.html; then exit 0; fi
             sleep 1
           done
           cat /tmp/northstar-web.log
           exit 1
-
       - name: Install Chromium
         run: pnpm exec playwright install --with-deps chromium
-
       - name: Validate browser authentication lifecycle
         shell: bash
         run: |
           set -o pipefail
           pnpm test:e2e 2>&1 | tee /tmp/playwright-results.txt
-
-      - name: Upload Playwright results
+      - name: Upload validation diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-auth-results
-          path: /tmp/playwright-results.txt
-          if-no-files-found: error
-
+          name: runtime-validation-diagnostics
+          path: |
+            /tmp/runtime-build.log
+            /tmp/playwright-results.txt
+            /tmp/northstar-api.log
+            /tmp/northstar-web.log
+          if-no-files-found: ignore
       - name: Print service logs on failure
         if: failure()
         run: |
