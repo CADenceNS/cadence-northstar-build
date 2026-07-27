@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
     "test:repositories": "tsx src/infrastructure/repository-contract.test.ts",
+    "test:postgres-repositories": "tsx src/infrastructure/postgres-repository.integration.test.ts",
     "test:migrations": "tsx src/infrastructure/migration-contract.test.ts"
   },
   "dependencies": {
