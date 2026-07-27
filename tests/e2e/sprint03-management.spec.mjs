@@ -20,6 +20,15 @@ async function login(page, context) {
   await expect.poll(() => page.evaluate(() => sessionStorage.getItem('northstar.csrf'))).not.toBeNull();
 }
 
+async function recordDoctorCommunication(row, eventType, content) {
+  await row.getByLabel('doctor communication type').selectOption(eventType);
+  await row.getByLabel('doctor communication').fill(content);
+  const response = row.page().waitForResponse(candidate => candidate.url().endsWith('/api/communications/events') && candidate.request().method() === 'POST');
+  await row.getByRole('button', { name: 'Record communication' }).click();
+  expect((await response).status()).toBe(201);
+  await expect(row.getByText(content)).toBeVisible();
+}
+
 test('practice and doctor management CRUD lifecycle', async ({ page, context }) => {
   await login(page, context);
 
@@ -59,7 +68,27 @@ test('practice and doctor management CRUD lifecycle', async ({ page, context }) 
   await page.getByLabel('Status filter').selectOption('inactive');
   await expect(page.getByText('Dr. Jamie Rivera')).toBeVisible();
 
-  await page.getByLabel('Communication note').last().fill('Discussed digital scan workflow.');
-  await page.getByRole('button', { name: 'Add communication' }).last().click();
-  await expect(page.getByText('Discussed digital scan workflow.')).toBeVisible();
+  const doctorRow = page.getByText('Dr. Jamie Rivera').locator('..');
+  await doctorRow.getByRole('button', { name: /View Communication timeline/i }).click();
+  const firstCommunication = 'Discussed digital scan workflow.';
+  const secondCommunication = 'Confirmed the follow-up delivery window.';
+  await recordDoctorCommunication(doctorRow, 'phone-call', firstCommunication);
+  await recordDoctorCommunication(doctorRow, 'doctor-message', secondCommunication);
+
+  const timelineEntries = doctorRow.getByLabel('doctor communication timeline').locator('article');
+  await expect(timelineEntries).toHaveCount(2);
+  await expect(timelineEntries.nth(0)).toContainText(firstCommunication);
+  await expect(timelineEntries.nth(1)).toContainText(secondCommunication);
+
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Laboratory Status' })).toBeVisible();
+  await page.getByRole('button', { name: 'Doctors' }).click();
+  await page.getByLabel('Search doctors').fill('Jamie Rivera');
+  await page.getByLabel('Status filter').selectOption('inactive');
+  const restoredRow = page.getByText('Dr. Jamie Rivera').locator('..');
+  await restoredRow.getByRole('button', { name: /View Communication timeline/i }).click();
+  const restoredEntries = restoredRow.getByLabel('doctor communication timeline').locator('article');
+  await expect(restoredEntries).toHaveCount(2);
+  await expect(restoredEntries.nth(0)).toContainText(firstCommunication);
+  await expect(restoredEntries.nth(1)).toContainText(secondCommunication);
 });
