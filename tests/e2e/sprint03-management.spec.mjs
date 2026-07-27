@@ -26,7 +26,7 @@ test('practice and doctor management CRUD lifecycle', async ({ page }) => {
   await page.getByLabel('Practice notes').fill('Sprint 3 verified practice.');
   await page.getByRole('button', { name: 'Create practice' }).click();
   await expect(page.getByText('Keramos Test Practice')).toBeVisible();
-  await expect(page.getByText(/KDL-\d+/)).toBeVisible();
+  await expect(page.getByText('KDL-1002')).toBeVisible();
   await page.getByLabel('Search practices').fill('Keramos Test');
   await expect(page.getByText('Keramos Test Practice')).toBeVisible();
 
