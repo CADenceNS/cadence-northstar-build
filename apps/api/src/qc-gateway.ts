@@ -12,6 +12,7 @@ process.env.PORT='4001';
 await import('./durable-server.js');
 const app=express();const port=4000;const upstream='http://127.0.0.1:4001';const now=()=>new Date().toISOString();
 app.use(cors({origin:true,credentials:true}));app.use(express.json({limit:'25mb'}));
+app.get('/health',async(_req,res)=>{const response=await fetch(`${upstream}/health`);res.status(response.status);return res.send(Buffer.from(await response.arrayBuffer()))});
 const security=new SecurityService(durable.pool,durable.repositories.users,durable.repositories.audit,durable.context);
 await installSecurity(app,security);
 app.use((req:SecurityRequest,_res,next)=>{if(req.identity&&req.body&&typeof req.body==='object'){req.body.actorId=req.body.actorId||req.identity.userId;req.body.actorName=req.body.actorName||req.identity.name;req.body.recordedBy=req.body.recordedBy||req.identity.name;req.body.uploadedBy=req.body.uploadedBy||req.identity.name}next()});
