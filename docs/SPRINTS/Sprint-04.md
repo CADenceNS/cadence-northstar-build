@@ -2,7 +2,7 @@
 
 ## Status
 
-Implementation complete; validation pending on the Sprint 4 pull request.
+Complete. Sprint 04 Validation run `30228941923` and Runtime Validation run `30228941920` passed all required gates.
 
 ## Objective
 
@@ -22,18 +22,18 @@ Deliver authenticated Patient Management and clinical Case Intake integrated wit
 
 ## Acceptance gates
 
-- [ ] Clean frozen-lockfile installation passes.
-- [ ] TypeScript validation passes without `any`, `ts-ignore`, or optional-contract weakening.
-- [ ] Production build passes.
-- [ ] API and frontend start successfully.
-- [ ] Patient create, read, update, delete, search, filtering, and relationship validation pass.
-- [ ] Case create, read, update, delete, search, automatic numbering, and turnaround calculation pass.
-- [ ] Universal tooth and arch clinical validation pass.
-- [ ] Supported clinical attachment upload and display pass.
-- [ ] Dashboard metrics update after Patient and Case changes.
-- [ ] Authentication and protected-shell regression tests pass.
-- [ ] Sprint 3 Practice/Doctor browser regression tests pass.
-- [ ] Sprint 4 Patient/Case Playwright lifecycle passes.
+- [x] Clean frozen-lockfile installation passes.
+- [x] TypeScript validation passes without `any`, `ts-ignore`, or optional-contract weakening.
+- [x] Production build passes.
+- [x] API and frontend start successfully.
+- [x] Patient create, read, update, delete, search, filtering, and relationship validation pass.
+- [x] Case create, read, update, delete, search, automatic numbering, and turnaround calculation pass.
+- [x] Universal tooth and arch clinical validation pass.
+- [x] Supported clinical attachment upload and display pass.
+- [x] Dashboard metrics update after Patient and Case changes.
+- [x] Authentication and protected-shell regression tests pass.
+- [x] Sprint 3 Practice/Doctor browser regression tests pass.
+- [x] Sprint 4 Patient/Case Playwright lifecycle passes.
 
 ## Out of scope
 
