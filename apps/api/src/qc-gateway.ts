@@ -8,12 +8,12 @@ import { createDurableRuntime, LegacyFinancialRepositoryAdapter } from './infras
 
 const durable=await createDurableRuntime();
 process.env.PORT='4001';
-await import('./server.js');
+await import('./durable-server.js');
 const app=express();const port=4000;const upstream='http://127.0.0.1:4001';const now=()=>new Date().toISOString();
 app.use(cors());app.use(express.json({limit:'25mb'}));
 async function listCases():Promise<ClinicalCase[]>{const response=await fetch(`${upstream}/api/cases`);if(!response.ok)throw new Error('Unable to load clinical cases.');return response.json() as Promise<ClinicalCase[]>}
 async function fetchCase(caseId:string):Promise<ClinicalCase|null>{const response=await fetch(`${upstream}/api/cases/${caseId}`);return response.ok?response.json() as Promise<ClinicalCase>:null}
-async function updateCase(caseId:string,value:ClinicalCase){const response=await fetch(`${upstream}/api/cases/${caseId}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({patientId:value.patientId,practiceId:value.practiceId,doctorId:value.doctorId,status:value.status,toothNumbers:value.toothNumbers,arch:value.arch,restoration:value.restoration,material:value.material,shade:value.shade,stumpShade:value.stumpShade,rushPriority:value.rushPriority,receivedDate:value.receivedDate,prescriptionNotes:value.prescriptionNotes})});if(!response.ok)throw new Error('Unable to synchronize case state.')}
+async function updateCase(caseId:string,value:ClinicalCase){const response=await fetch(`${upstream}/api/cases/${caseId}`,{method:'PUT',headers:{'Content-Type':'application/json','x-northstar-suppress-audit':'true'},body:JSON.stringify({patientId:value.patientId,practiceId:value.practiceId,doctorId:value.doctorId,status:value.status,toothNumbers:value.toothNumbers,arch:value.arch,restoration:value.restoration,material:value.material,shade:value.shade,stumpShade:value.stumpShade,rushPriority:value.rushPriority,receivedDate:value.receivedDate,prescriptionNotes:value.prescriptionNotes})});if(!response.ok)throw new Error('Unable to synchronize case state.')}
 async function resolvePractice(id:string):Promise<Practice|null>{const response=await fetch(`${upstream}/api/practices`);if(!response.ok)return null;const practices=await response.json() as Practice[];return practices.find(item=>item.id===id)??null}
 const qc=createQcEngine(app,now,fetchCase,updateCase,{repository:durable.repositories.qc,objects:durable.objects,audit:durable.repositories.audit,context:durable.context});
 const billing=createBillingEngine(app,now,new LegacyFinancialRepositoryAdapter(durable),resolvePractice);
