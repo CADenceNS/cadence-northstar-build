@@ -9,10 +9,13 @@ export type RushPriority = 'standard' | 'rush';
 export type AttachmentKind = 'stl' | 'obj' | 'ply' | 'dicom-cbct' | 'rx' | 'photo';
 export type ProductionDepartment = 'receiving' | 'case-review' | 'model' | 'cad' | 'manufacturing' | 'ceramics' | 'qc' | 'shipping';
 export type ProductionStatus = 'queued' | 'in-progress' | 'blocked' | 'completed';
+export type QCOutcome = 'pass' | 'rework' | 'hold' | 'remake' | 'doctor-clarification';
+export type QCDefectCategory = 'fit' | 'contacts' | 'occlusion' | 'margin' | 'anatomy' | 'shade' | 'surface' | 'material' | 'implant-interface' | 'prescription' | 'other';
+export type QCChecklistResult = 'pass' | 'fail' | 'not-applicable';
 
-export interface User { id: string; name: string; email: string; role: UserRole; active: boolean; }
-export interface Contact { name: string; email: string; phone: string; }
-export interface CommunicationEntry { id: string; entityType: 'practice' | 'doctor'; entityId: string; type: CommunicationType; summary: string; occurredAt: string; createdBy: string; }
+export interface User { id:string; name:string; email:string; role:UserRole; active:boolean; }
+export interface Contact { name:string; email:string; phone:string; }
+export interface CommunicationEntry { id:string; entityType:'practice'|'doctor'; entityId:string; type:CommunicationType; summary:string; occurredAt:string; createdBy:string; }
 export interface Practice { id:string; accountNumber:string; practiceName:string; status:EntityStatus; phone:string; email:string; address:string; city:string; state:string; postalCode:string; taxExempt:boolean; scannerType:string; officeManager:Contact; notes:string; communicationHistory:CommunicationEntry[]; createdAt:string; updatedAt:string; }
 export interface Doctor { id:string; practiceId:string; firstName:string; lastName:string; specialty:string; email:string; phone:string; status:EntityStatus; notes:string; communicationHistory:CommunicationEntry[]; createdAt:string; updatedAt:string; }
 export type PracticeInput = Omit<Practice,'id'|'accountNumber'|'communicationHistory'|'createdAt'|'updatedAt'>;
@@ -31,6 +34,18 @@ export interface ProductionWorkItemInput { caseId:string; route:ProductionDepart
 export interface ProductionTransitionInput { toDepartment:ProductionDepartment; status:ProductionStatus; technicianId:string|null; note:string; actorId:string; actorName:string; }
 export interface DepartmentWorkload { department:ProductionDepartment; queued:number; inProgress:number; blocked:number; overdue:number; total:number; }
 
+export interface QCChecklistItem { id:string; label:string; required:boolean; defectCategory:QCDefectCategory; sortOrder:number; }
+export interface QCTemplate { id:string; name:string; restorationTypes:string[]; status:EntityStatus; checklistItems:QCChecklistItem[]; createdAt:string; updatedAt:string; }
+export interface QCTemplateInput { name:string; restorationTypes:string[]; status:EntityStatus; checklistItems:Array<Omit<QCChecklistItem,'id'>>; }
+export interface QCInspectionItem { checklistItemId:string; label:string; result:QCChecklistResult; note:string; defectCategory:QCDefectCategory; }
+export interface QCDefect { id:string; category:QCDefectCategory; description:string; severity:'minor'|'major'|'critical'; }
+export interface QCPhoto { id:string; inspectionId:string; fileName:string; mimeType:string; size:number; contentBase64:string; uploadedAt:string; uploadedBy:string; }
+export interface QCInspectionHistoryEntry { id:string; inspectionId:string; action:string; outcome:QCOutcome|null; note:string; actorId:string; actorName:string; occurredAt:string; }
+export interface QCInspection { id:string; caseId:string; caseNumber:string; templateId:string; restorationType:string; outcome:QCOutcome; checklist:QCInspectionItem[]; defects:QCDefect[]; photos:QCPhoto[]; inspectorId:string; inspectorName:string; signedAt:string; notes:string; history:QCInspectionHistoryEntry[]; createdAt:string; updatedAt:string; }
+export interface QCInspectionInput { caseId:string; templateId:string; outcome:QCOutcome; checklist:QCInspectionItem[]; defects:Array<Omit<QCDefect,'id'>>; inspectorId:string; inspectorName:string; notes:string; }
+export interface QCPhotoInput { fileName:string; mimeType:string; size:number; contentBase64:string; uploadedBy:string; }
+export interface QCMetrics { totalInspections:number; passRate:number; remakeRate:number; reworkRate:number; firstPassYield:number; outcomeCounts:Record<QCOutcome,number>; defectTrends:Array<{category:QCDefectCategory;count:number}>; }
+
 export interface LaboratoryCase { id:string; caseNumber:string; practiceId:string; doctorId:string; patientReference:string; restorationType:string; toothNumbers:string; intakeType:IntakeType; route:WorkflowRoute; department:string; status:CaseStatus; receivedDate:string; dueDate:string; notes:string; createdAt:string; }
 export interface AuditEvent { id:string; actor:string; action:string; entityType:string; entityId:string; createdAt:string; }
-export interface DashboardSnapshot { generatedAt:string; casesReceivedToday:number; casesDueToday:number; casesAtRisk:number; casesInQc:number; shipmentsReady:number; monthRevenue:number; activeDoctors:number; activePractices:number; activePatients:number; openCases:number; rushCases:number; productionOverdue:number; productionInProgress:number; departmentWorkload:DepartmentWorkload[]; }
+export interface DashboardSnapshot { generatedAt:string; casesReceivedToday:number; casesDueToday:number; casesAtRisk:number; casesInQc:number; shipmentsReady:number; monthRevenue:number; activeDoctors:number; activePractices:number; activePatients:number; openCases:number; rushCases:number; productionOverdue:number; productionInProgress:number; departmentWorkload:DepartmentWorkload[]; qcPassRate:number; qcRemakeRate:number; qcReworkRate:number; qcFirstPassYield:number; qcDefectTrends:Array<{category:QCDefectCategory;count:number}>; }
