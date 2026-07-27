@@ -2,7 +2,7 @@
 
 ## Status
 
-Implementation complete; validation pending on the Sprint 8 pull request.
+Complete and verified.
 
 ## Objective
 
@@ -23,19 +23,21 @@ Deliver an authenticated financial lifecycle integrated with delivered shipments
 
 ## Acceptance gates
 
-- [ ] Frozen-lockfile installation passes.
-- [ ] TypeScript validation passes without contract weakening.
-- [ ] Production build passes.
-- [ ] API gateway, upstream API, and frontend start successfully.
-- [ ] Delivered shipments automatically generate one invoice.
-- [ ] Multi-case shipments create multi-line invoices.
-- [ ] Taxes respect practice tax-exempt status.
-- [ ] Discounts, credits, fees, terms, and totals recalculate correctly.
-- [ ] Payments cannot exceed the outstanding balance.
-- [ ] AR aging and monthly statements pass.
-- [ ] Dashboard financial metrics update.
-- [ ] Authentication and Sprint 3–7 browser regressions pass.
-- [ ] Sprint 8 Playwright lifecycle passes.
+- [x] Frozen-lockfile installation passes.
+- [x] TypeScript validation passes without contract weakening.
+- [x] Production build passes.
+- [x] API gateway, upstream API, and frontend start successfully.
+- [x] Delivered shipments automatically generate one invoice.
+- [x] Multi-case shipments create multi-line invoices.
+- [x] Taxes respect practice tax-exempt status.
+- [x] Discounts, credits, fees, terms, and totals recalculate correctly.
+- [x] Payments cannot exceed the outstanding balance.
+- [x] AR aging and monthly statements pass.
+- [x] Dashboard financial metrics update.
+- [x] Authentication and Sprint 3–7 browser regressions pass.
+- [x] Sprint 8 Playwright lifecycle passes.
+
+Verified in Sprint 08 Validation run `30237624951` and Runtime Validation run `30237624909`.
 
 ## Sprint 9 persistence boundary
 
