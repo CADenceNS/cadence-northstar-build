@@ -1,0 +1,80 @@
+name: Sprint 11 Validation
+
+on:
+  push:
+    branches:
+      - feature/sprint-11-clinical-communications-platform
+  pull_request:
+    branches:
+      - feature/sprint-10-production-identity-security
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: northstar
+          POSTGRES_PASSWORD: northstar
+          POSTGRES_DB: northstar_communications
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U northstar -d northstar_communications"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://northstar:northstar@127.0.0.1:5432/northstar_communications
+      NORTHSTAR_TENANT_ID: 00000000-0000-0000-0000-000000000001
+      NORTHSTAR_BOOTSTRAP_PASSWORD: NorthStar!2026
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Strict TypeScript and production build
+        run: pnpm typecheck && pnpm build
+      - name: Apply migrations
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0001_infrastructure_core.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0002_repository_documents.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0003_identity_security.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0004_clinical_communications.sql
+      - name: Run inherited persistence and security contracts
+        run: |
+          pnpm --filter @northstar/api test:repositories
+          pnpm --filter @northstar/api test:migrations
+          pnpm --filter @northstar/api test:postgres-repositories
+          pnpm --filter @northstar/api test:security
+      - name: Run communications integrations
+        run: pnpm --filter @northstar/api test:communications
+      - name: Validate communications rollback and reapplication
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0004_clinical_communications.rollback.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0004_clinical_communications.sql
+      - name: Start secure application services
+        run: |
+          pnpm --filter @northstar/api dev > /tmp/sprint11-api.log 2>&1 &
+          pnpm --filter @northstar/web dev --host 127.0.0.1 > /tmp/sprint11-web.log 2>&1 &
+          for attempt in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4000/health >/dev/null && curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/sprint11-api.log /tmp/sprint11-web.log
+          exit 1
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Run complete Playwright regression suite
+        run: pnpm test:e2e
+      - name: Print logs on failure
+        if: failure()
+        run: cat /tmp/sprint11-api.log /tmp/sprint11-web.log || true
