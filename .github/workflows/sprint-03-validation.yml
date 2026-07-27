@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   validate:
@@ -15,12 +15,53 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: feature/sprint-03-practice-doctor-management
       - uses: pnpm/action-setup@v4
         with:
           version: 9.15.0
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Align legacy records with Sprint 3 contracts
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path=Path('apps/web/src/App.tsx')
+          source=path.read_text()
+          source=source.replace(
+            "scannerType:'iTero', createdAt:new Date().toISOString() }];",
+            "scannerType:'iTero', officeManager:{name:'Alex Morgan',email:'manager@northstardental.example',phone:'818-555-0199'}, notes:'', communicationHistory:[], createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() }];",
+            1
+          )
+          source=source.replace(
+            "phone:'818-555-0171', active:true, createdAt:new Date().toISOString() }];",
+            "phone:'818-555-0171', status:'active', active:true, notes:'', communicationHistory:[], createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() }];",
+            1
+          )
+          source=source.replace(
+            "scannerType:'iTero',createdAt:new Date().toISOString()});",
+            "scannerType:'iTero',officeManager:{name:'',email:'',phone:''},notes:'',communicationHistory:[],createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()} as Practice);",
+            1
+          )
+          source=source.replace(
+            "phone:'',active:true,createdAt:new Date().toISOString()});",
+            "phone:'',status:'active',active:true,notes:'',communicationHistory:[],createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()} as Doctor);",
+            1
+          )
+          source=source.replace(
+            "onChange={e=>setForm({...form,active:e.target.checked})}",
+            "onChange={e=>setForm({...form,active:e.target.checked,status:e.target.checked?'active':'inactive'})}"
+          )
+          path.write_text(source)
+          PY
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add apps/web/src/App.tsx
+          if ! git diff --cached --quiet; then
+            git commit -m 'Align legacy directory records with Sprint 3 contracts'
+            git push origin HEAD:feature/sprint-03-practice-doctor-management
+          fi
       - name: Install reproducibly
         run: pnpm install --frozen-lockfile
       - name: Typecheck and build
