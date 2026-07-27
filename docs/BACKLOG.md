@@ -5,14 +5,15 @@
 - [ ] Merge PR #2 after review.
 - [ ] Review and merge PR #4 after PR #2.
 - [ ] Review and merge PR #5 after PR #4.
-- [ ] Complete and verify Sprint 5 Production Workflow Engine.
+- [ ] Review and merge PR #6 after PR #5.
 - [ ] Replace development-only credentials with production identity and secure server sessions.
 - [ ] Add server-side authorization enforcement for protected API resources.
 - [ ] Replace all process-memory operational storage with durable database persistence.
 - [ ] Migrate production routes, assignments, transitions, SLA events, and status history to transactional database tables.
+- [ ] Add immutable production-event audit storage and indexes for department queues, technician assignments, and overdue SLA queries.
 - [ ] Replace base64 process-memory attachments with durable encrypted object storage.
 
-## Sprint 5 — Production Workflow Engine
+## Completed — Sprint 5 Production Workflow Engine
 
 - [x] Define strict department, technician, route, work-item, status-history, SLA, and workload contracts.
 - [x] Add configurable routes covering Receiving, Case Review, Model, CAD, Manufacturing, Ceramics, QC, and Shipping.
@@ -23,8 +24,9 @@
 - [x] Add authenticated Production Workflow React UI.
 - [x] Add API endpoints for technicians, work items, assignments, transitions, queues, and workload.
 - [x] Add Playwright coverage for the complete production route.
-- [ ] Pass frozen install, typecheck, production build, service startup, API lifecycle, runtime regression, and Playwright verification.
-- [ ] Mark Sprint 5 complete only after every validation gate passes.
+- [x] Pass frozen install, typecheck, production build, service startup, production API lifecycle, and Playwright verification in Sprint 05 Validation run `30231185477`.
+- [x] Pass clean install, frozen-lockfile verification, runtime startup, authentication, and all browser regressions in Runtime Validation run `30231185467`.
+- [x] Open focused Sprint 5 pull request #6 stacked on PR #5.
 
 ## Completed — Sprint 4 Patient & Case Intake
 
