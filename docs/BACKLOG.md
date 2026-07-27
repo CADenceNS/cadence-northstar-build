@@ -8,46 +8,50 @@
 - [ ] Review and merge PR #6 after PR #5.
 - [ ] Review and merge PR #7 after PR #6.
 - [ ] Review and merge PR #8 after PR #7.
+- [ ] Complete and verify Sprint 8 Billing & Financial Engine.
+- [ ] Sprint 9: implement PostgreSQL repositories for operational and financial domains.
+- [ ] Add transactional invoice, line, adjustment, payment, statement, shipment-link, and audit tables with decimal money columns and unique constraints.
+- [ ] Add migration, seed, backfill, rollback, and repository-contract integration tests for PostgreSQL.
 - [ ] Replace development-only credentials with production identity and secure server sessions.
 - [ ] Add server-side authorization enforcement for protected API resources.
 - [ ] Replace all process-memory operational storage with durable database persistence.
-- [ ] Migrate production routes, assignments, transitions, SLA events, and status history to transactional database tables.
-- [ ] Migrate QC templates, template versions, inspection results, defects, outcomes, inspector sign-offs, and QC history to transactional database tables.
-- [ ] Migrate shipments, shipment-case joins, packing checklists, courier/tracking events, delivery confirmations, and barcode identifiers to transactional database tables.
-- [ ] Add immutable production, QC, and shipping event audit storage with indexes for queues, outcomes, tracking numbers, and delivery status.
-- [ ] Replace base64 process-memory attachments, QC photos, and future shipping documents with durable encrypted object storage, malware scanning, and retention controls.
+- [ ] Replace base64 process-memory attachments and generated financial documents with durable encrypted object storage, malware scanning, and retention controls.
+
+## Sprint 8 — Billing & Financial Engine
+
+- [x] Define strict invoice, line, adjustment, payment, terms, statement, aging, and financial-metric contracts.
+- [x] Add a `FinancialRepository` persistence boundary and in-memory implementation.
+- [x] Generate invoices automatically when shipments are delivered.
+- [x] Support multiple cases per invoice through multi-case shipments.
+- [x] Add taxes, tax-exempt handling, discounts, credits, fees, payment terms, and total recalculation.
+- [x] Add payment recording and invoice status updates.
+- [x] Add AR aging, monthly statements, and dashboard financial metrics.
+- [x] Add authenticated Billing React workspace and financial API endpoints.
+- [x] Add Playwright coverage for delivery-to-invoice, adjustment, payment, statement, aging, and dashboard updates.
+- [ ] Pass frozen install, typecheck, production build, service startup, financial API lifecycle, runtime regression, and all browser tests.
+- [ ] Mark Sprint 8 complete only after every validation gate passes.
 
 ## Completed — Sprint 7 Shipping & Logistics
 
-- [x] Define strict shipment, courier, packing-checklist, queue, tracking, barcode, history, and logistics-metric contracts.
-- [x] Add Ready to Ship, Awaiting Pickup, Shipped, and Delivered queues.
-- [x] Add single-case, partial, and multi-case shipment creation.
-- [x] Add packing checklist enforcement, courier selection, tracking management, and ordered status transitions.
-- [x] Add barcode-ready case and shipment identifiers with placeholder scanner-compatible values.
-- [x] Add timestamped, user-attributed shipping history and delivery confirmation.
-- [x] Add authenticated Shipping React workspace and dashboard logistics metrics.
-- [x] Add shipment, queue, transition, ready-case, and metrics API endpoints.
-- [x] Add Playwright coverage from QC approval through delivery confirmation.
-- [x] Pass frozen install, typecheck, production build, service startup, shipping API lifecycle, runtime regression, and all browser tests in Sprint 07 Validation run `30235588799` and Runtime Validation run `30235588800`.
+- [x] Add shipment contracts, queues, multi-case shipping, packing checklists, courier/tracking, barcode identifiers, history, delivery confirmation, metrics, API endpoints, React UI, and Playwright coverage.
+- [x] Pass Sprint 7 validation and runtime regression pipelines.
 - [x] Open focused Sprint 7 pull request #8 stacked on PR #7.
 
 ## Completed — Sprint 6 Quality Control Engine
 
-- [x] Define strict template, checklist, outcome, defect, photo, sign-off, history, and quality-metric contracts.
-- [x] Add configurable QC templates, outcomes, defect validation, digital sign-off, QC photos, history, quality metrics, API endpoints, React UI, and Playwright coverage.
+- [x] Add configurable QC templates, outcomes, defect validation, digital sign-off, photos, history, quality metrics, API endpoints, React UI, and Playwright coverage.
 - [x] Pass Sprint 6 validation and runtime regression pipelines.
 - [x] Open focused Sprint 6 pull request #7 stacked on PR #6.
 
 ## Completed — Sprint 5 Production Workflow Engine
 
-- [x] Define strict department, technician, route, work-item, status-history, SLA, and workload contracts.
 - [x] Add configurable production routes, assignments, queues, history, SLA metrics, API endpoints, React UI, and Playwright coverage.
 - [x] Pass Sprint 5 validation and runtime regression pipelines.
 - [x] Open focused Sprint 5 pull request #6 stacked on PR #5.
 
 ## Completed — Sprint 4 Patient & Case Intake
 
-- [x] Add strict Patient and Case contracts, CRUD, associations, validation, numbering, turnaround, attachments, dashboard metrics, authenticated UI, and Playwright coverage.
+- [x] Add Patient and Case contracts, CRUD, associations, validation, numbering, turnaround, attachments, metrics, authenticated UI, and Playwright coverage.
 - [x] Pass Sprint 4 validation and runtime regression pipelines.
 - [x] Open focused Sprint 4 pull request #5 stacked on PR #4.
 
