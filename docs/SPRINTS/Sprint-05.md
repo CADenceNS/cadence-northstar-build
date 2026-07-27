@@ -2,7 +2,7 @@
 
 ## Status
 
-Implementation complete; validation pending on the Sprint 5 pull request.
+Complete and verified on PR #6.
 
 ## Objective
 
@@ -23,19 +23,24 @@ Deliver an authenticated laboratory production lifecycle from Receiving through 
 
 ## Acceptance gates
 
-- [ ] Frozen-lockfile installation passes.
-- [ ] TypeScript validation passes without contract weakening.
-- [ ] Production build passes.
-- [ ] API and frontend start successfully.
-- [ ] Work-item creation validates the linked clinical case and route.
-- [ ] Routes must begin at Receiving and end at Shipping.
-- [ ] Technician assignment validates department eligibility.
-- [ ] Transitions follow the configured route in order.
-- [ ] Every transition records timestamp, actor, technician, status, department, and note.
-- [ ] SLA and overdue calculations pass.
-- [ ] Department workload and dashboard metrics pass.
-- [ ] Authentication, Sprint 3, and Sprint 4 regression tests pass.
-- [ ] Sprint 5 full production Playwright lifecycle passes.
+- [x] Frozen-lockfile installation passes.
+- [x] TypeScript validation passes without contract weakening.
+- [x] Production build passes.
+- [x] API and frontend start successfully.
+- [x] Work-item creation validates the linked clinical case and route.
+- [x] Routes begin at Receiving and end at Shipping.
+- [x] Technician assignment validates department eligibility.
+- [x] Transitions follow the configured route in order.
+- [x] Every transition records timestamp, actor, technician, status, department, and note.
+- [x] SLA and overdue calculations pass.
+- [x] Department workload and dashboard metrics pass.
+- [x] Authentication, Sprint 3, and Sprint 4 regression tests pass.
+- [x] Sprint 5 full production Playwright lifecycle passes.
+
+## Verified runs
+
+- Sprint 05 Validation: `30231185477`
+- Runtime Validation: `30231185467`
 
 ## Persistence note
 
