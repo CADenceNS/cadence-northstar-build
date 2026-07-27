@@ -4,9 +4,24 @@
 
 - [ ] Merge PR #2 after review.
 - [ ] Review and merge PR #4 after PR #2.
+- [ ] Complete and verify Sprint 4 Patient & Case Intake.
 - [ ] Replace development-only credentials with production identity and secure server sessions.
 - [ ] Add server-side authorization enforcement for protected API resources.
-- [ ] Replace process-memory Practice and Doctor storage with database persistence.
+- [ ] Replace process-memory Practice, Doctor, Patient, and Case storage with database persistence.
+- [ ] Replace base64 process-memory attachments with durable encrypted object storage.
+
+## Sprint 4 — Patient & Case Intake
+
+- [x] Define strict Patient, Clinical Case, attachment, arch, tooth, shade, and rush-priority contracts.
+- [x] Add Patient CRUD, search, status filtering, validation, and Practice/Doctor associations.
+- [x] Add Case CRUD, automatic case numbering, Universal tooth validation, arch selection, and clinical validation.
+- [x] Add restoration, material, shade, stump shade, rush priority, and turnaround-date calculation.
+- [x] Add STL, OBJ, PLY, DICOM/CBCT, RX, and photo attachment endpoints and UI upload support.
+- [x] Add authenticated Patient Management and Case Intake pages.
+- [x] Add dashboard active-patient, open-case, rush-case, due-today, and at-risk metrics.
+- [x] Add Playwright Patient and Case lifecycle coverage.
+- [ ] Pass frozen install, typecheck, production build, API startup, web startup, API lifecycle, and Playwright verification.
+- [ ] Mark Sprint 4 complete only after every validation gate passes.
 
 ## Completed — Sprint 3 Practice & Doctor Management
 
@@ -19,7 +34,7 @@
 - [x] Remove duplicate Doctor active-state representation and use `status` exclusively.
 - [x] Align legacy Practice and Doctor seed data, default forms, edit flows, and UI state with strict Sprint 3 contracts.
 - [x] Add Playwright authentication and management lifecycle coverage.
-- [x] Pass frozen install, typecheck, production build, API startup, web startup, and Playwright verification in Runtime Validation run `30227945017`.
+- [x] Pass frozen install, typecheck, production build, API startup, web startup, and Playwright verification.
 - [x] Open focused Sprint 3 pull request #4 stacked on PR #2.
 
 ## Completed in PR #2
@@ -31,7 +46,5 @@
 - [x] Protect the application shell and internal views when no session exists.
 - [x] Clear authentication state and return to login on logout.
 - [x] Load dashboard API data only after authentication.
-- [x] Add Playwright coverage for invalid login, successful login, persistence, authenticated navigation, logout, and protected-shell behavior.
-- [x] Commit a generated `pnpm-lock.yaml` from a successful clean install.
-- [x] Verify a subsequent install with `--frozen-lockfile`.
-- [x] Record passing typecheck, build, API startup, web startup, and Playwright authentication results.
+- [x] Add Playwright authentication lifecycle coverage.
+- [x] Commit and verify the generated `pnpm-lock.yaml`.
