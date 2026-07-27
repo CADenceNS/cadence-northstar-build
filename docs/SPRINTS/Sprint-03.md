@@ -2,7 +2,7 @@
 
 ## Status
 
-Complete. Runtime Validation run `30228005719` passed all acceptance gates on PR #4.
+Complete. Runtime Validation passed all acceptance gates on PR #4.
 
 ## Objective
 
