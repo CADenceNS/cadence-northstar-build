@@ -18,7 +18,7 @@ const practices: Practice[] = [{
 }];
 const doctors: Doctor[] = [{
   id: 'doctor-1', practiceId: 'practice-1', firstName: 'Beibei', lastName: 'Wu', specialty: 'General Dentistry',
-  email: 'doctor@example.com', phone: '818-555-0171', status: 'active', active: true, notes: '', communicationHistory: [], createdAt: now(), updatedAt: now()
+  email: 'doctor@example.com', phone: '818-555-0171', status: 'active', notes: '', communicationHistory: [], createdAt: now(), updatedAt: now()
 }];
 
 function text(value: unknown) { return typeof value === 'string' ? value.trim() : ''; }
@@ -92,15 +92,13 @@ app.get('/api/doctors', (request, response) => {
 });
 app.post('/api/doctors', (request, response) => {
   const body = request.body as DoctorInput; const errors = validateDoctor(body); if (errors.length) return response.status(400).json({ errors });
-  const doctorStatus = status(body.status);
-  const item: Doctor = { ...body, id: randomUUID(), status: doctorStatus, active: doctorStatus === 'active', notes: text(body.notes), communicationHistory: [], createdAt: now(), updatedAt: now() };
+  const item: Doctor = { ...body, id: randomUUID(), status: status(body.status), notes: text(body.notes), communicationHistory: [], createdAt: now(), updatedAt: now() };
   doctors.push(item); return response.status(201).json(item);
 });
 app.put('/api/doctors/:id', (request, response) => {
   const index = doctors.findIndex(item => item.id === request.params.id); if (index < 0) return response.status(404).json({ error: 'Doctor not found.' });
   const body = request.body as DoctorInput; const errors = validateDoctor(body); if (errors.length) return response.status(400).json({ errors });
-  const doctorStatus = status(body.status);
-  doctors[index] = { ...doctors[index], ...body, id: doctors[index].id, status: doctorStatus, active: doctorStatus === 'active', notes: text(body.notes), communicationHistory: doctors[index].communicationHistory, updatedAt: now() };
+  doctors[index] = { ...doctors[index], ...body, id: doctors[index].id, status: status(body.status), notes: text(body.notes), communicationHistory: doctors[index].communicationHistory, updatedAt: now() };
   return response.json(doctors[index]);
 });
 app.delete('/api/doctors/:id', (request, response) => {
