@@ -6,7 +6,7 @@
 - [ ] Review and merge PR #4 after PR #2.
 - [ ] Review and merge PR #5 after PR #4.
 - [ ] Review and merge PR #6 after PR #5.
-- [ ] Complete and verify Sprint 6 Quality Control Engine.
+- [ ] Review and merge PR #7 after PR #6.
 - [ ] Replace development-only credentials with production identity and secure server sessions.
 - [ ] Add server-side authorization enforcement for protected API resources.
 - [ ] Replace all process-memory operational storage with durable database persistence.
@@ -15,7 +15,7 @@
 - [ ] Add immutable production and QC event audit storage with indexes for queues, technician assignments, outcomes, defects, and SLA queries.
 - [ ] Replace base64 process-memory attachments and QC photos with durable encrypted object storage, malware scanning, and retention controls.
 
-## Sprint 6 — Quality Control Engine
+## Completed — Sprint 6 Quality Control Engine
 
 - [x] Define strict template, checklist, outcome, defect, photo, sign-off, history, and quality-metric contracts.
 - [x] Add configurable QC templates by restoration type.
@@ -27,8 +27,8 @@
 - [x] Add authenticated QC React workspace and dashboard quality metrics.
 - [x] Add QC template, inspection, photo, history, and metric API endpoints.
 - [x] Add Playwright coverage for QC sign-off, defects, photos, history, and dashboard metrics.
-- [ ] Pass frozen install, typecheck, production build, service startup, QC API lifecycle, runtime regression, and all browser tests.
-- [ ] Mark Sprint 6 complete only after every validation gate passes.
+- [x] Pass frozen install, typecheck, production build, service startup, QC API lifecycle, runtime regression, and all browser tests in Sprint 06 Validation run `30234013933` and Runtime Validation run `30234013970`.
+- [x] Open focused Sprint 6 pull request #7 stacked on PR #6.
 
 ## Completed — Sprint 5 Production Workflow Engine
 
