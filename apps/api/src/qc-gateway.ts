@@ -3,8 +3,10 @@ import cors from 'cors';
 import type { ClinicalCase, DashboardSnapshot, FinancialDashboardSnapshot, Practice } from '@northstar/shared';
 import { createQcEngine } from './qc.js';
 import { createShippingEngine } from './shipping.js';
-import { createBillingEngine, InMemoryFinancialRepository } from './billing.js';
+import { createBillingEngine } from './billing.js';
+import { createDurableRuntime, LegacyFinancialRepositoryAdapter } from './infrastructure/runtime.js';
 
+const durable=await createDurableRuntime();
 process.env.PORT='4001';
 await import('./server.js');
 const app=express();const port=4000;const upstream='http://127.0.0.1:4001';const now=()=>new Date().toISOString();
@@ -14,9 +16,10 @@ async function fetchCase(caseId:string):Promise<ClinicalCase|null>{const respons
 async function updateCase(caseId:string,value:ClinicalCase){const response=await fetch(`${upstream}/api/cases/${caseId}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({patientId:value.patientId,practiceId:value.practiceId,doctorId:value.doctorId,status:value.status,toothNumbers:value.toothNumbers,arch:value.arch,restoration:value.restoration,material:value.material,shade:value.shade,stumpShade:value.stumpShade,rushPriority:value.rushPriority,receivedDate:value.receivedDate,prescriptionNotes:value.prescriptionNotes})});if(!response.ok)throw new Error('Unable to synchronize case state.')}
 async function resolvePractice(id:string):Promise<Practice|null>{const response=await fetch(`${upstream}/api/practices`);if(!response.ok)return null;const practices=await response.json() as Practice[];return practices.find(item=>item.id===id)??null}
 const qc=createQcEngine(app,now,fetchCase,updateCase);
-const repository=new InMemoryFinancialRepository();
-const billing=createBillingEngine(app,now,repository,resolvePractice);
+const billing=createBillingEngine(app,now,new LegacyFinancialRepositoryAdapter(durable),resolvePractice);
 const shipping=createShippingEngine(app,now,listCases,updateCase,billing.invoiceShipment);
 app.get('/api/dashboard',async(_req,res)=>{const response=await fetch(`${upstream}/api/dashboard`);if(!response.ok)return res.status(response.status).send(await response.text());const snapshot=await response.json() as DashboardSnapshot;const metrics=qc.metrics();const logistics=shipping.metrics();const financial=await billing.metrics();const value:FinancialDashboardSnapshot={...snapshot,qcPassRate:metrics.passRate,qcRemakeRate:metrics.remakeRate,qcReworkRate:metrics.reworkRate,qcFirstPassYield:metrics.firstPassYield,qcDefectTrends:metrics.defectTrends,logistics,financial};return res.json(value)});
 app.use(async(req,res)=>{const headers=new Headers();for(const [key,value] of Object.entries(req.headers)){if(typeof value==='string'&&key.toLowerCase()!=='host'&&key.toLowerCase()!=='content-length')headers.set(key,value)}const hasBody=!['GET','HEAD'].includes(req.method);const response=await fetch(`${upstream}${req.originalUrl}`,{method:req.method,headers,body:hasBody?JSON.stringify(req.body):undefined});res.status(response.status);response.headers.forEach((value,key)=>{if(key.toLowerCase()!=='content-encoding'&&key.toLowerCase()!=='content-length')res.setHeader(key,value)});return res.send(Buffer.from(await response.arrayBuffer()))});
-app.listen(port,()=>console.log(`CADence NorthStar financial gateway listening on http://localhost:${port}`));
+const server=app.listen(port,()=>console.log(`CADence NorthStar financial gateway listening on http://localhost:${port}`));
+const shutdown=async()=>{server.close();await durable.pool.end()};
+process.once('SIGTERM',shutdown);process.once('SIGINT',shutdown);
