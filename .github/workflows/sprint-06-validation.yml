@@ -1,0 +1,57 @@
+name: Sprint 06 Validation
+
+on:
+  push:
+    branches:
+      - feature/sprint-06-quality-control
+  pull_request:
+    branches:
+      - feature/sprint-05-production-workflow
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install reproducibly
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck and build
+        run: pnpm typecheck && pnpm build
+      - name: Start services
+        run: |
+          pnpm --filter @northstar/api dev > /tmp/sprint06-api.log 2>&1 &
+          pnpm --filter @northstar/web dev --host 127.0.0.1 > /tmp/sprint06-web.log 2>&1 &
+          for attempt in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4000/health >/dev/null && curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/sprint06-api.log /tmp/sprint06-web.log
+          exit 1
+      - name: Validate QC APIs
+        run: |
+          curl -fsS 'http://127.0.0.1:4000/api/qc/templates?restoration=Implant%20Crown' | grep -q 'template-fixed'
+          curl -fsS -H 'Content-Type: application/json' -d '{"practiceId":"practice-1","doctorId":"doctor-1","patientReference":"API-S6","firstName":"API","lastName":"Quality","dateOfBirth":"1991-01-01","status":"active","notes":"Sprint 6 API"}' http://127.0.0.1:4000/api/patients > /tmp/qc-patient.json
+          PATIENT_ID=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/qc-patient.json','utf8')).id")
+          curl -fsS -H 'Content-Type: application/json' -d "{\"patientId\":\"$PATIENT_ID\",\"practiceId\":\"practice-1\",\"doctorId\":\"doctor-1\",\"status\":\"qc\",\"toothNumbers\":[30],\"arch\":\"mandibular\",\"restoration\":\"Implant Crown\",\"material\":\"Zirconia\",\"shade\":\"A2\",\"stumpShade\":\"ND2\",\"rushPriority\":\"standard\",\"receivedDate\":\"2026-07-27\",\"prescriptionNotes\":\"QC validation\"}" http://127.0.0.1:4000/api/cases > /tmp/qc-case.json
+          CASE_ID=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/qc-case.json','utf8')).id")
+          curl -fsS -H 'Content-Type: application/json' -d "{\"caseId\":\"$CASE_ID\",\"templateId\":\"template-fixed\",\"outcome\":\"rework\",\"checklist\":[{\"checklistItemId\":\"check-fit\",\"label\":\"Internal fit and seating verified\",\"result\":\"fail\",\"note\":\"\",\"defectCategory\":\"fit\"},{\"checklistItemId\":\"check-margin\",\"label\":\"Margins are closed and continuous\",\"result\":\"pass\",\"note\":\"\",\"defectCategory\":\"margin\"},{\"checklistItemId\":\"check-contact\",\"label\":\"Proximal contacts verified\",\"result\":\"pass\",\"note\":\"\",\"defectCategory\":\"contacts\"},{\"checklistItemId\":\"check-occlusion\",\"label\":\"Occlusion verified\",\"result\":\"pass\",\"note\":\"\",\"defectCategory\":\"occlusion\"},{\"checklistItemId\":\"check-anatomy\",\"label\":\"Anatomy and contour verified\",\"result\":\"pass\",\"note\":\"\",\"defectCategory\":\"anatomy\"},{\"checklistItemId\":\"check-shade\",\"label\":\"Shade and surface finish verified\",\"result\":\"pass\",\"note\":\"\",\"defectCategory\":\"shade\"}],\"defects\":[{\"category\":\"fit\",\"description\":\"Internal fit correction required.\",\"severity\":\"major\"}],\"inspectorId\":\"usr-admin\",\"inspectorName\":\"Dorian Habet\",\"notes\":\"API digital sign-off\"}" http://127.0.0.1:4000/api/qc/inspections > /tmp/qc-inspection.json
+          grep -q 'digitally-signed' /tmp/qc-inspection.json
+          INSPECTION_ID=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/qc-inspection.json','utf8')).id")
+          curl -fsS -H 'Content-Type: application/json' -d '{"fileName":"qc.jpg","mimeType":"image/jpeg","size":10,"contentBase64":"cXVhbGl0eQ==","uploadedBy":"Dorian Habet"}' http://127.0.0.1:4000/api/qc/inspections/$INSPECTION_ID/photos | grep -q 'qc.jpg'
+          curl -fsS http://127.0.0.1:4000/api/qc/metrics | grep -q 'firstPassYield'
+          curl -fsS http://127.0.0.1:4000/api/dashboard | grep -q 'qcDefectTrends'
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Run browser lifecycle
+        run: pnpm test:e2e
+      - name: Print logs on failure
+        if: failure()
+        run: cat /tmp/sprint06-api.log /tmp/sprint06-web.log || true
