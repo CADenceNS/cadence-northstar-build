@@ -2,7 +2,7 @@
 
 ## Status
 
-Implementation complete; validation pending on the Sprint 7 pull request.
+Complete and verified on the Sprint 7 pull request.
 
 ## Objective
 
@@ -26,22 +26,24 @@ Deliver an authenticated logistics lifecycle from QC approval through delivery c
 
 ## Acceptance gates
 
-- [ ] Frozen-lockfile installation passes.
-- [ ] TypeScript validation passes without contract weakening.
-- [ ] Production build passes.
-- [ ] API gateway, upstream API, and frontend start successfully.
-- [ ] Only QC-approved Ready to Ship cases can be selected.
-- [ ] Active shipments prevent duplicate case assignment.
-- [ ] Required packing checklist items must be complete.
-- [ ] Single-case, partial, and multi-case shipment payloads validate.
-- [ ] Courier and tracking-number rules pass.
-- [ ] Shipment transitions follow Ready to Ship → Awaiting Pickup → Shipped → Delivered.
-- [ ] Shipping history captures actor, timestamps, notes, and status changes.
-- [ ] Case and shipment barcode values are generated.
-- [ ] Delivered shipments complete linked clinical cases.
-- [ ] Dashboard logistics metrics update.
-- [ ] Authentication and Sprint 3–6 browser regressions pass.
-- [ ] Sprint 7 Playwright lifecycle passes.
+- [x] Frozen-lockfile installation passes.
+- [x] TypeScript validation passes without contract weakening.
+- [x] Production build passes.
+- [x] API gateway, upstream API, and frontend start successfully.
+- [x] Only QC-approved Ready to Ship cases can be selected.
+- [x] Active shipments prevent duplicate case assignment.
+- [x] Required packing checklist items must be complete.
+- [x] Single-case, partial, and multi-case shipment payloads validate.
+- [x] Courier and tracking-number rules pass.
+- [x] Shipment transitions follow Ready to Ship → Awaiting Pickup → Shipped → Delivered.
+- [x] Shipping history captures actor, timestamps, notes, and status changes.
+- [x] Case and shipment barcode values are generated.
+- [x] Delivered shipments complete linked clinical cases.
+- [x] Dashboard logistics metrics update.
+- [x] Authentication and Sprint 3–6 browser regressions pass.
+- [x] Sprint 7 Playwright lifecycle passes.
+
+Verified by Sprint 07 Validation run `30235588799` and Runtime Validation run `30235588800`.
 
 ## Persistence note
 
