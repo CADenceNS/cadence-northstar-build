@@ -22,7 +22,7 @@ async function login(page, context) {
 
 async function recordDoctorCommunication(row, eventType, content) {
   await row.getByLabel('doctor communication type').selectOption(eventType);
-  await row.getByLabel('doctor communication').fill(content);
+  await row.getByRole('textbox', { name: 'doctor communication', exact: true }).fill(content);
   const response = row.page().waitForResponse(candidate => candidate.url().endsWith('/api/communications/events') && candidate.request().method() === 'POST');
   await row.getByRole('button', { name: 'Record communication' }).click();
   expect((await response).status()).toBe(201);
