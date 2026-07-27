@@ -9,15 +9,14 @@
 - [ ] Review and merge PR #7 after PR #6.
 - [ ] Review and merge PR #8 after PR #7.
 - [ ] Review and merge PR #9 after PR #8.
-- [ ] Complete Sprint 9 PostgreSQL repository implementations for every domain contract.
-- [ ] Inject repositories into Authentication, Practice, Doctor, Patient, Case, Production, QC, Shipping, and Billing runtime services.
+- [ ] Inject PostgreSQL repositories into Authentication, Practice, Doctor, Patient, Case, Production, QC, Shipping, and Billing runtime services.
 - [ ] Remove all production process-memory stores after parity and restart-persistence verification.
 - [ ] Migrate base64 attachments and generated documents through `ObjectStorage` and persist only object metadata in PostgreSQL.
 - [ ] Emit immutable audit events for every authenticated mutation and lifecycle transition.
-- [ ] Add PostgreSQL CRUD, relationship, transaction, tenant-isolation, soft-delete, concurrency, migration, and backfill integration tests.
+- [ ] Add runtime relationship, concurrency, representative backfill, and restart-persistence tests.
 - [ ] Replace development-only credentials with production identity and secure server sessions.
 - [ ] Add server-side authorization enforcement for protected API resources.
-- [ ] Add cloud object storage, encryption-key management, malware scanning, and retention controls.
+- [ ] Add managed cloud object storage, encryption-key management, malware scanning, and retention controls.
 
 ## Sprint 9 — Infrastructure Core: Durable Persistence
 
@@ -27,13 +26,18 @@
 - [x] Add normalized PostgreSQL schema, constraints, indexes, soft deletes, financial decimal columns, and audit immutability trigger.
 - [x] Add apply and rollback migrations.
 - [x] Add provider-neutral object-storage interfaces with in-memory testing support.
+- [x] Add a PostgreSQL-backed object-storage implementation.
 - [x] Add a transactional versioned legacy-snapshot migration path.
-- [x] Add repository and migration contract tests.
+- [x] Implement concrete PostgreSQL adapters for every repository contract.
+- [x] Add durable repository-document compatibility storage with tenant isolation, versioning, indexes, and soft deletion.
+- [x] Add PostgreSQL integration tests for tenant isolation, soft deletion, rollback, immutable audit events, and binary object persistence.
 - [x] Add PostgreSQL migration apply/rollback/reapply CI coverage.
+- [x] Preserve all existing Playwright browser regressions.
 - [x] Update `docs/ARCHITECTURE.md`, `docs/DATABASE.md`, and `docs/SPRINTS/Sprint-09.md`.
-- [ ] Implement concrete PostgreSQL adapters for every repository.
 - [ ] Cut all running modules over to durable repositories.
-- [ ] Verify restart persistence and full browser parity.
+- [ ] Route production attachments and generated documents through object storage.
+- [ ] Emit production audit events for every required mutation.
+- [ ] Verify PostgreSQL-backed dashboard parity and restart persistence.
 - [ ] Mark Sprint 9 complete only after every validation gate passes.
 
 ## Completed — Sprint 8 Billing & Financial Engine
