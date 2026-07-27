@@ -88,11 +88,12 @@ jobs:
         run: |
           set -o pipefail
           (pnpm typecheck && pnpm build) 2>&1 | tee /tmp/runtime-build.log
-      - name: Apply durable persistence and identity migrations
+      - name: Apply durable persistence, identity, and communications migrations
         run: |
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0001_infrastructure_core.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0002_repository_documents.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0003_identity_security.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0004_clinical_communications.sql
       - name: Start API
         run: |
           pnpm --filter @northstar/api dev > /tmp/northstar-api.log 2>&1 &
