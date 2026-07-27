@@ -1,11 +1,9 @@
-import { createHash, randomBytes, randomUUID, scrypt as scryptCallback, timingSafeEqual } from 'node:crypto';
-import { promisify } from 'node:util';
+import { createHash, randomBytes, randomUUID, scrypt as scryptCallback, timingSafeEqual, type ScryptOptions } from 'node:crypto';
 import type { Express, NextFunction, Request, Response } from 'express';
 import type { Pool } from 'pg';
 import type { User } from '@northstar/shared';
 import type { AuditRepository, RepositoryContext, UserRepository } from './infrastructure/contracts.js';
 
-const scrypt=promisify(scryptCallback);
 const SESSION_COOKIE='northstar.sid';
 const IDLE_MS=30*60*1000;
 const ABSOLUTE_MS=12*60*60*1000;
@@ -66,9 +64,10 @@ const sha256=(value:string)=>createHash('sha256').update(value).digest('hex');
 const text=(value:unknown)=>typeof value==='string'?value.trim():'';
 const now=()=>new Date();
 const iso=()=>now().toISOString();
+const derivePassword=(password:string,salt:Buffer,length:number,options:ScryptOptions)=>new Promise<Buffer>((resolve,reject)=>scryptCallback(password,salt,length,options,(error,key)=>error?reject(error):resolve(key as Buffer)));
 
-async function hashPassword(password:string){const salt=randomBytes(16);const derived=await scrypt(password,salt,64,{N:32768,r:8,p:1,maxmem:64*1024*1024}) as Buffer;return `scrypt$32768$8$1$${salt.toString('base64')}$${derived.toString('base64')}`}
-async function verifyPassword(password:string,encoded:string){const[algorithm,n,r,p,saltValue,hashValue]=encoded.split('$');if(algorithm!=='scrypt'||!n||!r||!p||!saltValue||!hashValue)return false;const expected=Buffer.from(hashValue,'base64');const actual=await scrypt(password,Buffer.from(saltValue,'base64'),expected.length,{N:Number(n),r:Number(r),p:Number(p),maxmem:64*1024*1024}) as Buffer;return expected.length===actual.length&&timingSafeEqual(expected,actual)}
+async function hashPassword(password:string){const salt=randomBytes(16);const derived=await derivePassword(password,salt,64,{N:32768,r:8,p:1,maxmem:64*1024*1024});return `scrypt$32768$8$1$${salt.toString('base64')}$${derived.toString('base64')}`}
+async function verifyPassword(password:string,encoded:string){const[algorithm,n,r,p,saltValue,hashValue]=encoded.split('$');if(algorithm!=='scrypt'||!n||!r||!p||!saltValue||!hashValue)return false;const expected=Buffer.from(hashValue,'base64');const actual=await derivePassword(password,Buffer.from(saltValue,'base64'),expected.length,{N:Number(n),r:Number(r),p:Number(p),maxmem:64*1024*1024});return expected.length===actual.length&&timingSafeEqual(expected,actual)}
 function parseCookies(req:Request){const result:Record<string,string>={};for(const part of (req.header('cookie')??'').split(';')){const index=part.indexOf('=');if(index>0)result[part.slice(0,index).trim()]=decodeURIComponent(part.slice(index+1).trim())}return result}
 function cookie(value:string,maxAgeSeconds:number){const secure=process.env.NODE_ENV==='production'?'; Secure':'';return `${SESSION_COOKIE}=${encodeURIComponent(value)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAgeSeconds}${secure}`}
 function clearCookie(){const secure=process.env.NODE_ENV==='production'?'; Secure':'';return `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0${secure}`}
