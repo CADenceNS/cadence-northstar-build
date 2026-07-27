@@ -7,7 +7,7 @@
 - [ ] Review and merge PR #5 after PR #4.
 - [ ] Review and merge PR #6 after PR #5.
 - [ ] Review and merge PR #7 after PR #6.
-- [ ] Complete and verify Sprint 7 Shipping & Logistics.
+- [ ] Review and merge PR #8 after PR #7.
 - [ ] Replace development-only credentials with production identity and secure server sessions.
 - [ ] Add server-side authorization enforcement for protected API resources.
 - [ ] Replace all process-memory operational storage with durable database persistence.
@@ -17,7 +17,7 @@
 - [ ] Add immutable production, QC, and shipping event audit storage with indexes for queues, outcomes, tracking numbers, and delivery status.
 - [ ] Replace base64 process-memory attachments, QC photos, and future shipping documents with durable encrypted object storage, malware scanning, and retention controls.
 
-## Sprint 7 — Shipping & Logistics
+## Completed — Sprint 7 Shipping & Logistics
 
 - [x] Define strict shipment, courier, packing-checklist, queue, tracking, barcode, history, and logistics-metric contracts.
 - [x] Add Ready to Ship, Awaiting Pickup, Shipped, and Delivered queues.
@@ -28,21 +28,13 @@
 - [x] Add authenticated Shipping React workspace and dashboard logistics metrics.
 - [x] Add shipment, queue, transition, ready-case, and metrics API endpoints.
 - [x] Add Playwright coverage from QC approval through delivery confirmation.
-- [ ] Pass frozen install, typecheck, production build, service startup, shipping API lifecycle, runtime regression, and all browser tests.
-- [ ] Mark Sprint 7 complete only after every validation gate passes.
+- [x] Pass frozen install, typecheck, production build, service startup, shipping API lifecycle, runtime regression, and all browser tests in Sprint 07 Validation run `30235588799` and Runtime Validation run `30235588800`.
+- [x] Open focused Sprint 7 pull request #8 stacked on PR #7.
 
 ## Completed — Sprint 6 Quality Control Engine
 
 - [x] Define strict template, checklist, outcome, defect, photo, sign-off, history, and quality-metric contracts.
-- [x] Add configurable QC templates by restoration type.
-- [x] Add Pass, Rework, Hold, Remake, and Doctor Clarification outcomes.
-- [x] Add required checklist enforcement and categorized defect validation.
-- [x] Add inspector-attributed digital sign-off and timestamped QC history.
-- [x] Add QC photo attachment support.
-- [x] Add pass rate, remake rate, rework rate, first-pass yield, outcome counts, and defect trends.
-- [x] Add authenticated QC React workspace and dashboard quality metrics.
-- [x] Add QC template, inspection, photo, history, and metric API endpoints.
-- [x] Add Playwright coverage for QC sign-off, defects, photos, history, and dashboard metrics.
+- [x] Add configurable QC templates, outcomes, defect validation, digital sign-off, QC photos, history, quality metrics, API endpoints, React UI, and Playwright coverage.
 - [x] Pass Sprint 6 validation and runtime regression pipelines.
 - [x] Open focused Sprint 6 pull request #7 stacked on PR #6.
 
@@ -55,8 +47,7 @@
 
 ## Completed — Sprint 4 Patient & Case Intake
 
-- [x] Define strict Patient, Clinical Case, attachment, arch, tooth, shade, and rush-priority contracts.
-- [x] Add Patient and Case CRUD, associations, clinical validation, numbering, turnaround, and attachment support.
+- [x] Add strict Patient and Case contracts, CRUD, associations, validation, numbering, turnaround, attachments, dashboard metrics, authenticated UI, and Playwright coverage.
 - [x] Pass Sprint 4 validation and runtime regression pipelines.
 - [x] Open focused Sprint 4 pull request #5 stacked on PR #4.
 
