@@ -23,11 +23,11 @@ class PostgresDocumentRepository<T extends Entity> implements EntityRepository<T
   async softDelete(context:RepositoryContext,id:string,deletedAt:string){
     await this.db.query('UPDATE repository_documents SET deleted_at=$4,updated_at=now(),version=version+1 WHERE tenant_id=$1 AND entity_type=$2 AND entity_id=$3',[context.tenantId,this.entityType,id,deletedAt]);
   }
-  protected async findByPayload(context:RepositoryContext,path:string,value:string){
+  async findByPayload(context:RepositoryContext,path:string,value:string){
     const result=await this.db.query<DocumentRow>('SELECT payload FROM repository_documents WHERE tenant_id=$1 AND entity_type=$2 AND deleted_at IS NULL AND payload #>> string_to_array($3,\'.\')=$4 LIMIT 1',[context.tenantId,this.entityType,path,value]);
     return result.rows[0]?.payload as T|undefined??null;
   }
-  protected async listByPayload(context:RepositoryContext,path:string,value:string){
+  async listByPayload(context:RepositoryContext,path:string,value:string){
     const result=await this.db.query<DocumentRow>('SELECT payload FROM repository_documents WHERE tenant_id=$1 AND entity_type=$2 AND deleted_at IS NULL AND payload #>> string_to_array($3,\'.\')=$4 ORDER BY updated_at DESC',[context.tenantId,this.entityType,path,value]);
     return result.rows.map(row=>row.payload as T);
   }
@@ -67,7 +67,7 @@ export class PostgresQCRepository implements QCRepository {
   constructor(db:SqlExecutor){this.templates=new PostgresDocumentRepository(db,'qc-template');this.inspections=new PostgresDocumentRepository(db,'qc-inspection')}
   listTemplates(context:RepositoryContext){return this.templates.list(context)}
   saveTemplate(context:RepositoryContext,value:QCTemplate){return this.templates.save(context,value)}
-  async listInspections(context:RepositoryContext,caseId?:string){return caseId?this.inspections.listByPayload(context,'caseId',caseId):this.inspections.list(context)}
+  listInspections(context:RepositoryContext,caseId?:string){return caseId?this.inspections.listByPayload(context,'caseId',caseId):this.inspections.list(context)}
   saveInspection(context:RepositoryContext,value:QCInspection){return this.inspections.save(context,value)}
 }
 export class PostgresFinancialRepository implements DurableFinancialRepository {
