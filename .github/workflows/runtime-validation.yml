@@ -31,6 +31,7 @@ jobs:
     env:
       DATABASE_URL: postgresql://northstar:northstar@127.0.0.1:5432/northstar_runtime
       NORTHSTAR_TENANT_ID: 00000000-0000-0000-0000-000000000001
+      NORTHSTAR_BOOTSTRAP_PASSWORD: NorthStar!2026
     steps:
       - name: Check out feature branch
         uses: actions/checkout@v4
@@ -87,10 +88,11 @@ jobs:
         run: |
           set -o pipefail
           (pnpm typecheck && pnpm build) 2>&1 | tee /tmp/runtime-build.log
-      - name: Apply durable persistence migrations
+      - name: Apply durable persistence and identity migrations
         run: |
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0001_infrastructure_core.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0002_repository_documents.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0003_identity_security.sql
       - name: Start API
         run: |
           pnpm --filter @northstar/api dev > /tmp/northstar-api.log 2>&1 &
