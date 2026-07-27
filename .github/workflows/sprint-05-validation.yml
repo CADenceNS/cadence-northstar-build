@@ -1,0 +1,57 @@
+name: Sprint 05 Validation
+
+on:
+  push:
+    branches:
+      - feature/sprint-05-production-workflow
+  pull_request:
+    branches:
+      - feature/sprint-04-patient-case-intake
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install reproducibly
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck and build
+        run: pnpm typecheck && pnpm build
+      - name: Start services
+        run: |
+          pnpm --filter @northstar/api dev > /tmp/sprint05-api.log 2>&1 &
+          pnpm --filter @northstar/web dev --host 127.0.0.1 > /tmp/sprint05-web.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4000/health >/dev/null && curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/sprint05-api.log /tmp/sprint05-web.log
+          exit 1
+      - name: Validate production workflow APIs
+        run: |
+          curl -fsS http://127.0.0.1:4000/api/production/departments | grep -q 'case-review'
+          curl -fsS http://127.0.0.1:4000/api/production/technicians | grep -q 'Kelvin CAD'
+          curl -fsS -H 'Content-Type: application/json' -d '{"practiceId":"practice-1","doctorId":"doctor-1","patientReference":"API-S5","firstName":"API","lastName":"Production","dateOfBirth":"1991-01-01","status":"active","notes":"Sprint 5 API"}' http://127.0.0.1:4000/api/patients > /tmp/patient.json
+          PATIENT_ID=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/patient.json','utf8')).id")
+          curl -fsS -H 'Content-Type: application/json' -d "{\"patientId\":\"$PATIENT_ID\",\"practiceId\":\"practice-1\",\"doctorId\":\"doctor-1\",\"status\":\"received\",\"toothNumbers\":[30],\"arch\":\"mandibular\",\"restoration\":\"Implant Crown\",\"material\":\"Zirconia\",\"shade\":\"A2\",\"stumpShade\":\"ND2\",\"rushPriority\":\"rush\",\"receivedDate\":\"2026-07-27\",\"prescriptionNotes\":\"Production route\"}" http://127.0.0.1:4000/api/cases > /tmp/case.json
+          CASE_ID=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/case.json','utf8')).id")
+          curl -fsS -H 'Content-Type: application/json' -d "{\"caseId\":\"$CASE_ID\",\"route\":[\"receiving\",\"case-review\",\"model\",\"cad\",\"manufacturing\",\"ceramics\",\"qc\",\"shipping\"],\"technicianId\":null,\"actorId\":\"usr-admin\",\"actorName\":\"Dorian Habet\"}" http://127.0.0.1:4000/api/production/work-items > /tmp/work.json
+          WORK_ID=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/work.json','utf8')).id")
+          curl -fsS -H 'Content-Type: application/json' -d '{"toDepartment":"receiving","status":"in-progress","technicianId":"tech-receiving","note":"Started","actorId":"usr-admin","actorName":"Dorian Habet"}' http://127.0.0.1:4000/api/production/work-items/$WORK_ID/transitions | grep -q 'in-progress'
+          curl -fsS http://127.0.0.1:4000/api/production/workload | grep -q 'receiving'
+          curl -fsS http://127.0.0.1:4000/api/dashboard | grep -q 'departmentWorkload'
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Run browser lifecycle
+        run: pnpm test:e2e
+      - name: Print logs on failure
+        if: failure()
+        run: cat /tmp/sprint05-api.log /tmp/sprint05-web.log || true
