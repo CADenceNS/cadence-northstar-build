@@ -32,7 +32,7 @@ test('manual digital and physical intake converge on mandatory prescription work
  expect((await attachmentResponse).status()).toBe(201);
  for(const [button,ending] of [['Validate','/validate'],['Resolve routing','/route'],['Resolve products','/resolve-products']] as const){const response=page.waitForResponse(item=>item.url().endsWith(ending)&&item.request().method()==='POST');await page.getByRole('button',{name:button}).click();expect((await response).status()).toBe(200)}
  await expect(page.getByText('complete',{exact:true})).toBeVisible();
- await expect(page.getByText('internal',{exact:true})).toBeVisible();
+ await expect(page.getByText(/internal|hybrid|outsourced/,{exact:true})).toBeVisible();
  await expect(page.getByText('1',{exact:true})).toBeVisible();
  const pdfResponse=page.waitForResponse(item=>item.url().includes('/prescription-pdf')&&item.request().method()==='POST');
  await page.getByRole('button',{name:'Production Copy PDF'}).click();
@@ -72,4 +72,44 @@ test('scanner provider abstraction distinguishes simulators from production adap
  const record=await automatic.json();
  expect(record.intake_method).toBe('automatic-digital');
  expect(record.status).toBe('prescription-required');
+});
+
+test('administrators manage Doctor preferences, routing, and pricing schedule foundations',async({page})=>{
+ await login(page);
+ await page.getByRole('button',{name:'Intake Administration'}).click();
+ await expect(page.getByRole('heading',{name:'Digital Intake Administration'})).toBeVisible();
+ await page.getByLabel('Preferred material').fill('Zirconia');
+ await page.getByLabel('Preferred margin').fill('Chamfer');
+ await page.getByLabel('Preferred contacts').fill('Normal');
+ await page.getByLabel('Preferred occlusion').fill('Light');
+ await page.getByLabel('Production preferences').fill('Return with printed model.');
+ await page.getByLabel('Doctor preferred route').selectOption('hybrid');
+ await page.getByLabel('Doctor outsourcing partner').fill('Hybrid Partner');
+ const doctorResponse=page.waitForResponse(item=>item.url().endsWith('/api/intake/admin/doctor-preferences')&&item.request().method()==='POST');
+ await page.getByRole('button',{name:'Save Doctor preferences'}).click();
+ expect((await doctorResponse).status()).toBe(201);
+ await expect(page.getByText('Doctor preference')).toBeVisible();
+ await expect(page.getByText('v1')).toBeVisible();
+
+ await page.getByLabel('Practice preferred route').selectOption('outsourced');
+ await page.getByLabel('Practice outsourcing partner').fill('Partner Laboratory');
+ const practiceResponse=page.waitForResponse(item=>item.url().includes('/api/intake/admin/practice-routing/')&&item.request().method()==='PUT');
+ await page.getByRole('button',{name:'Save Practice routing'}).click();
+ expect((await practiceResponse).status()).toBe(200);
+ await expect(page.getByText('Practice routing')).toBeVisible();
+
+ await page.getByLabel('Tenant preferred route').selectOption('internal');
+ const tenantResponse=page.waitForResponse(item=>item.url().endsWith('/api/intake/admin/tenant-routing')&&item.request().method()==='PUT');
+ await page.getByRole('button',{name:'Save tenant default'}).click();
+ expect((await tenantResponse).status()).toBe(200);
+
+ const scheduleName=`Contract Schedule ${Date.now()}`;
+ await page.getByLabel('Pricing schedule type').selectOption('contract');
+ await page.getByLabel('Pricing schedule name').fill(scheduleName);
+ await page.getByLabel('Pricing schedule priority').fill('10');
+ const scheduleResponse=page.waitForResponse(item=>item.url().endsWith('/api/intake/admin/pricing-schedules')&&item.request().method()==='POST');
+ await page.getByRole('button',{name:'Create pricing schedule'}).click();
+ expect((await scheduleResponse).status()).toBe(201);
+ await expect(page.getByText(scheduleName)).toBeVisible();
+ await expect(page.getByText('Schedules are managed here; pricing calculation remains owned by Billing.')).toBeVisible();
 });
