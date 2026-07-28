@@ -1,0 +1,15 @@
+BEGIN;
+DROP TRIGGER IF EXISTS intake_history_immutable ON intake_history;
+DROP FUNCTION IF EXISTS prevent_intake_history_mutation();
+DROP TABLE IF EXISTS intake_history;
+DROP TABLE IF EXISTS intake_billing_reviews;
+DROP TABLE IF EXISTS intake_product_resolutions;
+DROP TABLE IF EXISTS intake_routing_resolutions;
+DROP TABLE IF EXISTS intake_validations;
+DROP TABLE IF EXISTS intake_attachments;
+DROP TABLE IF EXISTS digital_prescriptions;
+DROP TABLE IF EXISTS intake_submissions;
+DROP TABLE IF EXISTS product_catalog;
+DROP TABLE IF EXISTS doctor_preference_profiles;
+DROP TABLE IF EXISTS scanner_providers;
+COMMIT;
