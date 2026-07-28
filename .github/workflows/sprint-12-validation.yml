@@ -1,0 +1,94 @@
+name: Sprint 12 Validation
+
+on:
+  push:
+    branches:
+      - feature/sprint-12-digital-intake-platform-foundation
+  pull_request:
+    branches:
+      - feature/sprint-11-clinical-communications-platform
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: northstar
+          POSTGRES_PASSWORD: northstar
+          POSTGRES_DB: northstar_intake
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U northstar -d northstar_intake"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://northstar:northstar@127.0.0.1:5432/northstar_intake
+      NORTHSTAR_TENANT_ID: 00000000-0000-0000-0000-000000000001
+      NORTHSTAR_BOOTSTRAP_PASSWORD: NorthStar!2026
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Strict TypeScript and production build
+        run: pnpm typecheck && pnpm build
+      - name: Apply migrations
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0001_infrastructure_core.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0002_repository_documents.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0003_identity_security.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0004_clinical_communications.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0005_digital_intake_platform.sql
+      - name: Run inherited persistence, security, and communications contracts
+        run: |
+          pnpm --filter @northstar/api test:repositories
+          pnpm --filter @northstar/api test:migrations
+          pnpm --filter @northstar/api test:postgres-repositories
+          pnpm --filter @northstar/api test:security
+          pnpm --filter @northstar/api test:communications
+      - name: Run Digital Intake integrations
+        run: pnpm --filter @northstar/api test:digital-intake
+      - name: Validate Digital Intake rollback and reapplication
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0005_digital_intake_platform.rollback.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0005_digital_intake_platform.sql
+      - name: Start secure application services
+        run: |
+          pnpm --filter @northstar/api dev > /tmp/sprint12-api.log 2>&1 &
+          echo $! > /tmp/sprint12-api.pid
+          pnpm --filter @northstar/web dev --host 127.0.0.1 > /tmp/sprint12-web.log 2>&1 &
+          echo $! > /tmp/sprint12-web.pid
+          for attempt in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4000/health >/dev/null && curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/sprint12-api.log /tmp/sprint12-web.log
+          exit 1
+      - name: Validate secure Intake API lifecycle
+        shell: bash
+        run: |
+          set -euo pipefail
+          LOGIN=$(curl -fsS -c /tmp/session-cookie -X POST http://127.0.0.1:4000/api/auth/login -H 'Content-Type: application/json' -d '{"email":"dorianhabet@yahoo.com","password":"NorthStar!2026"}')
+          CSRF=$(python -c 'import json,sys;print(json.load(sys.stdin)["csrfToken"])' <<<"$LOGIN")
+          test "$(curl -s -o /dev/null -w '%{http_code}' -b /tmp/session-cookie http://127.0.0.1:4000/api/intake/submissions)" = "200"
+          SUBMISSION=$(curl -fsS -b /tmp/session-cookie -X POST http://127.0.0.1:4000/api/intake/submissions -H 'Content-Type: application/json' -H "X-CSRF-Token: $CSRF" -d '{"intakeMethod":"physical","sourceReference":"walk-in-validation"}')
+          SUBMISSION_ID=$(python -c 'import json,sys;print(json.load(sys.stdin)["id"])' <<<"$SUBMISSION")
+          test "$(curl -s -o /dev/null -w '%{http_code}' -b /tmp/session-cookie -X POST "http://127.0.0.1:4000/api/intake/submissions/$SUBMISSION_ID/accept" -H 'Content-Type: application/json' -H "X-CSRF-Token: $CSRF" -d '{}')" = "409"
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Run complete Playwright regression suite
+        run: pnpm test:e2e
+      - name: Print logs on failure
+        if: failure()
+        run: cat /tmp/sprint12-api.log /tmp/sprint12-web.log || true
