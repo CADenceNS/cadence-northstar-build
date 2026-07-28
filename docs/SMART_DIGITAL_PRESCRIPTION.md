@@ -10,62 +10,74 @@ Digital Intake owns prescription capture, versioning, completion state, validati
 
 ## Automatic population
 
-The application populates Practice, Doctor, patient reference, shipping and billing context from existing NorthStar records when those records are selected. Active Doctor Preference Profiles supply defaults before case-specific values are applied. Case-specific values always override profile defaults.
+The application populates Practice, Doctor, patient reference, shipping and billing context from selected NorthStar records. Active Doctor Preference Profiles provide clinical, material, production, routing, and outsource defaults. Case-specific prescription values override profile defaults.
 
-## Restoration-aware structure
+## Dynamic restoration behavior
 
-A prescription supports multiple restorations. Each restoration stores category, type, subtype, material, quantity or units, tooth numbers, implant positions, pontics, abutments, arches, implant system, scan body, Ti-Base, MUA, library information, and an optional case routing override.
+A prescription supports multiple restorations in one submission. Each restoration may store category, type, subtype, material, quantity, units, tooth numbers, implant positions, pontics, abutments, arches, implant system, scan body, Ti-Base, MUA, library information, and an optional route override.
 
-The React workspace displays relevant controls based on the restoration selection:
+The React workspace adapts controls by restoration type:
 
-- implant-related work requires implant-system and implant-position data;
-- removable work uses arch selection;
-- fixed work uses tooth or unit selection;
-- multiple restorations may coexist in one prescription.
+- fixed, appliance, and orthodontic work uses tooth/unit selection;
+- bridges require multiple unit positions;
+- removable work uses maxillary and/or mandibular arch selection;
+- implant work requires implant system and implant positions;
+- multiple restoration categories may coexist in one prescription.
 
 ## Clinical information
 
-Structured clinical information supports shade, stump shade, margin design, contacts, occlusion, surface texture, anatomy, implant information, production notes, and special instructions. The large notes fields remain available for information that does not fit a structured field.
+Structured clinical information supports material, shade, stump shade, margin design, contacts, occlusion, surface texture, anatomy, implant information, production preferences, production notes, and special instructions. Large notes fields remain available for unstructured clinical detail.
 
-## Validation rules
+## Server-side validation
 
 Validation is evaluated from the stored prescription rather than browser state. Current rules require:
 
-- Practice;
-- Doctor;
+- Practice and Doctor;
 - patient reference;
 - at least one restoration;
 - restoration category and type;
 - material except where not clinically applicable;
-- tooth numbers or units for fixed work;
-- at least two unit positions for bridges;
-- arches for removable work;
+- tooth numbers or units for fixed, appliance, and orthodontic work;
+- at least two positions for bridges;
+- at least one arch for removable work;
 - implant system and implant positions for implant work.
 
-A manual routing override can result in `requires-routing-review`. Duplicate detection compares tenant, Practice, Doctor, and patient reference against active submissions.
+Duplicate detection is tenant scoped and compares Practice, Doctor, patient reference, and active submissions. Supported results include complete, incomplete, invalid, duplicate, requires clinical review, requires routing review, accepted, and rejected.
 
-Supported statuses are complete, incomplete, invalid, duplicate, requires clinical review, requires routing review, accepted, and rejected.
+## Versioning and evidence
 
-## Completion and versioning
-
-Saving a prescription creates or increments its stored version. Every change records authenticated actor context in immutable audit and intake history. Prescription completion also creates an operational communication event.
+Saving creates or increments the stored prescription version. Each change records authenticated actor context in immutable audit and intake history and appends an operational communication event.
 
 ## Attachments
 
-Prescription-related STL, OBJ, PLY, DICOM, CBCT, X-ray, image, PDF, document, and ZIP-package files are stored through the shared ObjectStorage abstraction. The prescription references durable object records; it does not duplicate binary storage.
+Prescription-related STL, OBJ, PLY, CBCT, DICOM, X-ray, clinical photo, shade photo, document, and ZIP-package files use PostgreSQL-backed ObjectStorage and durable `object_records`. No binary bytes are duplicated in prescription tables.
 
 ## Printable copies
 
-Authorized users can generate Doctor, Laboratory, Production, and Outsourcing copies. Each PDF is generated from the stored prescription and saved through ObjectStorage. The copies are representations of one authoritative record, not separate editable prescriptions.
+Authorized users can generate Doctor, Laboratory, Production, and Outsourcing copies. Each PDF is generated from the stored prescription, saved through ObjectStorage, and returned for printing. Copies are representations of one authoritative record rather than separate editable records.
 
 ## Security
 
-All prescription APIs require a verified server session, CSRF protection for mutations, server-side role authorization, tenant isolation, and Practice scoping inherited from the NorthStar security gateway.
+All APIs require the verified server session, CSRF protection for mutations, server-side role authorization, tenant isolation, and immutable audit context.
+
+## Verified
+
+Sprint 12 integration and Playwright coverage verifies:
+
+- fixed, implant, removable, orthodontic, and appliance prescriptions;
+- multiple restorations and arches;
+- profile default population and case overrides;
+- mandatory completion rules;
+- notes and attachment persistence;
+- PDF generation and printing workflow;
+- role authorization and tenant isolation.
+
+Evidence: Sprint 12 Validation run `30407654085` on implementation head `d08490f545b3abb34af98b5845ec157d3c898b6e`.
 
 ## Deferred
 
-- electronic prescribing signatures;
-- template libraries managed by product teams;
+- electronic signatures;
 - portal-specific Doctor editing policies;
-- advanced conditional fields supplied by future CAD and AI services;
-- formal records retention and legal-hold automation.
+- advanced CAD/AI conditional fields;
+- managed template libraries;
+- retention and legal-hold automation.
