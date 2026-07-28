@@ -1,5 +1,9 @@
 BEGIN;
 
+ALTER TABLE product_catalog
+  DROP COLUMN IF EXISTS default_customer_price,
+  DROP COLUMN IF EXISTS promotional_price;
+
 CREATE TABLE practice_routing_profiles (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES tenants(id),
