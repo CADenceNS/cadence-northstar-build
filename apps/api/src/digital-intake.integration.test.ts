@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import express from 'express';
 import { Pool } from 'pg';
-import { InMemoryObjectStorage } from './infrastructure/object-storage.js';
+import { PostgresObjectStorage } from './infrastructure/postgres-object-storage.js';
 import type { AuditEventInput, AuditRepository } from './infrastructure/contracts.js';
 import type { SecurityRequest } from './security.js';
 import { installDigitalIntake } from './digital-intake.js';
@@ -19,7 +19,7 @@ await pool.query(`INSERT INTO tenants(id,name,slug,status) VALUES($1,'Other Tena
 await pool.query('TRUNCATE intake_history,intake_billing_reviews,intake_product_resolutions,intake_routing_resolutions,intake_validations,intake_attachments,digital_prescriptions,intake_submissions,doctor_preference_profiles,product_catalog,scanner_providers RESTART IDENTITY CASCADE');
 
 const app=express();app.use(express.json({limit:'5mb'}));app.use((req:SecurityRequest,_res,next)=>{req.identity={userId:'usr-admin',name:'Dorian Habet',email:'dorianhabet@yahoo.com',role:'system-administrator',tenantId,locationIds:['location-primary'],practiceIds:[],administrativeOverride:true,sessionId:'test-session',csrfToken:'test'};next()});
-installDigitalIntake(app,{pool,objects:new InMemoryObjectStorage(),audit,context:{tenantId,actorId:'usr-admin',actorName:'Dorian Habet'},createOperationalCase:async()=>({id:'case-intake-1',caseNumber:'KDL-INT-1'})});
+installDigitalIntake(app,{pool,objects:new PostgresObjectStorage(pool),audit,context:{tenantId,actorId:'usr-admin',actorName:'Dorian Habet'},createOperationalCase:async()=>({id:'case-intake-1',caseNumber:'KDL-INT-1'})});
 const server=app.listen(0);await new Promise<void>(resolve=>server.once('listening',resolve));const address=server.address();if(!address||typeof address==='string')throw new Error('Unable to start test server.');const base=`http://127.0.0.1:${address.port}`;
 async function request(path:string,method='GET',body?:unknown){const response=await fetch(base+path,{method,headers:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});const payload=await response.json().catch(()=>null);return{response,payload}}
 
