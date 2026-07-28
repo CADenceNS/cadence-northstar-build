@@ -12,81 +12,63 @@
 - [ ] Review and merge PR #10 after PR #9.
 - [ ] Review and merge architecture-planning PR #11 after PR #10.
 - [ ] Review and merge Sprint 10 PR #12 after PR #11.
-- [ ] Complete Sprint 11 communications integration, CI, Runtime Validation, and Playwright gates.
-- [ ] Add production email delivery for password reset and email verification.
-- [ ] Add user, membership, session, and role administration workflows.
-- [ ] Add future OIDC/SSO, SCIM, WebAuthn/passkey, TOTP, and step-up authentication integrations.
-- [ ] Add distributed rate limiting, managed secret rotation, and risk-based authentication controls.
-- [ ] Add managed cloud object storage, encryption-key management, malware scanning, and retention controls.
-- [ ] Add durable generation and cloud storage for invoice PDFs and shipping documents when those existing domains begin producing binary artifacts.
-- [ ] Evaluate read replicas, partitioning, connection-pooling proxies, and tenant-specific data residency when operational scale requires them.
+- [ ] Review and merge Sprint 11 PR #13 after PR #12.
+- [ ] Review and merge Sprint 12 PR #14 after PR #13.
+- [ ] Add production email delivery, identity administration, OIDC/SSO, SCIM, WebAuthn/passkeys, TOTP, and step-up authentication.
+- [ ] Add distributed rate limiting, managed secret rotation, and risk-based authentication.
+- [ ] Add managed cloud ObjectStorage, encryption-key management, malware scanning, quarantine, retention, and legal-hold controls.
+- [ ] Implement production scanner-provider adapters, credential exchange, webhooks, and portal SDKs.
+- [ ] Implement Billing-owned Pricing Schedule calculation, contract/promotion eligibility, and customer override resolution.
+- [ ] Introduce the dedicated post-QC Billing command and transactional-outbox event defined by ADR-004.
+- [ ] Generate invoices from approved frozen Product Resolution records, bundle invoice/shipping documents, and include invoices in statements.
+- [ ] Migrate legacy Case Intake behind an internal Digital Intake command only after ADR-001 compatibility gates are satisfied.
+- [ ] Refactor large intake route handlers into typed application services and repository interfaces.
+- [ ] Evaluate read replicas, partitioning, connection-pooling proxies, and tenant-specific data residency when scale requires them.
 
-## Sprint 11 — Clinical Communications Platform
+## Completed — Sprint 12 Digital Intake Platform Foundation
 
-- [x] Add append-only communication threads, events, attachment references, and notifications schema.
-- [x] Add chronological timeline and threaded-history APIs.
-- [x] Add ObjectStorage-backed communication attachments without duplicating binary storage.
-- [x] Add tenant-scoped communication search by entity, actor, date, event type, and keyword.
-- [x] Add notification retrieval, priority/category targeting, unread state, and read transitions.
+- [x] Add unified automatic digital, manual digital, and physical submission records.
+- [x] Require a versioned Smart Digital Prescription before acceptance.
+- [x] Add fixed, implant, removable, orthodontic, appliance, and diagnostic validation rules.
+- [x] Support multiple restorations, arches, teeth/units, implant positions, notes, attachments, and printable copies.
+- [x] Add provider-neutral Scanner Provider contracts with explicit simulator and production-ready metadata.
+- [x] Add Doctor Preference Profile administration with versioned clinical, material, production, routing, and outsource defaults.
+- [x] Add Practice and tenant routing administration with verified precedence.
+- [x] Add a price-free Product Catalog boundary and catalog-backed Product Resolution.
+- [x] Remove customer-pricing columns from Product Catalog and establish separate Pricing Schedules.
+- [x] Add pending Billing Review and product freezing on approval without moving pricing into Digital Intake.
+- [x] Store STL, OBJ, PLY, CBCT, DICOM, X-ray, clinical photo, shade photo, ZIP, and prescription PDF objects through PostgreSQL-backed ObjectStorage.
+- [x] Record communications, notifications, immutable audit, and immutable intake history.
+- [x] Add Digital Intake and Intake Administration React workspaces.
+- [x] Preserve legacy Case Intake compatibility and document the migration strategy in ADR-001.
+- [x] Establish permanent ADR operating policy and ADRs 002–004.
+- [x] Pass frozen install, strict TypeScript, production builds, migrations 0001–0006, rollback/reapplication, inherited integrations, Digital Intake integrations, Runtime Validation, and complete Playwright regressions.
+
+## Completed — Sprint 11 Clinical Communications Platform
+
+- [x] Add append-only communication threads, events, attachment references, and notifications.
+- [x] Add chronological timelines, threaded history, tenant-scoped search, ObjectStorage attachments, and notification read state.
 - [x] Integrate timelines into Practice, Doctor, Patient, Case, Shipment, and Invoice views.
-- [x] Add an authenticated in-application notification center.
-- [x] Add communication repository, ordering, attachment, search, notification, and authorization integration coverage.
-- [x] Add dedicated Sprint 11 validation workflow and Runtime Validation migration support.
-- [ ] Pass strict TypeScript and production builds on final head.
-- [ ] Pass Sprint 11 integration and migration rollback/reapplication gates.
-- [ ] Pass Runtime Validation and complete Playwright regressions on final head.
-- [ ] Mark Sprint 11 complete only after all acceptance gates pass.
+- [x] Pass strict TypeScript, integrations, Runtime Validation, and complete Playwright regressions.
 
 ## Completed — Sprint 10 Production Identity & Security
 
-- [x] Add PostgreSQL credential, membership, session, and one-time-token schema with rollback.
-- [x] Replace plaintext password comparison with salted, parameterized `scrypt` verification.
-- [x] Add HttpOnly server-side sessions with idle and absolute expiry, revocation, device metadata, and concurrency limits.
-- [x] Add temporary account lockout and immutable authentication failure audits.
-- [x] Add CSRF protection, proxy-aware same-origin validation, and CSRF rotation on session restoration.
-- [x] Add centralized request identity, permission evaluation, practice scope enforcement, and stable security errors.
-- [x] Add role coverage for administrators, laboratory operations, Doctor users, and read-only auditors.
-- [x] Replace browser-local authentication authority with server session restoration and logout invalidation.
-- [x] Add security integration tests and dedicated Sprint 10 validation workflow.
-- [x] Pass final Sprint 10 CI, Runtime Validation, and the complete Playwright suite.
-- [x] Add `docs/SECURITY.md`, `docs/AUTHORIZATION.md`, and `docs/SPRINTS/Sprint-10.md`.
+- [x] Add PostgreSQL credentials, memberships, sessions, one-time tokens, password hashing, lockout, CSRF, authorization, tenant scope, and immutable security auditing.
+- [x] Replace browser-local authentication authority with secure server sessions.
+- [x] Pass final security CI, Runtime Validation, and complete Playwright regressions.
 
 ## Completed — Sprint 9 Infrastructure Core: Durable Persistence
 
-- [x] Define typed repository contracts for Authentication, Practice, Doctor, Patient, Case, Production, QC, Shipping, Financial, and Audit domains.
-- [x] Add tenant-aware repository context and cross-repository transaction support.
-- [x] Add PostgreSQL pool, transaction, migration, rollback, and immutable audit infrastructure.
-- [x] Add normalized PostgreSQL schemas, constraints, indexes, soft deletion, versioning, and financial decimal columns.
-- [x] Implement concrete PostgreSQL adapters for every production repository contract.
-- [x] Add durable repository-document compatibility storage preserving verified Sprint 8 payloads.
-- [x] Add provider-neutral `ObjectStorage` with PostgreSQL-backed production storage and in-memory test storage.
-- [x] Persist case files and QC photographs through `ObjectStorage` while preserving backward-compatible API payloads.
-- [x] Cut Authentication, Practice, Doctor, Patient, Case, Production, QC, Shipping, Billing, and dashboard metrics over to PostgreSQL.
-- [x] Remove the legacy array-backed server from the production import graph.
-- [x] Emit append-only audit events for authentication, master-data changes, case lifecycle, production, QC, shipping, and financial events.
-- [x] Prevent duplicate audit records during internal QC and shipping case synchronization.
-- [x] Add legacy snapshot migration and representative relationship, transaction, tenant-isolation, soft-delete, binary-object, and audit integration tests.
-- [x] Verify migration application, destructive rollback, and reapplication against PostgreSQL 16.
-- [x] Verify operational data, relationships, object bytes, audit history, and dashboard metrics survive API process termination and restart.
-- [x] Run the complete Sprints 3–8 Playwright regression suite exclusively against the PostgreSQL-backed runtime.
-- [x] Update `docs/SPRINTS/Sprint-09.md`, `docs/ARCHITECTURE.md`, `docs/DATABASE.md`, and CP1 Beta release documentation.
-- [x] Achieve the Community Preview 1 Beta durable-persistence milestone.
+- [x] Add tenant-aware PostgreSQL repositories, transactions, migrations, rollback, ObjectStorage, immutable audit, snapshot migration, and durable runtime composition.
+- [x] Cut production ERP modules over to PostgreSQL and pass full browser regressions.
+- [x] Achieve Community Preview 1 Beta.
 
-## Completed — Sprint 8 Billing & Financial Engine
-
-- [x] Define strict invoice, line, adjustment, payment, terms, statement, aging, and financial-metric contracts.
-- [x] Add a `FinancialRepository` persistence boundary and in-memory implementation.
-- [x] Generate invoices automatically when shipments are delivered.
-- [x] Support multiple cases per invoice through multi-case shipments.
-- [x] Add taxes, tax-exempt handling, discounts, credits, fees, payment terms, payment recording, AR aging, monthly statements, dashboard metrics, API endpoints, authenticated UI, and Playwright coverage.
-- [x] Pass Sprint 8 validation and runtime regression pipelines.
-- [x] Open focused Sprint 8 pull request #9 stacked on PR #8.
-
-## Completed — Sprints 3–7
+## Completed — Sprints 3–8
 
 - [x] Practice and Doctor Management.
 - [x] Patient and Case Intake.
 - [x] Production Workflow Engine.
 - [x] Quality Control Engine.
 - [x] Shipping & Logistics.
-- [x] Preserve API-backed authentication, protected routes, session persistence, and all browser regressions.
+- [x] Billing & Financial Engine.
+- [x] Preserve API-backed authentication, protected routes, session persistence, and browser regressions.
