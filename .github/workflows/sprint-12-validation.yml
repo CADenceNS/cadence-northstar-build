@@ -50,6 +50,7 @@ jobs:
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0003_identity_security.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0004_clinical_communications.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0005_digital_intake_platform.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0006_intake_administration.sql
       - name: Run inherited persistence, security, and communications contracts
         run: |
           pnpm --filter @northstar/api test:repositories
@@ -61,8 +62,10 @@ jobs:
         run: pnpm --filter @northstar/api test:digital-intake
       - name: Validate Digital Intake rollback and reapplication
         run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0006_intake_administration.rollback.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0005_digital_intake_platform.rollback.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0005_digital_intake_platform.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0006_intake_administration.sql
       - name: Start secure application services
         run: |
           pnpm --filter @northstar/api dev > /tmp/sprint12-api.log 2>&1 &
@@ -82,6 +85,7 @@ jobs:
           LOGIN=$(curl -fsS -c /tmp/session-cookie -X POST http://127.0.0.1:4000/api/auth/login -H 'Content-Type: application/json' -d '{"email":"dorianhabet@yahoo.com","password":"NorthStar!2026"}')
           CSRF=$(python -c 'import json,sys;print(json.load(sys.stdin)["csrfToken"])' <<<"$LOGIN")
           test "$(curl -s -o /dev/null -w '%{http_code}' -b /tmp/session-cookie http://127.0.0.1:4000/api/intake/submissions)" = "200"
+          test "$(curl -s -o /dev/null -w '%{http_code}' -b /tmp/session-cookie http://127.0.0.1:4000/api/intake/admin/doctor-preferences)" = "200"
           SUBMISSION=$(curl -fsS -b /tmp/session-cookie -X POST http://127.0.0.1:4000/api/intake/submissions -H 'Content-Type: application/json' -H "X-CSRF-Token: $CSRF" -d '{"intakeMethod":"physical","sourceReference":"walk-in-validation"}')
           SUBMISSION_ID=$(python -c 'import json,sys;print(json.load(sys.stdin)["id"])' <<<"$SUBMISSION")
           test "$(curl -s -o /dev/null -w '%{http_code}' -b /tmp/session-cookie -X POST "http://127.0.0.1:4000/api/intake/submissions/$SUBMISSION_ID/accept" -H 'Content-Type: application/json' -H "X-CSRF-Token: $CSRF" -d '{}')" = "409"
