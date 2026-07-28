@@ -9,6 +9,7 @@ import { installSecurity, SecurityService, type SecurityRequest } from './securi
 import { installCommunications } from './communications.js';
 import { installDigitalIntake } from './digital-intake.js';
 import { installIntakeAdministration } from './intake-administration.js';
+import { installProductCatalogFoundation } from './product-catalog-foundation.js';
 
 const durable=await createDurableRuntime();
 process.env.PORT='4001';
@@ -23,6 +24,7 @@ installCommunications(app,durable.pool,durable.objects);
 const intakeWriters=new Set(['system-administrator','laboratory-administrator','office-manager','customer-service','billing']);
 app.use('/api/intake',(req:SecurityRequest,res,next)=>{if(!req.identity)return res.status(401).json({error:'Authentication required.'});if(!['GET','HEAD','OPTIONS'].includes(req.method)&&!intakeWriters.has(req.identity.role))return res.status(403).json({error:'Permission denied.'});return next()});
 installIntakeAdministration(app,{pool:durable.pool,audit:durable.repositories.audit});
+installProductCatalogFoundation(app,durable.pool,durable.repositories.audit);
 async function createOperationalCase(input:Record<string,unknown>){const response=await fetch(`${upstream}/api/cases`,{method:'POST',headers:{'Content-Type':'application/json','x-actor-id':'digital-intake','x-actor-name':'Digital Intake Platform','x-northstar-role':'system-administrator','x-northstar-tenant':durable.context.tenantId},body:JSON.stringify(input)});if(!response.ok)throw new Error(`Operational case creation failed: ${await response.text()}`);return response.json() as Promise<{id:string;caseNumber:string}>}
 installDigitalIntake(app,{pool:durable.pool,objects:durable.objects,audit:durable.repositories.audit,context:durable.context,createOperationalCase});
 async function listCases():Promise<ClinicalCase[]>{const response=await fetch(`${upstream}/api/cases`);if(!response.ok)throw new Error('Unable to load clinical cases.');return response.json() as Promise<ClinicalCase[]>}
