@@ -2,82 +2,106 @@
 
 ## Purpose
 
-Product Resolution converts clinically described restorations in a completed Digital Prescription into billable product identities. It identifies what was ordered; it does not calculate what the customer pays.
+Product Resolution converts restorations in a completed Digital Prescription into stable billable product identities. It determines what was ordered; it does not calculate what the customer pays.
 
-## Architectural boundary
+## Permanent boundary
 
-The permanent flow is:
+```text
+Digital Intake
+      ↓
+Product Resolution
+      ↓
+Billing command
+      ↓
+Pricing Schedule resolution
+      ↓
+Invoice
+```
 
-Digital Intake → Product Resolution → Billing command → Pricing resolution → Invoice
-
-Digital Intake owns submission and prescription data. Product Resolution owns product identification. Billing owns pricing, taxes, invoice generation, payments, and statements.
+Digital Intake owns submission and prescription data. Product Resolution owns product identity. Product Catalog owns reusable SKU and operational classification. Pricing Schedules own future customer-pricing configuration. Billing owns price calculation, taxes, invoice generation, payments, and statements.
 
 ## Inputs
 
-Product Resolution consumes:
-
-- the stored Digital Prescription;
-- restoration category, type and subtype;
-- material;
-- quantity, units, tooth positions or arches;
-- the tenant Product Catalog.
+Product Resolution consumes the stored prescription’s restoration category, type, subtype, material, quantity, units, teeth, implant positions, arches, and tenant Product Catalog.
 
 ## Outputs
 
 Each resolution records:
 
-- Product SKU;
+- SKU;
 - product category;
-- restoration type;
-- restoration subtype;
+- restoration type and subtype;
 - material;
 - quantity;
 - production department;
 - accounting category;
-- Product Catalog reference when a matching catalog item exists;
+- Product Catalog reference;
 - authenticated resolver and timestamp.
 
-Submission and Doctor-facing responses exclude internal cost, outsource cost, default price, promotional price, contract price, and customer-specific price.
+Quantity is derived from the explicit quantity, units, tooth positions, arches, or a minimum value of one.
 
-## Product Catalog
+## Product Catalog foundation
 
-The Product Catalog is the tenant master for stable product identity and operational classification. It stores SKU, product name, restoration category and subtype, material, department, accounting category, tax classification, turnaround category, active state, and internal operational cost metadata.
+The shared price-free Product Catalog foundation is registered before the Digital Intake router. Both catalog administration and Product Resolution use this boundary.
 
-Catalog identity is independent from customer Pricing Schedules. Customer prices must not be embedded into the resolution record.
+Product Catalog stores:
 
-## Matching behavior
+- SKU and product name;
+- restoration category and subtype;
+- material;
+- production department;
+- accounting category;
+- internal and outsource cost metadata;
+- tax classification;
+- turnaround category;
+- active state.
 
-The foundation attempts an active catalog match using restoration subtype and material. When no catalog product exists, it creates a deterministic provisional catalog identity for the tenant and records the resulting SKU. Future catalog-governance work may require administrative approval before provisional products become generally available.
+Migration 0006 removes the initial customer-price and promotional-price columns. Catalog APIs reject customer-pricing fields. Product Resolution responses exclude all price fields.
 
-## Billing Review
+When no matching identity exists, Product Resolution creates or updates a deterministic tenant catalog identity and then links the resolution to it.
 
-Acceptance creates a pending Billing Review. Authorized staff validate the resolved product set. Approval freezes the resolved products so downstream Billing receives a stable order description.
+## Pricing Schedules
 
-Sprint 12A establishes the dedicated boundary but does not move price calculations into Digital Intake. Automatic invoice generation remains owned by Billing and requires a future Billing command that consumes the approved, frozen product set.
-
-## Pricing Schedule foundation
-
-Pricing Schedules are separate durable records supporting future:
+Pricing Schedules are separate durable records for future:
 
 - standard schedules;
 - contract pricing;
 - promotional pricing;
 - customer overrides;
-- schedule priority and effective dates;
+- priority and effective periods;
 - catalog-product schedule items.
 
-No customer-price calculation is implemented in Sprint 12A. Billing will later resolve prices from applicable schedules, account configuration, promotions, contracts, and tax rules.
+Sprint 12 does not calculate prices. Billing will later select applicable schedules using account configuration, contracts, promotions, customer overrides, tax rules, and authorized adjustments.
 
-## Audit and communications
+## Billing Review
 
-Product resolution and Billing Review transitions record immutable audit events and append operational communication events. The communication content records operational progress without copying security-audit evidence.
+Acceptance creates a pending Billing Review. Approval freezes Product Resolution records so Billing receives a stable product set. Sprint 12 preserves the existing Billing engine and does not generate intake-driven invoices.
+
+ADR-004 defines the approved future post-QC application-event and transactional-outbox handoff.
+
+## Security and evidence
+
+Catalog creation, Product Resolution, pricing administration, and Billing Review require authenticated server sessions and role authorization. Mutations record immutable audit evidence; lifecycle progress is appended separately to Clinical Communications.
+
+## Verified
+
+Sprint 12 integration coverage verifies:
+
+- deterministic SKU assignment;
+- category, restoration type, subtype, material, department, accounting category, and quantity mapping;
+- catalog creation through the shared boundary;
+- no customer pricing in Product Catalog columns, API input, or Product Resolution output;
+- Pricing Schedule separation;
+- product freezing after Billing Review approval;
+- tenant isolation, authorization, audit, communications, and browser workflows.
+
+Evidence: Sprint 12 Validation run `30407654085` on implementation head `d08490f545b3abb34af98b5845ec157d3c898b6e`.
 
 ## Deferred
 
 - Pricing Schedule calculation and conflict resolution;
-- contract and promotion eligibility rules;
-- customer-specific price approval;
-- post-QC Billing command orchestration;
-- invoice-line creation from frozen resolution records;
-- invoice printing and shipment bundling;
-- statement inclusion triggered directly from intake.
+- contract, promotion, and customer-override eligibility;
+- customer-price approval workflows;
+- post-QC Billing command and transactional outbox;
+- invoice-line creation from frozen product identities;
+- invoice/shipment document bundling and statement inclusion.
