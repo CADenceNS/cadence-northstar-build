@@ -2,11 +2,11 @@
 
 ## Purpose
 
-The Digital Intake Platform is the durable, tenant-aware entry boundary for automatic digital submissions, manual digital entry, and physical case entry. Every supported intake method creates the same `intake_submissions` record and must complete the same Digital Prescription, validation, routing, product-resolution, acceptance, and billing-review stages.
+The Digital Intake Platform is the durable, tenant-aware entry boundary for automatic digital submissions, manual digital entry, and physical case entry. Every supported intake method creates the same submission record and follows the same prescription, validation, routing, Product Resolution, acceptance, and Billing Review sequence.
 
-This module is not a scanner-specific application. Scanner and portal sources are adapters into a stable provider contract.
+Digital Intake is not a scanner-specific application. Scanner and portal sources are adapters into a stable provider contract.
 
-## Current architecture
+## Architecture
 
 ```text
 Scanner / portal / upload / mail / courier / walk-in
@@ -32,132 +32,139 @@ Scanner / portal / upload / mail / courier / walk-in
       Operational Case Creation
              |
              v
-  Production -> QC -> Billing Review -> Existing Billing / Shipping
+ Production -> QC -> Billing Review -> Billing command -> Invoice / Shipping
 ```
+
+The final Billing command and intake-driven invoice generation are deferred. The existing verified Billing and shipment-delivery invoice behavior remains unchanged.
 
 ## Durable records
 
-Migration `0005_digital_intake_platform.sql` introduces:
+Migration `0005_digital_intake_platform.sql` introduces providers, Doctor Preference Profiles, Product Catalog, submissions, prescriptions, attachments, validation, routing, Product Resolution, Billing Review, and immutable intake history.
 
-- `scanner_providers`
-- `doctor_preference_profiles`
-- `product_catalog`
-- `intake_submissions`
-- `digital_prescriptions`
-- `intake_attachments`
-- `intake_validations`
-- `intake_routing_resolutions`
-- `intake_product_resolutions`
-- `intake_billing_reviews`
-- immutable `intake_history`
-
-All records include tenant ownership. Submission queues are indexed by tenant, status, and received time.
+Migration `0006_intake_administration.sql` introduces Practice routing profiles, tenant routing defaults, and future Pricing Schedule records. Pricing Schedule records are independent from Product Catalog master records.
 
 ## Intake methods
 
 ### Automatic digital submission
 
-Represents a scanner, portal, secure upload, or future API source. The provider must be registered in `scanner_providers`. Provider metadata distinguishes:
-
-- official adapter
-- generic file provider
-- manual upload provider
-- simulator
-- future SDK
-
-`production_ready` explicitly separates a simulator or contract test from an implemented production integration.
+Represents scanner, portal, secure-upload, or future API sources. Providers are registered through the common provider model.
 
 ### Manual digital entry
 
-Used for emailed files, external-storage downloads, portal exports, and other digital records manually entered by laboratory staff.
+Used for emailed STL files, portal exports, external-storage downloads, or other digital records entered by laboratory staff.
 
 ### Physical case entry
 
-Used for impressions, stone models, bite registrations, printed prescriptions, shade tabs, and physical implant components. Physical cases still receive a digital submission record and cannot be accepted until the in-system Digital Prescription is complete.
+Used for impressions, stone models, bite registrations, printed prescriptions, shade tabs, and physical implant components. A physical case still requires the in-system prescription before acceptance.
+
+## Scanner Provider architecture
+
+Provider types are official adapter, generic file provider, manual upload provider, simulator, and future SDK. `production_ready` distinguishes implemented production integration from a simulator or contract fixture.
+
+Provider adapters own vendor authentication, payload translation, file retrieval, acknowledgement, and provider-specific retry behavior. They output the common submission command and attachment references.
+
+Provider adapters must not own:
+
+- prescription rules;
+- clinical validation;
+- routing policy;
+- Product Resolution;
+- pricing;
+- Billing behavior.
+
+No vendor-specific production adapter is claimed in Sprint 12.
 
 ## Lifecycle enforcement
 
-A submission begins at `prescription-required`. Acceptance is rejected until all of the following exist:
+Acceptance is rejected until all of the following exist:
 
 1. completed Digital Prescription;
-2. latest validation status is `complete`;
-3. routing resolution exists;
-4. at least one product-resolution record exists;
-5. an existing patient record is linked for operational case creation.
+2. latest validation status is complete;
+3. routing resolution;
+4. at least one Product Resolution record;
+5. an existing patient for operational case creation.
 
-Acceptance creates an operational case through the existing durable case API and creates a pending Billing Review record.
+Acceptance creates an operational case through the established durable case API and creates a pending Billing Review.
+
+## Routing precedence
+
+Routing is independent from Scanner Providers and uses:
+
+1. authorized case override;
+2. restoration-level case override;
+3. active Doctor Preference Profile;
+4. active Practice routing profile;
+5. tenant routing default;
+6. manual review.
+
+Doctor, Practice, and tenant configuration is administered through secured, auditable APIs and an administrator-only React workspace.
+
+## Doctor Preference administration
+
+Administrators can create versioned Doctor Preference Profiles, view history, and deactivate profiles. A newly saved version deactivates the previous active version.
+
+Profiles support clinical defaults, material defaults, margin, contacts, occlusion, production preferences, preferred route, and preferred outsourcing partner. Prescription values override profile defaults.
+
+## Practice and tenant routing administration
+
+Administrators can create, update, and deactivate Practice routing profiles and set the tenant routing default. Routing changes create immutable audit events.
+
+## Pricing Schedule foundation
+
+Pricing Schedule records support standard, contract, promotion, and customer-override schedules, effective dates, Practice scope, priority, and future catalog-product schedule items.
+
+No price calculation is performed in Digital Intake. Billing remains responsible for resolving customer prices, taxes, account configuration, promotions, contracts, invoice generation, and statements.
 
 ## Secure APIs
 
-Current endpoints include:
+The platform provides secured endpoints for providers, catalog products, submissions, prescription, attachments, validation, routing, Product Resolution, acceptance and rejection, Billing Review, prescription PDF generation, Doctor Preferences, Practice routing, tenant defaults, and Pricing Schedule administration.
 
-- `GET/POST /api/intake/providers`
-- `GET/POST /api/intake/catalog`
-- `GET/POST /api/intake/submissions`
-- `GET /api/intake/submissions/:id`
-- `PUT /api/intake/submissions/:id/prescription`
-- `POST /api/intake/submissions/:id/attachments`
-- `POST /api/intake/submissions/:id/validate`
-- `POST /api/intake/submissions/:id/route`
-- `POST /api/intake/submissions/:id/resolve-products`
-- `POST /api/intake/submissions/:id/accept`
-- `POST /api/intake/submissions/:id/reject`
-- `POST /api/intake/submissions/:id/billing-review`
-- `POST /api/intake/submissions/:id/prescription-pdf`
-
-All endpoints require the verified Sprint 10 server session. Intake writes are restricted to System Administrator, Laboratory Administrator, Office Manager, Customer Service, and Billing roles.
+All endpoints use verified server sessions, CSRF protection for mutations, tenant isolation, Practice scope, server-side role enforcement, and immutable audit context.
 
 ## Attachments
 
-The platform uses the existing `ObjectStorage` abstraction and `object_records`. It does not duplicate binary storage.
+The platform uses the existing ObjectStorage abstraction and durable `object_records`. Intake does not duplicate binary storage.
 
-Supported intake object kinds now include STL, OBJ, PLY, DICOM, CBCT, X-ray, clinical photo, shade photo, PDF/document, ZIP intake package, and generated prescription PDF.
+Supported kinds include STL, OBJ, PLY, DICOM, CBCT, X-ray, clinical photo, shade photo, PDF/document, ZIP intake package, and generated prescription PDF.
 
 ## Communications, notifications, and audit
 
-Operational lifecycle messages are appended to the Clinical Communications domain as system events. Internal notifications are generated for new submissions, validation failures, routing review, and Billing Review.
+Operational lifecycle events are appended to Clinical Communications. Notifications are generated for new submissions, validation failures, routing review, and Billing Review.
 
-Security and change evidence is appended separately through the immutable audit repository. Full clinical notes are not copied into security audit records.
-
-`intake_history` is an additional immutable operational lifecycle log protected by a PostgreSQL trigger.
+Security and change evidence is appended separately through immutable audit. `intake_history` is an immutable operational lifecycle log protected by PostgreSQL.
 
 ## React workspaces
 
-The current React workspace provides:
+- New Digital Submission;
+- Manual Digital Entry;
+- Physical Case Entry;
+- Scanner Queue;
+- Validation Queue;
+- Routing Queue;
+- Billing Review Queue;
+- Smart Digital Prescription editor;
+- attachment upload;
+- validation, routing, Product Resolution, acceptance, and PDF actions;
+- Doctor Preference administration;
+- Practice and tenant routing administration;
+- Pricing Schedule foundation administration.
 
-- New Digital Submission
-- Manual Digital Entry through the universal creation form
-- Physical Case Entry through the same form
-- Scanner Queue
-- Validation Queue
-- Routing Queue
-- Billing Review Queue
-- Smart Digital Prescription editor
-- attachment upload
-- validation, routing, product-resolution, acceptance, and PDF actions
+## Legacy Case Intake compatibility
 
-## Implemented foundation
+The established direct Case Intake remains operational to preserve verified ERP behavior. ADR-001 defines the future migration to a compatibility application command that internally creates and processes a Digital Intake submission.
 
-- provider-neutral submission records;
-- unified manual, automatic, and physical intake lifecycle;
-- mandatory prescription gate;
-- restoration-aware validation foundation;
-- routing precedence foundation;
-- catalog-backed product identification;
-- price-free submission responses;
-- operational case creation;
-- pending Billing Review and product freeze on approval;
-- generated Doctor, Laboratory, Production, and Outsourcing prescription copies;
-- communication, notification, audit, and immutable intake-history participation.
+Digital Intake is the target architecture for new entry workflows, but Sprint 12 does not claim that the legacy route has already been retired.
 
 ## Deferred
 
 - official scanner-vendor production adapters and credential exchange;
 - portal SDKs and inbound webhook infrastructure;
-- malware scanning, archive inspection, and DICOM/CBCT clinical processing;
-- Practice-level and tenant-admin preference editors;
-- customer-specific pricing schedules and promotion engines;
-- automatic post-QC invoice generation from Billing Review;
-- invoice-print bundling with shipment documents;
-- enforced retirement of direct legacy case creation after migration of all existing workflows;
+- malware scanning and archive inspection;
+- DICOM and CBCT clinical processing;
+- Pricing Schedule calculation;
+- post-QC Billing command orchestration;
+- automatic invoice generation from frozen Product Resolution;
+- invoice and shipping-document bundling;
+- automated statement inclusion;
+- retirement of the legacy direct Case Intake route;
 - external Doctor Portal submission.
