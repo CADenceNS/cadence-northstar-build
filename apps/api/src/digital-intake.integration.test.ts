@@ -14,8 +14,8 @@ const otherTenant='00000000-0000-0000-0000-000000000002';
 const audits:AuditEventInput[]=[];
 const audit:AuditRepository={append:async event=>{audits.push(event)},list:async tenant=>audits.filter(item=>item.tenantId===tenant)};
 
-await pool.query(`INSERT INTO tenants(id,name,slug,status) VALUES($1,'NorthStar Test','northstar-test','active') ON CONFLICT(id) DO NOTHING`,[tenantId]);
-await pool.query(`INSERT INTO tenants(id,name,slug,status) VALUES($1,'Other Tenant','other-test','active') ON CONFLICT(id) DO NOTHING`,[otherTenant]);
+await pool.query(`INSERT INTO tenants(id,name) VALUES($1,'NorthStar Test') ON CONFLICT(id) DO NOTHING`,[tenantId]);
+await pool.query(`INSERT INTO tenants(id,name) VALUES($1,'Other Tenant') ON CONFLICT(id) DO NOTHING`,[otherTenant]);
 await pool.query('TRUNCATE intake_history,intake_billing_reviews,intake_product_resolutions,intake_routing_resolutions,intake_validations,intake_attachments,digital_prescriptions,intake_submissions,doctor_preference_profiles,product_catalog,scanner_providers RESTART IDENTITY CASCADE');
 
 const app=express();app.use(express.json({limit:'5mb'}));app.use((req:SecurityRequest,_res,next)=>{req.identity={userId:'usr-admin',name:'Dorian Habet',email:'dorianhabet@yahoo.com',role:'system-administrator',tenantId,locationIds:['location-primary'],practiceIds:[],administrativeOverride:true,sessionId:'test-session',csrfToken:'test'};next()});
@@ -37,6 +37,7 @@ try{
  const accepted=await request(`/api/intake/submissions/${submissionId}/accept`,'POST',{});assert.equal(accepted.response.status,200);assert.equal(accepted.payload.operationalCase.caseNumber,'KDL-INT-1');assert.equal(accepted.payload.billingReview,'pending');
  const review=await request(`/api/intake/submissions/${submissionId}/billing-review`,'POST',{status:'approved',notes:'Products verified.'});assert.equal(review.response.status,200);assert.equal(review.payload.status,'approved');
  const detail=await request(`/api/intake/submissions/${submissionId}`);assert.equal(detail.response.status,200);assert.equal(detail.payload.submission.status,'operational-case-created');assert.ok(detail.payload.history.length>=7);assert.ok(detail.payload.attachments.some((item:{purpose:string})=>item.purpose==='upper-arch'));assert.ok(detail.payload.attachments.some((item:{purpose:string})=>item.purpose==='prescription-production'));assert.equal(detail.payload.products[0].frozen_at!==null,true);
+ const objectRows=await pool.query('SELECT owner_type,owner_id,file_name FROM object_records WHERE tenant_id=$1 ORDER BY created_at',[tenantId]);assert.ok(objectRows.rows.some(row=>row.owner_type==='intake-submission'&&row.owner_id===submissionId&&row.file_name==='upper.stl'));assert.ok(objectRows.rows.some(row=>row.owner_type==='digital-prescription'&&row.owner_id===submissionId));
  const notifications=await pool.query('SELECT category FROM communication_notifications WHERE tenant_id=$1',[tenantId]);assert.ok(notifications.rows.some(row=>row.category==='new-submission'));assert.ok(notifications.rows.some(row=>row.category==='billing-review'));
  const communications=await pool.query('SELECT content FROM communication_events WHERE tenant_id=$1 AND entity_id=$2 ORDER BY occurred_at',[tenantId,submissionId]);assert.ok(communications.rows.some(row=>String(row.content).includes('submission received')));assert.ok(communications.rows.some(row=>String(row.content).includes('product resolution completed')));
  await assert.rejects(pool.query(`UPDATE intake_history SET event_type='tampered' WHERE submission_id=$1`,[submissionId]));
