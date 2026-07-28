@@ -1,6 +1,6 @@
 {
   "name": "@northstar/api",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -12,7 +12,8 @@
     "test:postgres-repositories": "tsx src/infrastructure/postgres-repository.integration.test.ts",
     "test:migrations": "tsx src/infrastructure/migration-contract.test.ts",
     "test:security": "tsx src/security.integration.test.ts",
-    "test:communications": "tsx src/communications.integration.test.ts"
+    "test:communications": "tsx src/communications.integration.test.ts",
+    "test:digital-intake": "tsx src/digital-intake.integration.test.ts"
   },
   "dependencies": {
     "@northstar/shared": "workspace:*",
