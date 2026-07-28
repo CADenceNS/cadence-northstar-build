@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 
-export type StoredObjectKind='stl'|'obj'|'ply'|'dicom'|'clinical-photo'|'qc-photo'|'rx-pdf'|'shipping-document'|'invoice-pdf';
+export type StoredObjectKind='stl'|'obj'|'ply'|'dicom'|'cbct'|'xray'|'clinical-photo'|'shade-photo'|'qc-photo'|'rx-pdf'|'intake-document'|'intake-package'|'prescription-pdf'|'shipping-document'|'invoice-pdf';
 export interface PutObjectInput { tenantId:string; ownerType:string; ownerId:string; kind:StoredObjectKind; fileName:string; mimeType:string; bytes:Uint8Array; metadata?:Record<string,string>; }
 export interface StoredObject { id:string; tenantId:string; ownerType:string; ownerId:string; kind:StoredObjectKind; provider:string; bucket:string; objectKey:string; fileName:string; mimeType:string; size:number; checksumSha256:string; metadata:Record<string,string>; createdAt:string; }
 export interface ObjectStorage { put(input:PutObjectInput):Promise<StoredObject>; get(objectKey:string):Promise<Uint8Array|null>; delete(objectKey:string):Promise<void>; }
