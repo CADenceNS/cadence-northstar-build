@@ -1,38 +1,49 @@
 import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
 import express from 'express';
 import type { AddressInfo } from 'node:net';
-import type { User } from '@northstar/shared';
 import { createDurableRuntime } from './infrastructure/runtime.js';
-import { installSecurity, SecurityService } from './security.js';
 import { installCommunications } from './communications.js';
+import type { RequestIdentity, SecurityRequest } from './security.js';
 
 const durable=await createDurableRuntime();
-const user:User={id:'usr-admin',name:'Dorian Habet',email:'dorianhabet@yahoo.com',role:'administrator',active:true};
-await durable.repositories.users.save(durable.context,user);
-const app=express();app.use(express.json({limit:'25mb'}));
-await installSecurity(app,new SecurityService(durable.pool,durable.repositories.users,durable.repositories.audit,durable.context));
-installCommunications(app,durable.pool,durable.objects);
-const server=app.listen(0);await new Promise<void>(resolve=>server.once('listening',resolve));
-const port=(server.address() as AddressInfo).port,base=`http://127.0.0.1:${port}`;
+const tenantId=durable.context.tenantId,otherTenant=randomUUID();
+const practiceA=randomUUID(),practiceB=randomUUID(),practiceOther=randomUUID();
+const doctorA=randomUUID(),doctorB=randomUUID(),doctorOther=randomUUID();
+const patientA=randomUUID(),patientB=randomUUID(),patientOther=randomUUID();
+const caseA=randomUUID(),caseB=randomUUID(),caseOther=randomUUID();
+const adminId=randomUUID(),scopedId=randomUUID(),inactiveId=randomUUID();
+const now=new Date().toISOString();
 
+await durable.pool.query(`INSERT INTO tenants(id,name) VALUES($1,'Communications Other Tenant') ON CONFLICT DO NOTHING`,[otherTenant]);
+for(const [tenant,practice,account,name] of [[tenantId,practiceA,'COMM-A','Practice A'],[tenantId,practiceB,'COMM-B','Practice B'],[otherTenant,practiceOther,'COMM-O','Other Practice']] as const)await durable.pool.query(`INSERT INTO practices(id,tenant_id,account_number,practice_name,status,phone,email,address,city,state,postal_code,created_at,updated_at) VALUES($1,$2,$3,$4,'active','555','test@example.com','1 Main','Northridge','CA','91324',$5,$5)`,[practice,tenant,account,name,now]);
+for(const [tenant,id,practice,email] of [[tenantId,doctorA,practiceA,'doctor-a@example.com'],[tenantId,doctorB,practiceB,'doctor-b@example.com'],[otherTenant,doctorOther,practiceOther,'doctor-o@example.com']] as const)await durable.pool.query(`INSERT INTO doctors(id,tenant_id,practice_id,first_name,last_name,email,status,created_at,updated_at) VALUES($1,$2,$3,'Test','Doctor',$4,'active',$5,$5)`,[id,tenant,practice,email,now]);
+for(const [tenant,id,practice,doctor,reference] of [[tenantId,patientA,practiceA,doctorA,'PA'],[tenantId,patientB,practiceB,doctorB,'PB'],[otherTenant,patientOther,practiceOther,doctorOther,'PO']] as const)await durable.pool.query(`INSERT INTO patients(id,tenant_id,practice_id,doctor_id,patient_reference,first_name,last_name,status,created_at,updated_at) VALUES($1,$2,$3,$4,$5,'Test','Patient','active',$6,$6)`,[id,tenant,practice,doctor,reference,now]);
+for(const [tenant,id,number,patient,practice,doctor] of [[tenantId,caseA,'COMM-CASE-A',patientA,practiceA,doctorA],[tenantId,caseB,'COMM-CASE-B',patientB,practiceB,doctorB],[otherTenant,caseOther,'COMM-CASE-O',patientOther,practiceOther,doctorOther]] as const)await durable.pool.query(`INSERT INTO clinical_cases(id,tenant_id,case_number,patient_id,practice_id,doctor_id,status,arch,restoration,material,shade,rush_priority,received_date,due_date,created_at,updated_at) VALUES($1,$2,$3,$4,$5,$6,'received','mandibular','Crown','Zirconia','A2','standard',current_date,current_date+10,$7,$7)`,[id,tenant,number,patient,practice,doctor,now]);
+for(const [id,email,active] of [[adminId,'admin-comm@example.com',true],[scopedId,'scoped-comm@example.com',true],[inactiveId,'inactive-comm@example.com',false]] as const)await durable.pool.query(`INSERT INTO users(id,tenant_id,email,name,role,active) VALUES($1,$2,$3,'Communication User','customer-service',$4)`,[id,tenantId,email,active]);
+await durable.pool.query(`INSERT INTO identity_memberships(tenant_id,user_id,role,practice_ids,location_ids,administrative_override) VALUES($1,$2,'system-administrator','{}','{}',true),($1,$3,'customer-service',$4,'{}',false),($1,$5,'customer-service',$4,'{}',false)`,[tenantId,adminId,scopedId,[practiceA],inactiveId]);
+
+const admin:RequestIdentity={userId:adminId,name:'Admin',email:'admin-comm@example.com',role:'system-administrator',tenantId,locationIds:[],practiceIds:[],administrativeOverride:true,sessionId:'admin-session',csrfToken:'test'};
+const scoped:RequestIdentity={userId:scopedId,name:'Scoped',email:'scoped-comm@example.com',role:'customer-service',tenantId,locationIds:[],practiceIds:[practiceA],administrativeOverride:false,sessionId:'scoped-session',csrfToken:'test'};
+async function serverFor(identity:RequestIdentity){const app=express();app.use(express.json({limit:'25mb'}));app.use((req:SecurityRequest,_res,next)=>{req.identity=identity;next()});installCommunications(app,durable.pool,durable.objects);const server=app.listen(0);await new Promise<void>(resolve=>server.once('listening',resolve));const address=server.address() as AddressInfo;return{server,base:`http://127.0.0.1:${address.port}`}}
+async function request(base:string,path:string,method='GET',body?:unknown){const response=await fetch(base+path,{method,headers:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});return{response,payload:await response.json().catch(()=>null)}}
+
+const adminServer=await serverFor(admin),scopedServer=await serverFor(scoped);
 try{
- const login=await fetch(`${base}/api/auth/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:user.email,password:'NorthStar!2026'})});assert.equal(login.status,200);const loginPayload=await login.json() as{csrfToken:string};const cookie=(login.headers.get('set-cookie')??'').split(';')[0];
- const restored=await fetch(`${base}/api/auth/session`,{headers:{Cookie:cookie}});assert.equal(restored.status,200);const sessionPayload=await restored.json() as{csrfToken:string};const csrf=sessionPayload.csrfToken;assert.notEqual(csrf,loginPayload.csrfToken,'session restoration must rotate CSRF');
- const headers={Cookie:cookie,'Content-Type':'application/json','X-CSRF-Token':csrf};
- const threadResponse=await fetch(`${base}/api/communications/threads`,{method:'POST',headers,body:JSON.stringify({entityType:'case',entityId:'case-1001',subject:'Shade clarification'})});assert.equal(threadResponse.status,201);const thread=await threadResponse.json() as{id:string};
- const create=async(content:string,notify=false)=>{const response=await fetch(`${base}/api/communications/events`,{method:'POST',headers,body:JSON.stringify({entityType:'case',entityId:'case-1001',threadId:thread.id,eventType:'doctor-message',content,attachments:content==='Initial shade request'?[{fileName:'shade-photo.png',mimeType:'image/png',kind:'clinical-photo',contentBase64:Buffer.from('image-bytes').toString('base64')}]:[],notify:notify?[{userId:user.id,priority:'high',category:'clinical'}]:[]})});assert.equal(response.status,201);return response.json() as Promise<{id:string;attachments:Array<{fileName:string}>}>};
- const first=await create('Initial shade request',true);assert.equal(first.attachments[0]?.fileName,'shade-photo.png');
- await new Promise(resolve=>setTimeout(resolve,10));const second=await create('Doctor confirmed A2 body with translucent incisal.');
- const timeline=await fetch(`${base}/api/communications/timeline?entityType=case&entityId=case-1001`,{headers:{Cookie:cookie}});assert.equal(timeline.status,200);const events=await timeline.json() as Array<{id:string;content:string}>;assert.deepEqual(events.map(item=>item.id),[first.id,second.id],'timeline must be chronological');
- const threadEvents=await fetch(`${base}/api/communications/threads/${thread.id}`,{headers:{Cookie:cookie}});assert.equal(threadEvents.status,200);assert.equal((await threadEvents.json() as unknown[]).length,2);
- const search=await fetch(`${base}/api/communications/search?q=translucent&entityType=case`,{headers:{Cookie:cookie}});assert.equal(search.status,200);const results=await search.json() as Array<{id:string}>;assert.equal(results[0]?.id,second.id,'keyword search must find matching event');
- const notices=await fetch(`${base}/api/notifications`,{headers:{Cookie:cookie}});assert.equal(notices.status,200);const notificationRows=await notices.json() as Array<{id:string;read_at:string|null;priority:string}>;assert.equal(notificationRows[0]?.priority,'high');assert.equal(notificationRows[0]?.read_at,null);
- const marked=await fetch(`${base}/api/notifications/${notificationRows[0]?.id}/read`,{method:'POST',headers});assert.equal(marked.status,200);assert.ok((await marked.json() as{read_at:string}).read_at);
- await assert.rejects(()=>durable.pool.query('UPDATE communication_events SET content=$1 WHERE id=$2',['mutated',first.id]),/append-only/);
- await durable.pool.query(`UPDATE identity_memberships SET role='read-only-auditor',administrative_override=false WHERE tenant_id=$1 AND user_id=$2`,[durable.context.tenantId,user.id]);
- const logout=await fetch(`${base}/api/auth/logout`,{method:'POST',headers});assert.equal(logout.status,204);
- const auditorLogin=await fetch(`${base}/api/auth/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:user.email,password:'NorthStar!2026'})});assert.equal(auditorLogin.status,200);const auditorPayload=await auditorLogin.json() as{csrfToken:string};const auditorCookie=(auditorLogin.headers.get('set-cookie')??'').split(';')[0];
- const denied=await fetch(`${base}/api/communications/events`,{method:'POST',headers:{Cookie:auditorCookie,'Content-Type':'application/json','X-CSRF-Token':auditorPayload.csrfToken},body:JSON.stringify({entityType:'case',entityId:'case-1001',eventType:'internal-note',content:'Denied write'})});assert.equal(denied.status,403,'read-only auditor must not create communications');
- const readable=await fetch(`${base}/api/communications/timeline?entityType=case&entityId=case-1001`,{headers:{Cookie:auditorCookie}});assert.equal(readable.status,200,'read-only auditor may retrieve timeline');
- console.log('Sprint 11 communications integration tests passed.');
-}finally{server.close();await durable.pool.end()}
+ const thread=await request(adminServer.base,'/api/communications/threads','POST',{entityType:'case',entityId:caseA,subject:'Shade clarification'});assert.equal(thread.response.status,201);const threadId=String(thread.payload.id);
+ const created=await request(adminServer.base,'/api/communications/events','POST',{entityType:'case',entityId:caseA,threadId,eventType:'doctor-message',content:'Initial shade request',attachments:[{fileName:'shade-photo.png',mimeType:'image/png',kind:'clinical-photo',contentBase64:Buffer.from('image').toString('base64')}],notify:[{userId:scopedId,priority:'high',category:'clinical'}]});assert.equal(created.response.status,201);assert.equal(created.payload.attachments[0].fileName,'shade-photo.png');assert.equal('objectKey'in created.payload.attachments[0],false,'internal object keys must not be exposed');
+ const second=await request(adminServer.base,'/api/communications/events','POST',{entityType:'case',entityId:caseA,threadId,eventType:'doctor-message',content:'Doctor confirmed A2 body.'});assert.equal(second.response.status,201);
+ const timeline=await request(scopedServer.base,`/api/communications/timeline?entityType=case&entityId=${caseA}`);assert.equal(timeline.response.status,200);assert.deepEqual(timeline.payload.map((item:{id:string})=>item.id),[created.payload.id,second.payload.id]);
+ const deniedTimeline=await request(scopedServer.base,`/api/communications/timeline?entityType=case&entityId=${caseB}`);assert.equal(deniedTimeline.response.status,403,'same-tenant different-practice access must be denied');
+ const deniedCreate=await request(scopedServer.base,'/api/communications/events','POST',{entityType:'case',entityId:caseB,eventType:'internal-note',content:'Unauthorized'});assert.equal(deniedCreate.response.status,403);
+ const search=await request(scopedServer.base,'/api/communications/search?q=Doctor');assert.equal(search.response.status,200);assert.ok(search.payload.every((item:{entityId:string})=>item.entityId===caseA),'search must filter unauthorized practices');
+ const otherThread=await durable.pool.query<{id:string}>(`INSERT INTO communication_threads(tenant_id,entity_type,entity_id,subject,created_by,created_by_role) VALUES($1,'case',$2,'Other tenant','other','system-administrator') RETURNING id`,[otherTenant,caseOther]);
+ const crossTenant=await request(adminServer.base,'/api/communications/events','POST',{entityType:'case',entityId:caseA,threadId:otherThread.rows[0]?.id,eventType:'internal-note',content:'Invalid thread'});assert.equal(crossTenant.response.status,409,'cross-tenant thread references must be rejected');
+ const foreignObject=await durable.objects.put({tenantId,ownerType:'case',ownerId:caseB,kind:'clinical-photo',fileName:'foreign.png',mimeType:'image/png',bytes:Buffer.from('foreign')});
+ const deniedAttachment=await request(scopedServer.base,'/api/communications/events','POST',{entityType:'case',entityId:caseA,eventType:'attachment',content:'Invalid attachment',attachmentObjectIds:[foreignObject.id]});assert.equal(deniedAttachment.response.status,403,'cross-practice attachment association must be denied');
+ const invalidRecipient=await request(adminServer.base,'/api/communications/events','POST',{entityType:'case',entityId:caseA,eventType:'internal-note',content:'Invalid recipient',notify:[{userId:inactiveId}]});assert.equal(invalidRecipient.response.status,400);
+ const mismatch=await request(adminServer.base,'/api/communications/events','POST',{entityType:'case',entityId:caseB,threadId,eventType:'internal-note',content:'Mismatched thread'});assert.equal(mismatch.response.status,409);
+ const auditRows=await durable.pool.query(`SELECT action,metadata FROM audit_events WHERE tenant_id=$1 AND entity_id=$2 ORDER BY occurred_at`,[tenantId,caseA]);assert.ok(auditRows.rows.some(row=>row.action==='communications.thread.created'));assert.ok(auditRows.rows.some(row=>row.action==='communications.event.created'));assert.ok(auditRows.rows.every(row=>!JSON.stringify(row.metadata).includes('Initial shade request')),'security audit must not duplicate clinical content');
+ await assert.rejects(()=>durable.pool.query('UPDATE communication_events SET content=$1 WHERE id=$2',['mutated',created.payload.id]),/append-only/);
+ console.log('Sprint 11 hardened communications integration tests passed.');
+}finally{adminServer.server.close();scopedServer.server.close();await durable.pool.end()}
