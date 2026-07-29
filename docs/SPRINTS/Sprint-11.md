@@ -2,7 +2,7 @@
 
 ## Status
 
-Complete pending final documentation-head validation. The Clinical Communications Platform, browser contract, and PR #13 architectural hardening are implemented without weakening Sprint 10 identity, authorization, sessions, CSRF, persistence, or immutable audit behavior.
+Complete. The Clinical Communications Platform, browser contract, and PR #13 architectural hardening passed all required validation without weakening Sprint 10 identity, authorization, sessions, CSRF, persistence, or immutable audit behavior.
 
 ## Objective
 
@@ -35,7 +35,7 @@ Create one durable, chronological, entity-authorized communication history for P
 7. Operational communication history and security-audit participation required a more explicit boundary.
 8. The permanent Communications domain lacked an ADR.
 
-## Review resolution
+## Architectural review resolution
 
 - Every endpoint uses one entity-access service; route-specific authorization duplication is prohibited.
 - The resolver uses NorthStar's active `repository_documents` abstraction first and normalized PostgreSQL ownership tables as a compatibility fallback.
@@ -46,12 +46,12 @@ Create one durable, chronological, entity-authorized communication history for P
 - Security audit records contain operation and non-clinical identifiers/counts only.
 - ADR-005 records the operational-history, append-only, authorization, audit-separation, and non-chat decisions.
 
-## Verified implementation evidence
+## Final validated evidence
 
-Implementation head `6f94afedcffec174fb758895e2173cb295c68f17` passed:
+Final documentation head prior to this evidence-only update, `2053baa8cfe7c84e596348ad09b6ee6d7923878a`, passed:
 
-- Sprint 11 Validation run `30432706311`.
-- Runtime Validation run `30432706986`.
+- Sprint 11 Validation run `30432889764`.
+- Runtime Validation run `30432889796`.
 - Frozen dependency and reproducible installation.
 - Strict TypeScript and production builds.
 - Migrations 0001–0004.
@@ -68,6 +68,8 @@ Implementation head `6f94afedcffec174fb758895e2173cb295c68f17` passed:
 - Secure API and frontend startup.
 - Complete inherited and Sprint 11 Playwright regressions.
 
+The exact final commit containing this closeout must retain the same successful validation gates before merge.
+
 ## Definition of Done
 
 - [x] Centralized entity authorization is used across all Communications endpoints.
@@ -79,7 +81,7 @@ Implementation head `6f94afedcffec174fb758895e2173cb295c68f17` passed:
 - [x] Communications ADR is complete.
 - [x] Runtime Validation passes.
 - [x] Complete Playwright regression passes.
-- [ ] Final documentation head retains successful Sprint 11 Validation and Runtime Validation.
+- [x] Documentation references current validated evidence.
 
 ## Deferred
 
