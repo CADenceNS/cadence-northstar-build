@@ -5,7 +5,7 @@ const password='NorthStar!2026';
 
 async function login(page){await page.goto('/');await page.getByLabel('Email').fill(email);await page.getByLabel('Password').fill(password);await page.getByRole('button',{name:'Sign in'}).click();await expect(page.getByRole('heading',{name:'Laboratory Status'})).toBeVisible()}
 
-test('records and restores an immutable practice communication timeline',async({page})=>{
+test('records and restores an immutable practice communication timeline with safe attachment metadata',async({page})=>{
  await login(page);
  await page.getByRole('button',{name:'Practices'}).click();
  await expect(page.getByRole('heading',{name:'Practice Management',level:1})).toBeVisible();
@@ -21,10 +21,12 @@ test('records and restores an immutable practice communication timeline',async({
  await row.getByRole('button',{name:/View Communication timeline/i}).click();
  await row.getByLabel('practice communication type').selectOption('phone-call');
  await row.getByLabel('practice communication').fill('Doctor called to confirm the delivery window.');
+ await row.getByLabel('practice communication attachment').setInputFiles({name:'delivery-note.pdf',mimeType:'application/pdf',buffer:Buffer.from('test pdf')});
  const responsePromise=page.waitForResponse(response=>response.url().endsWith('/api/communications/events')&&response.request().method()==='POST');
  await row.getByRole('button',{name:'Record communication'}).click();
- expect((await responsePromise).status()).toBe(201);
+ const response=await responsePromise;expect(response.status()).toBe(201);const payload=await response.json();expect(payload.attachments[0].fileName).toBe('delivery-note.pdf');expect(payload.attachments[0].objectKey).toBeUndefined();expect(payload.attachments[0].bucket).toBeUndefined();expect(payload.attachments[0].provider).toBeUndefined();
  await expect(row.getByText('Doctor called to confirm the delivery window.')).toBeVisible();
+ await expect(row.getByText(/delivery-note\.pdf/)).toBeVisible();
  await page.reload();
  await expect(page.getByRole('heading',{name:'Laboratory Status'})).toBeVisible();
  await page.getByRole('button',{name:'Practices'}).click();
@@ -32,6 +34,7 @@ test('records and restores an immutable practice communication timeline',async({
  const restored=page.getByText(practiceName).locator('..');
  await restored.getByRole('button',{name:/View Communication timeline/i}).click();
  await expect(restored.getByText('Doctor called to confirm the delivery window.')).toBeVisible();
+ await expect(restored.getByText(/delivery-note\.pdf/)).toBeVisible();
 });
 
 test('notification center uses server-side notification state',async({page})=>{
