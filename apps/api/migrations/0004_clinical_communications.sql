@@ -8,14 +8,15 @@ CREATE TABLE communication_threads (
   created_by text NOT NULL,
   created_by_role text NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(tenant_id,id,entity_type,entity_id)
 );
 
 CREATE TABLE communication_events (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id text NOT NULL,
-  thread_id uuid REFERENCES communication_threads(id),
-  entity_type text NOT NULL,
+  thread_id uuid,
+  entity_type text NOT NULL CHECK (entity_type IN ('practice','doctor','patient','case','shipment','invoice')),
   entity_id text NOT NULL,
   event_type text NOT NULL CHECK (event_type IN ('phone-call','email','internal-note','doctor-message','laboratory-message','production-update','qc-comment','shipping-event','billing-event','attachment','system-event')),
   content text NOT NULL,
@@ -24,7 +25,8 @@ CREATE TABLE communication_events (
   actor_role text NOT NULL,
   version_of uuid REFERENCES communication_events(id),
   occurred_at timestamptz NOT NULL DEFAULT now(),
-  created_at timestamptz NOT NULL DEFAULT now()
+  created_at timestamptz NOT NULL DEFAULT now(),
+  FOREIGN KEY(tenant_id,thread_id,entity_type,entity_id) REFERENCES communication_threads(tenant_id,id,entity_type,entity_id) DEFERRABLE INITIALLY IMMEDIATE
 );
 
 CREATE TABLE communication_attachments (
