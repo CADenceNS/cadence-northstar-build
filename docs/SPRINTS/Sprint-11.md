@@ -2,115 +2,84 @@
 
 ## Status
 
-Complete. The Clinical Communications Platform and the aligned browser contract passed Sprint 11 Validation, Runtime Validation, all integration gates, migration rollback/reapplication, and the complete Playwright regression suite.
+Complete pending final documentation-head validation. The Clinical Communications Platform, browser contract, and PR #13 architectural hardening are implemented without weakening Sprint 10 identity, authorization, sessions, CSRF, persistence, or immutable audit behavior.
 
 ## Objective
 
-Create one durable, chronological, tenant-aware communication history for practices, doctors, patients, cases, shipments, and invoices without weakening Sprint 10 authentication, authorization, session, CSRF, or audit controls.
+Create one durable, chronological, entity-authorized communication history for Practices, Doctors, patients, cases, shipments, and invoices.
 
 ## Implemented
 
 - Append-only PostgreSQL communication threads and events.
 - Database trigger preventing event update or deletion.
 - Version references for appended corrections.
-- Tenant-aware attachment associations to existing ObjectStorage records.
-- New communication file uploads routed through ObjectStorage.
-- In-application notifications with recipient, priority, category, unread state, and read transitions.
-- Timeline retrieval ordered chronologically.
-- Thread creation and thread-history retrieval.
-- Search by entity, actor, event type, date, and keyword.
-- Secure communication APIs behind the Sprint 10 security gateway.
-- Read-only auditor denial for communication creation.
-- Reusable React timeline integrated into Practice, Doctor, Patient, Case, Shipment, and Invoice views.
-- Authenticated notification center.
-- Communication integration and Playwright tests.
-- Dedicated Sprint 11 CI workflow and Runtime Validation migration support.
-- `docs/COMMUNICATIONS.md`.
+- Tenant- and entity-consistent thread constraints.
+- Centralized `EntityAccessService` for all communication reads, writes, search, attachments, and notifications.
+- Practice authorization, Doctor ownership, applicable location scope, read/write mode, and administrative override evaluation.
+- Existing ObjectStorage association without duplicated bytes.
+- Safe public attachment metadata with no internal provider, bucket, or object key.
+- Active same-tenant notification-recipient and entity-access validation.
+- Minimized immutable security audit events for communication mutations without copied clinical content.
+- In-application notifications, timeline search, entity-bound threads, and chronological display.
+- React timelines in Practice, Doctor, patient, case, shipment, and invoice views.
+- `docs/COMMUNICATIONS.md` and `docs/ADR/ADR-005-communications-operational-history.md`.
 
-## Communication categories
+## PR #13 review root causes
 
-- Phone call
-- Email
-- Internal note
-- Doctor message
-- Laboratory message
-- Production update
-- QC comment
-- Shipping event
-- Billing event
-- Attachment
-- System event
+1. Initial communication authorization was tenant-scoped but did not resolve Practice or entity ownership.
+2. Caller-provided thread IDs were not validated against tenant and entity identity.
+3. Attachment responses exposed internal ObjectStorage keys.
+4. Notification recipients were not validated against tenant membership and entity access.
+5. Authorization tests did not cover same-tenant cross-Practice denial and related association failures.
+6. Sprint documentation referenced an older validated commit.
+7. Operational communication history and security-audit participation required a more explicit boundary.
+8. The permanent Communications domain lacked an ADR.
 
-## Audit separation
+## Review resolution
 
-Operational communication is stored in `communication_events`. Security audit evidence remains in `audit_events`. The existing gateway records authenticated mutation context without copying full clinical communication content into the security log.
+- Every endpoint uses one entity-access service; route-specific authorization duplication is prohibited.
+- The resolver uses NorthStar's active `repository_documents` abstraction first and normalized PostgreSQL ownership tables as a compatibility fallback.
+- Composite PostgreSQL constraints and application checks require thread tenant, entity type, and entity ID consistency.
+- Search and notification retrieval are filtered through entity authorization.
+- Existing-object association validates the object's owning entity before linking.
+- Notification recipients must be active tenant members authorized for the entity.
+- Security audit records contain operation and non-clinical identifiers/counts only.
+- ADR-005 records the operational-history, append-only, authorization, audit-separation, and non-chat decisions.
 
-## Sprint 11A root cause
+## Verified implementation evidence
 
-The inherited Sprint 3 Practice and Doctor regression still expected the retired `Communication note` field and `Add communication` button. Those controls were replaced by the production `CommunicationTimeline` during Sprint 11. The initial aligned test also used a partial accessible-name selector that matched the communication type selector, textbox, attachment input, and timeline region; Playwright correctly rejected that ambiguous selector.
+Implementation head `6f94afedcffec174fb758895e2173cb295c68f17` passed:
 
-No production communication defect was discovered.
-
-## Browser contract evolution
-
-The application implementation is the source of truth. Browser validation now exercises the permanent communication contract:
-
-1. Expand the entity Communication Timeline.
-2. Select a communication event type.
-3. Enter content in the exact communication textbox.
-4. Submit through `POST /api/communications/events`.
-5. Require HTTP 201.
-6. Verify chronological display of multiple events.
-7. Refresh the application and restore the authenticated server session.
-8. Reopen the entity timeline and verify durable event persistence and ordering.
-
-The inherited CRUD lifecycle remains covered. Dedicated Sprint 11 browser and integration tests continue to cover Practice timeline persistence, notification retrieval, ObjectStorage attachment linking, search, authorization, immutable event storage, and audit participation.
-
-## Updated Playwright assumptions
-
-- Legacy Practice and Doctor communication controls no longer exist and must not be queried.
-- `CommunicationTimeline` is the only supported browser communication surface.
-- Accessible selectors use exact roles and names where labels share a prefix.
-- Browser tests assert protected API status codes so authorization, CSRF, or persistence failures cannot be hidden by UI timing.
-- Refresh validation relies on the HttpOnly server session established by Sprint 10, not localStorage authentication state.
-
-## Verified
-
-Implementation head `d196be576cbed0e89c2852bcaaecbbc711ca1c74` passed:
-
-- Sprint 11 Validation run `30313005134`.
-- Runtime Validation run `30313005220`.
-- Frozen dependency installation and reproducible installation.
+- Sprint 11 Validation run `30432706311`.
+- Runtime Validation run `30432706986`.
+- Frozen dependency and reproducible installation.
 - Strict TypeScript and production builds.
 - Migrations 0001–0004.
-- Inherited persistence and security contracts.
-- Communications repository and API integrations.
-- Timeline ordering, thread history, attachment linking, search, notification, authorization, immutability, and audit-separation tests.
+- Inherited persistence and Sprint 10 security contracts.
+- Hardened communications integration tests.
+- Same-tenant, different-Practice denial.
+- Cross-tenant and mismatched-thread rejection.
+- Unauthorized event and object-association denial.
+- Authorized-Practice search filtering.
+- Invalid-recipient rejection.
+- Safe attachment response metadata.
+- Immutable operational history and minimized security audit evidence.
 - Migration 0004 rollback and reapplication.
 - Secure API and frontend startup.
-- Complete inherited Playwright regressions.
-- Sprint 11 communication and notification browser scenarios.
+- Complete inherited and Sprint 11 Playwright regressions.
 
 ## Definition of Done
 
-- [x] Frozen-lockfile installation passes on final implementation head.
-- [x] Strict TypeScript passes.
-- [x] Production build passes.
-- [x] Migration 0004 applies, rolls back, and reapplies.
-- [x] Communication integration tests pass.
-- [x] Timeline ordering tests pass.
-- [x] Thread-history tests pass.
-- [x] Attachment linking and ObjectStorage tests pass.
-- [x] Search tests pass.
-- [x] Notification read/unread tests pass.
-- [x] Authorization tests pass.
+- [x] Centralized entity authorization is used across all Communications endpoints.
+- [x] Thread associations are tenant- and entity-consistent.
+- [x] Internal ObjectStorage keys are not exposed.
+- [x] Notification recipients are validated.
+- [x] Authorization, attachment, notification, thread, search, audit, and browser tests pass.
+- [x] Operational history and security audit remain separate.
+- [x] Communications ADR is complete.
 - [x] Runtime Validation passes.
-- [x] Existing Playwright regressions pass.
-- [x] Communication browser scenarios pass.
-- [x] `CommunicationTimeline` replaces legacy communication controls in browser validation.
-- [x] Existing ERP functionality remains unchanged.
-- [x] No production communication or Sprint 10 security control was weakened.
-- [x] Final documentation distinguishes implemented, verified, and deferred work.
+- [x] Complete Playwright regression passes.
+- [ ] Final documentation head retains successful Sprint 11 Validation and Runtime Validation.
 
 ## Deferred
 
@@ -120,7 +89,4 @@ Implementation head `d196be576cbed0e89c2852bcaaecbbc711ca1c74` passed:
 - Mentions, escalation rules, and notification preferences.
 - Rich-text editing and third-party email ingestion.
 - Retention automation, legal holds, and records exports.
-
-## Completion rule
-
-Sprint 11 is complete only while the final documentation head retains successful Sprint 11 Validation and Runtime Validation results. PR #13 may move out of draft after those final-head checks pass. No Sprint 10 security control may be bypassed or weakened.
+- Authorized download endpoints and short-lived provider URLs.
