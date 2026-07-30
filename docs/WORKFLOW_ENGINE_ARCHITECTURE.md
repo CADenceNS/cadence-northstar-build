@@ -2,119 +2,107 @@
 
 ## Purpose
 
-Define a configurable orchestration engine for NorthStar without implementing runtime behavior in Sprint 13.
+Define a configurable, tenant-isolated orchestration engine for laboratory workflows without implementing runtime behavior.
 
 ## Domain boundary
 
-The Workflow Engine owns templates, states, transitions, assignments, queue projections, SLA policies, timers, and orchestration history. It does not own cases, prescriptions, products, QC inspections, shipments, invoices, communications, users, or files.
+The Workflow Engine owns versioned templates, states, transitions, assignments, queue projections, SLA policies, timers, approvals and orchestration history. It does not own cases, prescriptions, products, production records, QC inspections, shipments, invoices, communications, users, files, branding, licensing or tax records.
 
-A workflow instance references a domain aggregate and coordinates allowed commands. Domain services remain authoritative and may reject a transition even when the workflow template allows it.
+Each workflow instance belongs to exactly one laboratory tenant and references one authoritative domain aggregate. Domain services remain authoritative and may reject a command even when a template allows a transition.
 
 ## Domain model
 
-- `workflow_template`: tenant, name, aggregate type, version, status.
-- `workflow_state_definition`: stable key, label, category, terminal flag.
-- `workflow_transition_definition`: from/to states, command, guards, required permissions, approval policy.
+- `workflow_template`: tenant, aggregate type, name, status and active version.
 - `workflow_template_version`: immutable published definition.
-- `workflow_instance`: template version, aggregate reference, current state, revision, status.
-- `workflow_transition`: append-only attempted/completed transition record.
-- `workflow_assignment`: instance/state, user/team/department, effective period.
-- `workflow_queue_projection`: read model for work discovery.
-- `workflow_sla_policy`: start/stop events, target duration, warning thresholds, calendar.
-- `workflow_timer`: due time, action/event, retry policy, status.
-- `workflow_approval`: transition, role, approver, decision.
+- `workflow_state_definition`: stable key, category, terminal flag and presentation metadata.
+- `workflow_transition_definition`: from/to, domain command, guards, permissions and approval policy.
+- `workflow_instance`: tenant, template version, aggregate reference, state, revision and status.
+- `workflow_transition`: append-only requested/completed/rejected evidence.
+- `workflow_assignment`: user/team/department and effective period.
+- `workflow_queue_projection`: rebuildable tenant-scoped work-discovery read model.
+- `workflow_sla_policy`: calendar, start/stop/pause events, target and escalation thresholds.
+- `workflow_timer`: due time, action/event, lease, retry and dead-letter state.
+- `workflow_approval`: policy, approver, decision and immutable evidence.
 
-## State machine
+## Illustrative state model
 
 ```text
-Created → Intake Validation → Routing Review → Accepted
-                                     └→ Rejected
-Accepted → Production → Quality Control
-Production ↔ Rework
-Quality Control → Billing Review → Ready to Ship → Shipped → Delivered
-Quality Control → Hold / Doctor Clarification
+Submission Received
+→ Prescription Required
+→ Clinical Validation
+→ Routing / Product Resolution
+→ Accepted
+→ Production
+↔ Rework / Hold / Doctor Clarification
+→ Quality Control
+→ Billing Review
+→ Ready to Ship
+→ Shipped
+→ Delivered
 ```
 
-This is an illustrative template, not a hard-coded universal workflow. Published template versions are immutable. Existing instances remain pinned unless an authorized migration plan explicitly moves them.
+This is an example template, not a universal hard-coded route. Each laboratory may publish approved tenant templates. Existing instances remain pinned to the immutable template version unless an authorized migration explicitly moves them.
 
-## Transition command
+## Transition processing
 
-`RequestTransition` includes tenant, workflow instance, expected revision, requested transition key, actor, reason, domain command payload reference, and idempotency key.
+1. authenticate actor and resolve laboratory tenant;
+2. verify aggregate and Practice/entity authorization;
+3. verify tenant licensing/configuration prerequisites without treating them as permissions;
+4. compare expected instance revision;
+5. evaluate transition, guards and SLA policy version;
+6. collect required approvals;
+7. invoke the owning domain command;
+8. persist transition and outbox event atomically;
+9. rebuild/update queue projection idempotently;
+10. append configured Communications event and separate security audit.
 
-Processing order:
-
-1. authenticate and authorize;
-2. verify tenant and aggregate access;
-3. lock or compare instance revision;
-4. evaluate transition definition and guards;
-5. collect approvals when required;
-6. invoke the owning domain command;
-7. persist state transition and outbox event atomically;
-8. update queue projection asynchronously;
-9. append operational Communications event when configured;
-10. preserve separate security audit.
-
-Optimistic concurrency rejects stale transitions with a conflict response.
+Stale revisions fail with conflict. Domain-command failure leaves workflow state unchanged.
 
 ## Event model
 
-Events use stable names and versioned payloads:
-
-- `workflow.instance.created.v1`
-- `workflow.transition.requested.v1`
-- `workflow.transition.completed.v1`
-- `workflow.transition.rejected.v1`
-- `workflow.assignment.changed.v1`
-- `workflow.sla.warning.v1`
-- `workflow.sla.breached.v1`
-- `workflow.instance.completed.v1`
-
-Events contain identifiers and minimal routing metadata, not full clinical documents. Consumers must be idempotent. A transactional outbox is required before asynchronous production use.
+Versioned events include instance created/completed, transition requested/completed/rejected, assignment changed, approval recorded, SLA warning/breach and timer dead-lettered. Payloads contain tenant and identifiers plus minimal routing metadata—not full clinical or financial documents. Consumers are idempotent and production asynchronous use requires a transactional outbox.
 
 ## Queue model
 
-Queues are projections, not source-of-truth state. Queue membership may derive from state, department, assignment, priority, due time, location, restoration type, and authorization scope. Users only see items whose underlying aggregates they can access.
+Queues are projections by tenant, department, role, assignment, location, priority, due time, restoration type and authorization scope. Claim, assign, release, prioritize and bulk operations independently verify each underlying aggregate. A queue outage never changes source workflow state and projections can rebuild from transition history.
 
-Queue operations:
+Role-specific examples:
 
-- claim;
-- assign/reassign;
-- release;
-- prioritize;
-- filter and sort;
-- bulk action only when every item independently passes authorization and transition guards.
+- Customer Service intake exceptions;
+- CAD design queue;
+- Production department queues;
+- QC inspection and rework queues;
+- Shipping readiness queue;
+- Accounting Billing Review queue;
+- Management SLA and escalation queue.
 
 ## SLA model
 
-An SLA policy defines business calendars, start/stop/pause events, target duration, warning thresholds, escalation destinations, and breach behavior. SLA clocks are append-only calculations with pause intervals. Historical calculations retain the policy version used.
-
-SLA breach emits an event and notification; it does not automatically alter clinical or billing outcomes unless a template explicitly defines an approved escalation transition.
+SLA policies use tenant business calendars, holidays, pause reasons, warning thresholds and escalation destinations. Historical calculations retain the exact policy version. A breach emits events and notifications; it does not silently alter clinical, billing or shipping outcomes.
 
 ## Approval model
 
-Transitions may require one or more approvals by role or named authority. Approval policies support all-of, any-of, ordered, and threshold rules. The requester cannot self-approve where separation of duties is required. Approval decisions are immutable; revised decisions create new records.
+Policies support all-of, any-of, ordered and threshold approvals. Separation of duties can prohibit self-approval. Decisions are immutable; corrections create linked records. Approval authority is tenant/role scoped.
 
-## Failure and compensation
+## Failure, scale and isolation
 
-- Domain command failure leaves workflow state unchanged.
-- Outbox delivery failure retries without repeating the committed transition.
-- Projection failure rebuilds from transition history.
-- Timer execution uses leases, retry limits, and dead-letter review.
-- Cross-domain compensation is explicit and never hidden as a database rollback across independent transactions.
+- tenant identity is mandatory on instances, transitions, queues, timers and events;
+- scheduler leases and partitions prevent duplicate timer execution;
+- one tenant’s queue backlog cannot starve other tenants;
+- per-tenant quotas and fair scheduling protect commercial scalability;
+- outbox retries do not repeat committed transitions;
+- projection failures rebuild from append-only history;
+- dead letters remain tenant-scoped and auditable;
+- cross-domain compensation is explicit, never a hidden distributed database rollback.
 
 ## Integration points
 
-- Digital Intake creates the initial workflow instance after acceptance prerequisites.
-- Production and QC commands determine operational success.
-- Communications receives configured operational events.
-- Billing Review consumes Product Resolution but Billing owns invoices.
-- Shipping transitions remain governed by shipment domain invariants.
-- Feature flags and entitlements may enable templates, but authorization remains independent.
+Digital Intake creates initial instances after acceptance prerequisites. Production, QC, Billing and Shipping commands determine operational success. Communications receives configured events. Licensing and feature flags may enable template availability, but authorization and domain invariants remain independent. Tenant Customization Studio may manage draft templates and SLA policies; Platform Owner cannot alter tenant workflow definitions without an explicit support grant.
 
-## AI and automation extensibility
+## AI and automation
 
-Future automation may propose transitions, priorities, routing, or SLA risk. AI output is advisory unless an approved policy allows automatic execution. Every automated action identifies model/version, evidence, confidence, policy, and human override path.
+Future automation may recommend routing, transitions, priority or SLA risk. Automated execution requires an approved tenant policy and records model/version, evidence, confidence, policy and human override. High-risk clinical or financial actions require human approval unless separately governed.
 
 ## Deferred
 
-All migrations, repositories, APIs, UI, timers, outbox, projections, and workflow execution are deferred to Sprint 13A or later after architectural approval.
+All migrations, repositories, APIs, UI, timers, outbox, projections, workflow template administration and runtime execution remain deferred.
