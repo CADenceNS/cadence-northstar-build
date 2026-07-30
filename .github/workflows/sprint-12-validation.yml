@@ -59,8 +59,10 @@ jobs:
           pnpm --filter @northstar/api test:security
           pnpm --filter @northstar/api test:communications
           pnpm --filter @northstar/api test:digital-intake
-      - name: Run Sprint 13A UAT integration
-        run: pnpm --filter @northstar/api test:uat
+      - name: Run Sprint 13A UAT integrations
+        run: |
+          pnpm --filter @northstar/api test:uat
+          pnpm --filter @northstar/api test:uat-attachments
       - name: Validate migration 0007 rollback and reapplication
         run: |
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0007_uat_foundation.rollback.sql
