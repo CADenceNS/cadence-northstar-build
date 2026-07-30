@@ -4,9 +4,12 @@ on:
   push:
     branches:
       - feature/sprint-12-digital-intake-platform-foundation
+      - release/cp2-rc1
+      - main
   pull_request:
     branches:
       - feature/sprint-11-clinical-communications-platform
+      - main
   workflow_dispatch:
 
 jobs:
