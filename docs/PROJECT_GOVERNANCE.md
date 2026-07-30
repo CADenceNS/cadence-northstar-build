@@ -2,18 +2,22 @@
 
 ## Purpose
 
-NorthStar is governed as an enterprise multi-tenant SaaS Laboratory Intelligence Platform. This document defines the permanent development, validation, architectural-review, data-intelligence, recovery, release and maintenance lifecycle.
+NorthStar is governed as an enterprise multi-tenant SaaS Laboratory Intelligence Platform. This document defines the permanent development, validation, architectural-review, engineering-reliability, recovery, release and maintenance lifecycle.
+
+The current engineering source of truth is `docs/MASTER_DEVELOPMENT_BIBLE.md`. Module, roadmap and debt status are maintained in their canonical registries and must be updated by every affected sprint.
 
 ## Official lifecycle
 
 ```text
 Feature Development
-→ Engineering Validation
+→ Unit and Integration Tests
+→ Sprint Validation
 → Architectural Review
-→ Release Candidate
-→ Community Preview
-→ Beta, when applicable
-→ General Availability
+→ Engineering Reliability
+→ Runtime Validation
+→ Business UAT
+→ Release Candidate Approval
+→ Community Preview / Beta / General Availability
 → Maintenance
 ```
 
@@ -38,19 +42,22 @@ Feature Development
 
 Every domain documents tenant ownership, tenant-resolution source, Practice/entity authorization, cross-tenant denial tests, safe storage/cache/queue/event/analytics keys, support access, suspension/export/retention/deletion, limits and noisy-neighbor protection.
 
+## Engineering continuity requirements
+
+Every sprint or release PR that changes scope or status must update:
+
+- `docs/MODULE_REGISTRY.md`;
+- `docs/ROADMAP.md`;
+- `docs/TECHNICAL_DEBT.md`;
+- `docs/ENGINEERING_DASHBOARD.md`;
+- the ADR index when architectural decisions change;
+- the release manifest for release candidates.
+
+No module may be duplicated because its status is unclear. Historical branches and sprint documents are evidence, not current planning authorities.
+
 ## Intelligence governance
 
-Every executive KPI and analytical dataset requires:
-
-- approved business definition and formula version;
-- authoritative source domains and lineage;
-- dimensional grain and supported filters;
-- refresh cadence, retention and freshness status;
-- target, warning and critical thresholds;
-- sensitivity classification and authorized drill-down;
-- reconciliation and data-quality tests;
-- restatement policy for corrected historical periods;
-- explicit separation between historical fact, forecast and AI-generated insight.
+Every executive KPI and analytical dataset requires an approved business definition and formula version, authoritative sources and lineage, dimensional grain, refresh cadence, retention, freshness, thresholds, sensitivity, authorized drill-down, reconciliation tests and restatement policy. Historical fact, forecast and AI insight remain explicitly separate.
 
 Dashboard authors may not introduce unapproved financial, tax or quality formulas. Small-group and restricted-entity inference must be prevented. Exports are tenant-scoped and audited.
 
@@ -62,45 +69,75 @@ Billing, Tax and Accounting retain separate ownership. Posted journals and final
 
 External integrations require stable versioned ports, provider adapters, least-privilege credentials, tenant binding, idempotency, signature/replay controls, observability, compatibility policy and dead-letter handling. Providers may not write domain tables or bypass NorthStar authorization.
 
+NorthStar ERP and Design Studio are separate products. Their integration requires versioned contracts and may not use shared internal database tables or duplicated business records.
+
 ## Disaster recovery governance
 
 Every production service declares RPO/RTO, backup scope, restore procedure, dependency order, tenant-recovery behavior and test cadence. Backup success alone is insufficient; scheduled restore evidence and continuity exercises are release-assurance records. Production data may not enter lower environments without approved de-identification.
 
 ## Branch and merge policy
 
-- use short-lived focused branches from the latest certified baseline;
-- target `main` or one approved integration branch;
-- avoid long-lived stacks;
-- keep PRs independently reviewable;
-- update with target before final validation;
-- preserve PR, commit, tag and release traceability;
-- do not begin a major phase until the prior milestone is certified and tagged.
+- Use short-lived focused branches from the latest validated `main` or approved release tag.
+- Target `main` or one explicitly approved integration branch.
+- Avoid long-lived stacks.
+- Keep PRs independently reviewable.
+- Update with target before final validation.
+- Preserve PR, commit, tag and release traceability.
+- Historical feature branches are read-only records, not future development bases.
+- Do not begin a major phase until the prior milestone is certified and its UAT decision recorded.
 
-A PR may merge only when its final head is current and required reviews, strict builds, applicable migrations/rollback, repository/security/tenant/domain tests, Runtime Validation, Playwright, documentation and ADR review pass with no unresolved concern. Older-commit evidence never certifies a newer head.
+A PR may merge only when its final head is current and required reviews, strict builds, applicable migrations/rollback, repository/security/tenant/domain tests, Engineering Reliability, Runtime Validation, Playwright, documentation and ADR review pass with no unresolved concern. Older-commit evidence never certifies a newer head.
 
 ## Architecture policy
 
 Reviews cover domain ownership, layer separation, tenant isolation, authorization, persistence, event/API contracts, analytical lineage, accounting/tax boundaries, migration safety, provider abstraction, recovery, coupling, duplication and scale. Branding, entitlement, flags, hostnames, dashboards and UI visibility never grant authorization. Significant decisions require ADRs.
 
+Approved UI must not be redesigned without explicit product approval. Working systems must be extended through their canonical domain boundaries, not replaced or copied.
+
+## Engineering Reliability
+
+Engineering Reliability is a mandatory pre-release stage that investigates:
+
+- race conditions and async readiness;
+- fixture pollution and test isolation;
+- flaky selectors and actionability;
+- browser and environment differences;
+- startup sequencing and service health;
+- performance regressions;
+- console/page errors;
+- trace, screenshot, video and diagnostic evidence;
+- repeatability across independent validation workflows.
+
+Reliability corrections use deterministic conditions, not arbitrary sleep delays or weakened assertions.
+
 ## Release policy
 
 ### Feature Development
-New functionality is permitted; architecture, security, tests, documentation and migrations evolve together.
+New functionality is permitted; architecture, security, tests, registries, documentation and migrations evolve together.
 
-### Engineering Validation
-Deterministic validation passes without weakening production controls.
+### Sprint Validation
+Frozen installation, strict builds, migrations, domain integrations and targeted browser tests pass.
 
 ### Architectural Review
-Permanent boundaries, data ownership, tenant isolation, intelligence formulas, integration contracts and recovery plans are reviewed.
+Permanent boundaries, ownership, tenant isolation, intelligence formulas, integration contracts and recovery plans are reviewed.
 
-### Release Candidate
-Feature freeze permits verified corrections and release engineering only. Every RC identifies exact commit, migration version, validation, known limitations, rollback and recovery considerations.
+### Engineering Reliability
+The validated feature is tested for timing, isolation, actionability and environment-specific behavior.
+
+### Runtime Validation
+The complete application is installed, migrated, started and exercised as a running system.
+
+### Business UAT
+Business stakeholders operate realistic workflows and record defects, enhancements and sign-off evidence.
+
+### Release Candidate Approval
+Feature freeze permits only verified corrections and release engineering. Every RC identifies exact commit, migration, workflows, limitations and rollback.
 
 ### Community Preview
 Requires integrated primary branch, release notes, version/tag, current validation, ADR completeness and baseline manifest.
 
 ### Beta
-Adds structured laboratory-user UAT, realistic tenant scenarios, defect triage, approvals, operational-readiness and intelligence reconciliation.
+Adds structured laboratory-user UAT, realistic tenant scenarios, defect triage, approvals, operational readiness and intelligence reconciliation.
 
 ### General Availability
 Requires deployment, support, incident response, backup/restore tests, monitoring, retention, privacy, security, financial controls and formal approval.
@@ -110,7 +147,9 @@ Uses small branches and patch releases; compatibility changes require approved m
 
 ## Validation requirements
 
-Every RC and stable milestone includes frozen install, strict production builds, all migrations and changed rollback/reapplication, repository/domain integrations, authentication/authorization/tenant isolation, Runtime Validation, complete Playwright, documentation/ADR validation and exact-final-commit evidence. Intelligence releases additionally require KPI regression, source reconciliation, lineage and tenant-leakage tests. Accounting releases require balanced-entry and subledger reconciliation tests. Recovery changes require restore evidence.
+Every RC and stable milestone includes frozen install, strict production builds, all migrations and changed rollback/reapplication, repository/domain integrations, authentication/authorization/tenant isolation, Engineering Reliability, Runtime Validation, complete Playwright, documentation/ADR validation and exact-final-commit evidence.
+
+Intelligence releases additionally require KPI regression, source reconciliation, lineage and tenant-leakage tests. Accounting releases require balanced-entry and subledger reconciliation tests. Recovery changes require restore evidence.
 
 Validation should be read-only and must not silently modify source or lockfiles.
 
@@ -122,8 +161,8 @@ ADRs are required for new domains, ownership changes, integrations, persistence/
 
 Each sprint/release records implemented and verified behavior, exact evidence, deferred work, technical debt, rollback/recovery, ADRs, compatibility and limitations. Architecture-only work explicitly states that runtime behavior is not implemented.
 
-## Release cadence
+The Master Development Bible and canonical registries represent current truth. Sprint and release documents preserve historical evidence and must not be rewritten to imply work that was not completed at that time.
 
-Planning and Architecture → Focused Implementation → Engineering Validation → Architectural Review → Release Candidate → Community Preview/Beta → General Availability → Maintenance.
+## Current release state
 
-The next phase begins from the latest certified and tagged baseline.
+NorthStar RC1 is integrated into `main` and certified for Business UAT. Feature development is paused until the Business UAT cycle is reviewed and formally closed.
