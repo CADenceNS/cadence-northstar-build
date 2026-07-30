@@ -42,7 +42,13 @@ Status values: Implemented, Active UAT, Preview, Architecture Complete, Planned,
 | Workflow Engine | Versioned templates, runtime, queues, SLA and approvals | Architecture Complete | 5% | Outbox, domain commands | 2026-07-30 | Architecture | Sprint 13G; planning review before code |
 | Integration Platform | REST/webhooks/import/export/provider adapters | Architecture Complete | 5% | Security, outbox, secrets | 2026-07-30 | Architecture | Phased with provider needs |
 | Disaster Recovery | Backup, restore, RPO/RTO and continuity evidence | Architecture Complete | 10% | Deployment infrastructure | 2026-07-30 | Architecture | Operational readiness before GA |
-| Design Studio | Separate CAD/design product and artifact authoring | Separate Product | Governance registered | Versioned NorthStar integration contracts | 2026-07-30 | Governance | Independent architecture and milestones; no ERP merge |
+| Design Studio | Separate CAD/design product owning projects, scenes, tools, artifacts and handoff | Separate Product | 12% program estimate | NorthStar contracts; Knowledge Platform libraries | 2026-07-30 | Governance foundation | Rendering/geometry/persistence planning; no Morphology implementation |
+| Knowledge Platform | Separate proprietary knowledge, rule, template and profile platform | Separate Product | Governance registered | Clinical/technical governance, licensing, product gateways | 2026-07-30 | Program registration | Taxonomy, provenance, publishing and gateway planning |
+
+## Separate product registries
+
+- Design Studio: `docs/design-studio/MODULE_REGISTRY.md`
+- Knowledge Platform registration: `docs/knowledge-platform/KNOWLEDGE_PLATFORM_PROGRAM.md`
 
 ## Superseded implementation approaches
 
