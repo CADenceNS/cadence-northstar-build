@@ -2,7 +2,17 @@
 
 ## Status
 
-Master technical reference for the NorthStar Laboratory Intelligence Platform. This edition is architecture-only and is anchored to Community Preview 2 commit `735107e4de399df77c96823194e31f1089b7be90`.
+Master long-term technical reference for the NorthStar Laboratory Intelligence Platform. The implemented baseline is NorthStar RC1 merged to `main` at `b05da10bb633bb48e51f08a9b10bef4a88d152a3`, with migrations through `0007`.
+
+Current engineering status, module ownership, roadmap and debt are governed by:
+
+- `docs/MASTER_DEVELOPMENT_BIBLE.md`
+- `docs/MODULE_REGISTRY.md`
+- `docs/ROADMAP.md`
+- `docs/TECHNICAL_DEBT.md`
+- `docs/ENGINEERING_DASHBOARD.md`
+
+This document describes permanent architecture. It does not imply that architecture-approved future domains are implemented.
 
 ## 1. Platform vision
 
@@ -18,8 +28,12 @@ NorthStar is a secure, configurable, multi-tenant SaaS operating system for dent
 - provider-neutral adapters;
 - explicit data lineage and auditability;
 - short-lived branches and exact-head validation;
+- Engineering Reliability before Runtime certification;
 - ADRs for material decisions;
-- no AI authority without approved policy and explainability.
+- no AI authority without approved policy and explainability;
+- no redesign of approved UI without explicit product approval;
+- no duplicate module ownership;
+- NorthStar ERP and Design Studio remain separate products.
 
 ## 3. Platform hierarchy
 
@@ -35,9 +49,9 @@ NorthStar Platform
           └─ Future patient access boundary
 ```
 
-## 4. Core implemented domains through CP2
+## 4. Implemented domains through RC1
 
-- Identity, sessions, CSRF and authorization
+- Identity, sessions, CSRF, password reset and authorization
 - Tenant-aware PostgreSQL repositories
 - ObjectStorage and immutable security audit
 - Practice, Doctor, patient and case management
@@ -46,20 +60,23 @@ NorthStar Platform
 - Digital Intake and Smart Digital Prescription
 - Product Catalog, Product Resolution and routing administration
 - Pricing Schedule foundation and Doctor Preferences
+- Environment metadata and feature flags
+- UAT plans, executions, defects, evidence and readiness
+- Deterministic Development/UAT simulation
+- Role-aware dashboards and Executive Command Center preview
+- Exact-head Runtime, Sprint and Playwright release validation
 
-## 5. Planned platform domains
+## 5. Architecture-approved future domains
 
-- Release assurance, UAT and demo data
 - Platform Owner, licensing and subscriptions
 - Tenant Customization Studio and branding
 - Tax and exemption management
-- Executive Command Center
 - Enterprise Business Intelligence
 - Financial Accounting
-- White-Label Laboratory Platform
+- Full White-Label Laboratory Platform
 - Integration Platform
 - Workflow Engine
-- Disaster Recovery and Business Continuity
+- Disaster Recovery and Business Continuity automation
 
 ## 6. Security architecture
 
@@ -85,6 +102,8 @@ Every operational record is tenant-scoped unless explicitly Platform control-pla
 | Licensing | subscriptions and entitlements | tenant authorization |
 | Portal | branded external experience | Practice/case ownership |
 | Integration | adapters and delivery state | domain business rules |
+| UAT | test plans, executions, defects and release evidence | production domain truth |
+| Design Studio | design sessions and artifacts | ERP business records |
 
 ## 9. Workflow architecture
 
@@ -100,11 +119,11 @@ Accounting is separate from Billing. It provides double-entry journals, chart of
 
 ## 12. Executive Command Center
 
-The ECC presents role-authorized, tenant-isolated operational, quality, communication, financial, customer and capacity intelligence. KPI definitions are versioned and include formula, sources, cadence, retention, thresholds and drill-down contracts. Every value displays freshness and lineage.
+The RC1 ECC is an operational preview. The target ECC presents role-authorized, tenant-isolated operational, quality, communication, financial, customer and capacity intelligence. KPI definitions are versioned and include formula, sources, cadence, retention, thresholds and drill-down contracts. Every value displays freshness and lineage.
 
 ## 13. Enterprise Business Intelligence
 
-An analytical warehouse receives versioned data from source domains through outbox/CDC/extraction adapters. Governed facts, dimensions, time intelligence, snapshots and semantic metrics support the ECC and reports. The warehouse never becomes operational authority.
+A future analytical warehouse receives versioned data from source domains through outbox/CDC/extraction adapters. Governed facts, dimensions, time intelligence, snapshots and semantic metrics support the ECC and reports. The warehouse never becomes operational authority.
 
 ## 14. White-Label Laboratory Platform
 
@@ -114,13 +133,17 @@ Each laboratory controls business identity, visual tokens, document templates, c
 
 REST, webhooks, imports, exports and provider adapters use stable versioned ports, tenant binding, least-privilege credentials, idempotency, signatures, replay protection, observability and dead-letter handling. Providers cannot write domain tables directly.
 
+Design Studio integration follows the same rule and is documented in `docs/DESIGN_STUDIO_PROGRAM.md`.
+
 ## 16. Disaster recovery
 
 Backups, replication, RPO/RTO, tenant recovery, ObjectStorage recovery, database point-in-time recovery, queue replay, incident response and continuity exercises are governed by documented, tested procedures. Recovery evidence belongs to the assurance domain.
 
 ## 17. Testing and release governance
 
-The lifecycle is Feature Development → Engineering Validation → Architectural Review → Release Candidate → Community Preview → Beta → General Availability → Maintenance. Required gates include frozen install, strict builds, migrations and rollback, integrations, security, Runtime Validation, Playwright, UAT, ADR review and exact-commit evidence.
+The lifecycle is Feature Development → Unit/Integration Tests → Sprint Validation → Architectural Review → Engineering Reliability → Runtime Validation → Business UAT → Release Candidate Approval → Community Preview/Beta/GA → Maintenance.
+
+Required gates include frozen install, strict builds, migrations and rollback, integrations, security, Runtime Validation, Playwright, UAT, ADR review and exact-commit evidence.
 
 ## 18. Deployment architecture
 
@@ -134,8 +157,8 @@ Environments are Development, Integration, UAT and Production. Environment ident
 - stable event and API versions;
 - no secrets, clinical content or internal object keys in logs;
 - explicit error handling, idempotency and concurrency control;
-- tests at unit, integration, migration, security, runtime and browser layers;
-- documentation and ADRs updated with architecture changes.
+- tests at unit, integration, migration, security, reliability, runtime and browser layers;
+- documentation, registries and ADRs updated with architecture or status changes.
 
 ## 20. ADR index
 
@@ -143,14 +166,8 @@ The canonical index is `docs/ADR/README.md`. Accepted ADRs are never deleted; re
 
 ## 21. Roadmap
 
-- Sprint 13A: Operational Readiness and Tenant Foundation
-- Sprint 13B: Commercial Control Plane
-- Sprint 13C: Tenant Customization Studio
-- Sprint 13D: Tax and Compliance
-- Sprint 13E: Executive Command Center, BI and Accounting Foundation
-- Sprint 13F: White-Label Laboratory Platform
-- Sprint 13G: Workflow Engine
+The canonical current roadmap is `docs/ROADMAP.md`. Current state is Business UAT. Sprint 13B is blocked until formal RC1 UAT review.
 
 ## 22. Deferred implementation
 
-This Bible does not claim implementation of the planned domains. Runtime work requires separately approved sprints, migrations, security review, tests, ADR conformance and release validation.
+Architecture-approved future domains are not complete. Runtime work requires separately approved sprints, migrations, security review, tests, ADR conformance, registry updates and release validation.
