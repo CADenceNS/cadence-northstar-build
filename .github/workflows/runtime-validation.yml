@@ -86,7 +86,10 @@ jobs:
           path: |
             /tmp/northstar-api.log
             /tmp/northstar-web.log
+            test-results/
+            playwright-report/
           if-no-files-found: ignore
+          retention-days: 14
       - name: Print service logs on failure
         if: failure()
         run: |
