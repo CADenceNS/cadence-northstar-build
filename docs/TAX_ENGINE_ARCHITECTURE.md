@@ -2,135 +2,93 @@
 
 ## Purpose
 
-Define a multi-state Sales and Use Tax capability that Billing can consume without embedding tax logic in Digital Intake, Product Catalog, Pricing Schedules, Scanner Providers, or Communications.
+Define provider-neutral multi-state Sales and Use Tax capabilities for laboratory tenants. Billing consumes Tax determinations; tax logic does not enter Digital Intake, Scanner Providers, Product Catalog, Pricing Schedules or Communications.
 
 ## Ownership
 
-The Tax Engine owns:
-
-- jurisdiction hierarchy and address-to-jurisdiction resolution;
-- historical tax-rate versions;
-- taxable-category rules;
-- exemption decisions;
-- immutable tax determinations;
-- Sales and Use Tax reporting exports;
-- external provider adapters.
-
-Billing owns invoice lifecycle, taxable amounts, credits, adjustments, and invoice totals. Billing requests a determination and stores the returned determination reference and totals.
+The Tax Engine owns jurisdiction resolution, historical rate versions, tax-category rules, exemption decisions, immutable determinations, reporting exports and provider adapters. Billing owns invoice lifecycle, taxable bases, credits, adjustments and totals. The subscribing laboratory owns tenant tax configuration; its Doctor Practices are customer accounts whose exemption evidence may affect Billing.
 
 ## Jurisdiction model
 
 ```text
 Country
-  └─ State
-      └─ County
-          └─ City / District / Special District
+└─ State
+   └─ County
+      └─ City / District / Special District
 ```
 
-A `tax_jurisdiction` has a stable ID, type, code, name, parent, authority, timezone, effective status, and optional geometry/provider identifiers. A postal address may resolve to multiple concurrent jurisdictions.
+`tax_jurisdiction` has stable identity, type, code, name, parent, authority, timezone, effective status and optional geometry/provider identifiers. An address can resolve to multiple concurrent jurisdictions. Resolution records source, confidence and manual-review status.
 
-## Rate versioning
+## Historical rate versioning
 
-`tax_rate_version` is immutable after activation and includes:
+Activated `tax_rate_version` records are immutable and contain jurisdiction, tax category, component, rate, effective interval, source, approval, supersession and actor metadata. Historical invoices always retain and reference the exact effective rate versions and jurisdiction resolution used at the taxable event date. Current rates never overwrite prior determinations.
 
-- jurisdiction ID;
-- tax category;
-- rate component;
-- effective-from and effective-to instants;
-- source and source reference;
-- approval status;
-- superseded version reference;
-- created/approved actor and timestamp.
+## Tax categories and tenant policy
 
-Historical invoice recalculation always uses the rate versions effective at the taxable event date, never the currently active rate.
-
-## Tax categories
-
-Products reference a stable accounting/tax category, not a tax rate. Example categories include taxable restoration, exempt professional service, shipping, handling, credit, and non-taxable diagnostic service. The exact legal classification is tenant/jurisdiction configuration and requires tax-professional review.
+Products reference stable tax/accounting categories rather than rates. Tenant tax settings may map Product Catalog accounting categories, shipping, handling, credits and services to jurisdiction rules. Legal classification and nexus policy require professional review and explicit effective versions.
 
 ## Determination command
 
-`DetermineTax` input:
+`DetermineTax` receives tenant/customer account, invoice/case references, ship-from/ship-to/bill-to addresses, dates, line IDs, quantities, taxable bases, discounts, categories, exemption context, currency and idempotency key.
 
-- tenant and account IDs;
-- invoice/case references;
-- ship-from, ship-to, and bill-to addresses;
-- transaction and fulfillment dates;
-- line identifiers, quantities, taxable bases, discounts, and tax categories;
-- exemption context;
-- currency;
-- idempotency key.
-
-Output:
-
-- determination ID and version;
-- resolved jurisdictions;
-- applied rate-version IDs;
-- line-level taxable bases and tax amounts;
-- exemption decision references;
-- rounding method;
-- total tax;
-- warnings or manual-review status.
-
-The determination becomes immutable when an invoice is finalized. Corrections produce a reversal or replacement determination linked to the original.
+It returns determination/version IDs, resolved jurisdictions, rate-version IDs, line taxable bases, tax amounts, exemption decisions, rounding, total tax and warnings/manual-review state. Finalized determinations are immutable. Corrections create linked reversal or replacement determinations.
 
 ## Tax Exemption Management
 
-`tax_exemption_certificate` includes:
+A customer-level exemption profile belongs to one Practice/account within one laboratory tenant. Proposed records:
 
-- tenant and customer account;
-- jurisdiction scope;
-- exemption type and certificate number;
-- effective and expiration dates;
-- verification status;
-- ObjectStorage document ID;
-- renewal-notice schedule;
-- superseded certificate;
-- approval and audit metadata.
+- `customer_tax_profile`;
+- `tax_exemption_certificate`;
+- `tax_exemption_certificate_version`;
+- `tax_certificate_jurisdiction`;
+- `tax_certificate_category_scope`;
+- `tax_certificate_verification`;
+- `tax_certificate_reminder`;
+- `tax_exemption_decision`.
 
-Decision precedence:
+Certificate data includes certificate number/type, effective and expiration dates, status, ObjectStorage document ID, jurisdiction/category scope, verification evidence, renewal schedule, supersession and audit metadata.
 
-1. Explicit invoice-level override by authorized Billing/Tax role
-2. Active verified certificate matching jurisdiction and category
-3. Account exemption status backed by a valid certificate
-4. Taxable default
-5. Manual review when evidence is incomplete or expired
+### Certificate lifecycle
 
-Expired, revoked, pending, or jurisdiction-mismatched certificates do not suppress tax.
-
-## Renewal reminders
-
-A scheduler emits reminder events at configurable intervals before expiration. Notifications contain certificate metadata but not document contents. Failed reminders are retried idempotently and surfaced on an operational queue.
-
-## Reporting
-
-Sales and Use Tax reports support date, tenant, jurisdiction, customer, category, invoice, and filing-period filters. Exports include gross sales, exempt sales, taxable sales, collected tax, adjustments, credits, and determination references. Export formats should include CSV and a versioned provider-neutral JSON schema.
-
-## External provider port
-
-```ts
-interface TaxProvider {
-  resolveJurisdictions(address: PostalAddress): Promise<JurisdictionMatch>;
-  determine(request: ProviderTaxRequest): Promise<ProviderTaxResponse>;
-  validateCertificate?(request: CertificateValidationRequest): Promise<CertificateValidationResponse>;
-}
+```text
+Uploaded → Pending Verification → Verified → Expiring → Expired
+                         └→ Rejected
+Verified ──authorized action──→ Revoked
 ```
 
-Adapters translate provider responses into NorthStar’s immutable internal determination. Provider IDs never become the primary domain identity.
+### Billing behavior
 
-## Security
+1. Authorized invoice override with reason and approval.
+2. Active verified certificate matching tenant, customer, jurisdiction, date and category: exemption applies and decision reference is stored.
+3. Expired certificate: no exemption; tax applies or invoice enters configured manual review.
+4. Revoked/rejected certificate: tax applies; prior historical determinations remain unchanged.
+5. Jurisdiction/category mismatch: tax applies or manual review; certificate is not treated as valid evidence.
+6. Pending or missing evidence: taxable default unless tenant policy requires review.
 
-- Tax administration requires dedicated permissions.
-- Certificate documents use ObjectStorage and authorized downloads; internal object keys are never exposed.
-- Tax overrides require reason, approval, and immutable audit.
-- Reports are tenant-scoped and export actions are audited.
-- Platform support cannot inspect certificates without temporary audited tenant support scope.
+Billing stores the exemption decision and Tax determination references, not mutable certificate assumptions.
+
+## Renewal and expiration
+
+A tenant-configurable scheduler emits reminders before expiration to authorized laboratory staff and customer contacts. Reminder events are idempotent, auditable and contain metadata only, not certificate document content. Failed delivery enters an operational queue.
+
+## Sales and Use Tax reporting
+
+Tenant-scoped reports support filing period, jurisdiction, Practice/customer, category, invoice and determination filters. Exports include gross sales, exempt sales, taxable sales, collected tax, use tax, credits, adjustments, certificate references and reconciliation totals. Formats include CSV and a versioned provider-neutral JSON schema. Export actions are authorized and audited.
+
+## External provider architecture
+
+A stable `TaxProvider` port supports jurisdiction lookup, tax determination and optional certificate validation. Adapters translate provider identities and responses into NorthStar’s internal jurisdiction, rate-version and immutable determination models. Providers never become the source identity for NorthStar records, and historical determinations remain readable if a provider changes.
+
+## Security and tenant isolation
+
+- dedicated Tax administration and report permissions;
+- tenant/customer authorization on every certificate and report;
+- ObjectStorage safe metadata and authorized downloads;
+- no Platform Owner certificate access without a support grant;
+- reason and immutable audit for overrides, verification, revocation and export;
+- tenant-scoped caches, provider credentials and idempotency keys;
+- sensitive document retention and legal-hold policy.
 
 ## Deferred
 
-- legal nexus determination;
-- marketplace-facilitator logic;
-- automated filing and remittance;
-- provider selection;
-- jurisdiction geocoding;
-- production tax calculations.
+Nexus determination, legal rule content, geocoding, provider selection, filing/remittance, certificate runtime, tax calculations and Billing integration remain deferred.
