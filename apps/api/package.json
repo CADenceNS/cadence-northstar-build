@@ -14,7 +14,8 @@
     "test:security": "tsx src/security.integration.test.ts",
     "test:communications": "tsx src/communications.integration.test.ts",
     "test:digital-intake": "tsx src/digital-intake.integration.test.ts",
-    "test:uat": "tsx src/uat.integration.test.ts"
+    "test:uat": "tsx src/uat.integration.test.ts",
+    "test:uat-attachments": "tsx src/uat-attachments.integration.test.ts"
   },
   "dependencies": {
     "@northstar/shared": "workspace:*",
