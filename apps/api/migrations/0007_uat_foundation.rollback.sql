@@ -1,5 +1,6 @@
 BEGIN;
 DROP TABLE IF EXISTS uat_seed_runs;
+DROP TABLE IF EXISTS uat_evidence_attachments;
 DROP TABLE IF EXISTS uat_defects;
 DROP TABLE IF EXISTS uat_executions;
 DROP TABLE IF EXISTS uat_test_cases;
