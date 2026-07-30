@@ -1,100 +1,107 @@
-# Platform Owner, Tenant Ownership & Licensing Architecture
+# Platform Owner, Laboratory Tenant Ownership & Licensing Architecture
 
 ## Purpose
 
-Define NorthStar’s commercial control plane without weakening tenant isolation or turning subscription state into operational data ownership.
+Define NorthStar’s commercial control plane for a SaaS platform sold to dental laboratories. A subscribing laboratory is the tenant. Practices, Doctors, office users and future patients are tenant customers or delegated users, not subscribers or tenants.
 
-## Roles and trust boundaries
+## Roles and ownership
 
 ### Platform Owner
 
-A Platform Owner administers the NorthStar service itself. This role may manage tenant lifecycle, subscriptions, licenses, entitlements, platform configuration, and support access. It is not automatically a tenant administrator.
+Administers the NorthStar service: tenant provisioning, subscriptions, licenses, global feature rollout, platform health, commercial policy, emergency operations and support grants. Platform Owner status does not automatically grant tenant business-data access.
 
 ### Tenant Owner
 
-A Tenant Owner controls the tenant’s commercial relationship, designated administrators, billing contact, branding authority, and data-export authority.
+Represents the subscribing laboratory’s ownership authority. Controls the commercial relationship, designated tenant administrators, billing contacts, branding authority, export authority and approval of support access.
 
 ### Tenant Administrator
 
-A Tenant Administrator manages users and tenant operations within granted permissions. It cannot alter platform contracts or impersonate Platform Owners.
+Manages laboratory users, tenant configuration, security policies and operational setup within granted permissions. It cannot alter platform-global contracts or Platform Owner controls.
+
+### Practice, Doctor and office users
+
+A Practice is a laboratory customer account. Doctors and office users receive tenant-scoped portal memberships. They cannot administer the laboratory tenant or view another Practice unless explicitly authorized.
 
 ## Support access
 
-Platform support access to tenant data requires an explicit support grant containing tenant, reason, scope, approver, start time, expiration, and actor. Every action taken under the grant includes both the Platform actor and assumed tenant context in immutable audit. Break-glass access is time-limited, separately alerted, and reviewed.
+Platform support access requires an explicit `tenant_support_grant` containing tenant, reason, scope, approver, start, expiration and actor. Every action records both Platform actor and assumed tenant context in immutable audit. Break-glass access is separately alerted, time-limited and reviewed.
 
 ## Domain model
 
-- `platform_account`: legal platform operator identity.
-- `tenant_ownership`: tenant, owner user/contact, effective period, status, transfer history.
-- `subscription`: tenant, plan, billing period, lifecycle status, start/end dates.
-- `license`: subscription, license key/token identity, activation state, device or deployment scope where applicable.
+- `platform_account`: NorthStar operator identity.
+- `tenant`: subscribing laboratory identity and lifecycle.
+- `tenant_ownership`: owner contact, effective period, status and transfer history.
+- `subscription`: tenant, plan, billing period, lifecycle state and paid-through dates.
+- `license`: subscription-bound activation identity and status.
 - `subscription_tier`: stable commercial tier definition.
-- `entitlement`: stable feature capability code.
-- `tier_entitlement`: tier-to-entitlement assignment with limits.
-- `tenant_entitlement_override`: approved exception with effective period and reason.
-- `license_activation`: activation fingerprint, environment, issued/revoked timestamps.
-- `tenant_commercial_state`: active, grace-period, suspended, terminated, archived.
+- `entitlement`: stable capability code.
+- `tier_entitlement`: tier capability, limits and effective version.
+- `tenant_entitlement_override`: approved exception with reason and effective period.
+- `tenant_feature_configuration`: tenant-controlled enablement where permitted.
+- `license_activation`: environment, fingerprint, issue, expiration and revocation.
+- `tenant_support_grant`: explicit temporary Platform access.
+- `tenant_commercial_state_history`: append-only lifecycle evidence.
 
-Commercial records are versioned and audited. Operational tenant records remain in tenant-owned domains.
+Commercial records are versioned and audited. Operational tenant records remain in tenant-owned ERP domains.
 
 ## Subscription lifecycle
 
 ```text
-Trial → Active → Past Due → Grace Period → Suspended → Reactivated
-                                            └→ Terminated → Archived
+Trial → Active → Past Due → Grace Period → Suspended
+                   └───────────────→ Cancelled → Archived
+Suspended / Past Due / Cancelled ──approved resolution──→ Active
 ```
 
-Cancellation may remain active through a paid-through date. Suspension is reversible; termination requires explicit data-retention and export handling.
+- Trial: limited effective period and tier-defined entitlements.
+- Active: paid and fully eligible subject to configuration and authorization.
+- Past Due: payment failure; policy may restrict selected capabilities.
+- Grace Period: time-limited continuation with warnings and recovery path.
+- Suspended: normal sessions, writes, portal access and new jobs blocked.
+- Cancelled: service scheduled to end or ended according to paid-through policy.
+- Archived: read-only retained state governed by retention/export policy.
 
-## License enforcement
+No state deletes tenant data automatically.
 
-License evaluation uses a server-side `EntitlementService`:
+## Entitlement evaluation
 
-```ts
-interface EntitlementService {
-  evaluate(context: {
-    tenantId: string;
-    environment: string;
-    entitlement: string;
-    role?: string;
-    at?: string;
-  }): Promise<{ allowed: boolean; reason: string; limits?: Record<string, number> }>;
-}
+A feature is available only when all gates pass:
+
+```text
+Deployment configuration
+AND Subscription entitlement
+AND Tenant configuration
+AND User permission
+AND Domain prerequisites
 ```
 
-Feature code queries entitlements through this service rather than reading subscription tables. Evaluation may be cached briefly but must support revocation. Security permissions and commercial entitlements are independent checks; an entitlement never grants authorization.
+Evaluation order:
 
-## Tenant suspension
+1. confirm deployment/environment flag;
+2. confirm tenant commercial state permits evaluation;
+3. resolve subscription tier and effective entitlement version;
+4. apply approved tenant override and usage limits;
+5. confirm tenant has enabled/configured the capability;
+6. confirm authenticated user authorization;
+7. confirm required domain prerequisites;
+8. return allow/deny reason and effective limits.
 
-Suspension blocks normal interactive sessions, API writes, external portal access, and new background work. It preserves data, audit, backups, legal holds, and restricted Platform/Tenant Owner recovery functions. Critical outbound jobs should stop safely or enter a suspended queue. Reactivation records actor, reason, commercial resolution, and timestamp.
+An entitlement never grants authorization. Feature code queries a server-side `EntitlementService` rather than subscription tables directly. Cached decisions use tenant/version-aware keys and support rapid revocation.
 
-## Activation and deactivation
+## Tenant suspension and reactivation
 
-License activations are idempotent and environment-bound. Production activation tokens are not valid in Development or UAT. Deactivation revokes future sessions or capabilities according to policy without deleting tenant data.
+Suspension blocks normal interactive sessions, API writes, Doctor portal access and new background work while preserving data, audit, backups, legal holds and restricted recovery/export paths. Jobs stop safely or enter a tenant-suspended queue. Reactivation requires resolved commercial state, authorized actor, reason and immutable history.
 
-## Feature flags and subscription tiers
+## Security and scale
 
-Feature flags control deployment and operational rollout. Entitlements control commercial availability. A capability is usable only when:
-
-1. the deployment feature flag permits it;
-2. the tenant subscription entitlement permits it;
-3. the authenticated user is authorized;
-4. required domain prerequisites are satisfied.
-
-## Security
-
-- Platform roles reside in a dedicated platform membership boundary.
-- Platform APIs use separate permissions and audit categories.
-- Tenant support grants are time-bound and least-privilege.
-- Subscription webhooks require signature validation, replay protection, and idempotency.
-- License secrets are hashed or encrypted; raw activation secrets are not persisted when avoidable.
-- Suspension and reactivation require dual authorization for high-risk tenants when configured.
+- platform roles use a separate membership and session audience;
+- every control-plane action is audited;
+- support grants are least-privilege and expire automatically;
+- billing-provider webhooks require signatures, replay protection and idempotency;
+- license secrets are hashed or encrypted;
+- entitlements, caches, analytics and rate limits are tenant-scoped;
+- one tenant’s suspension or licensing outage cannot affect another tenant;
+- Platform analytics use minimized, aggregated data unless an explicit tenant grant permits detail.
 
 ## Deferred
 
-- payment processor selection;
-- metered billing;
-- offline licensing;
-- signed license bundles;
-- tenant transfer UI;
-- production subscription enforcement.
+Payment processor selection, metered billing, offline licensing, signed license bundles, subscription enforcement, tenant transfer runtime and licensing administration UI remain deferred.
