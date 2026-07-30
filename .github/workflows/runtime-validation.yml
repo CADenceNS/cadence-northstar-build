@@ -51,8 +51,10 @@ jobs:
       - name: Apply migrations 0001 through 0007
         run: |
           for migration in apps/api/migrations/0001_infrastructure_core.sql apps/api/migrations/0002_repository_documents.sql apps/api/migrations/0003_identity_security.sql apps/api/migrations/0004_clinical_communications.sql apps/api/migrations/0005_digital_intake_platform.sql apps/api/migrations/0006_intake_administration.sql apps/api/migrations/0007_uat_foundation.sql; do psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$migration"; done
-      - name: Run UAT integration
-        run: pnpm --filter @northstar/api test:uat
+      - name: Run UAT integrations
+        run: |
+          pnpm --filter @northstar/api test:uat
+          pnpm --filter @northstar/api test:uat-attachments
       - name: Start API
         run: pnpm --filter @northstar/api dev > /tmp/northstar-api.log 2>&1 &
       - name: Wait for API health
