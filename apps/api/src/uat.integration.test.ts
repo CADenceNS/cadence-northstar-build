@@ -11,6 +11,7 @@ if(!databaseUrl)throw new Error('DATABASE_URL is required.');
 const pool=new Pool({connectionString:databaseUrl});
 const tenantA='00000000-0000-0000-0000-000000000001';
 const tenantB='00000000-0000-0000-0000-000000000002';
+const integrationFlagKey='uat-integration-ecc';
 await pool.query(`INSERT INTO tenants(id,name) VALUES($1,'Keramos UAT'),($2,'Sample Laboratory') ON CONFLICT(id) DO NOTHING`,[tenantA,tenantB]);
 const audits:AuditEventInput[]=[];
 const audit:AuditRepository={append:async(value)=>{audits.push(value);},list:async()=>audits};
@@ -26,8 +27,8 @@ try{
  const execution=await request(`/api/uat/cases/${testCase.body.id}/execute`,{method:'POST',headers:{'x-test-role':'doctor'},body:JSON.stringify({status:'pass',actualResult:'Scoped dashboard loaded.',notes:'No unauthorized links.'})});assert.equal(execution.response.status,201);
  const defect=await request('/api/uat/defects',{method:'POST',headers:{'x-test-role':'doctor'},body:JSON.stringify({title:'Example UAT issue',description:'Demonstrates the defect lifecycle.',module:'Doctor Portal',severity:'medium',priority:'medium',relatedTestCaseId:testCase.body.id})});assert.equal(defect.response.status,201);assert.match(defect.body.defect_number,/^DEF-/);
  const triaged=await request(`/api/uat/defects/${defect.body.id}`,{method:'PATCH',body:JSON.stringify({status:'triaged',assigneeName:'QA Lead'})});assert.equal(triaged.response.status,200);assert.equal(triaged.body.status,'triaged');
- const flag=await request('/api/feature-flags/ecc',{method:'PUT',body:JSON.stringify({enabled:true,description:'Executive preview',environments:['development'],roles:['system-administrator']})});assert.equal(flag.response.status,200);
- const flags=await request('/api/feature-flags');assert.equal(flags.response.status,200);assert.equal(flags.body.some((item:{key:string})=>item.key==='ecc'),true);
+ const flag=await request(`/api/feature-flags/${integrationFlagKey}`,{method:'PUT',body:JSON.stringify({enabled:true,description:'Integration-only feature flag fixture',environments:['uat','development'],roles:['system-administrator']})});assert.equal(flag.response.status,200);
+ const flags=await request('/api/feature-flags');assert.equal(flags.response.status,200);assert.equal(flags.body.some((item:{key:string;effective:boolean})=>item.key===integrationFlagKey&&item.effective===true),true);
  const seed=await request('/api/uat/seed',{method:'POST',body:'{}'});assert.equal(seed.response.status,201);assert.equal(seed.body.summary.cases,240);
  const ecc=await request('/api/uat/ecc');assert.equal(ecc.response.status,200);assert.equal(Number(ecc.body.cases)>=240,true);
  const plans=await request('/api/uat/plans');assert.equal(plans.response.status,200);assert.equal(plans.body.length>=2,true);
@@ -37,4 +38,7 @@ try{
  const forbiddenPlan=await request('/api/uat/plans',{method:'POST',headers:{'x-test-role':'doctor'},body:JSON.stringify({name:'Forbidden',module:'Security'})});assert.equal(forbiddenPlan.response.status,403);
  assert.equal(audits.some(item=>item.action==='uat.plan.created'),true);assert.equal(audits.some(item=>item.action==='uat.execution.recorded'),true);assert.equal(audits.some(item=>item.action==='uat.defect.created'),true);assert.equal(audits.some(item=>item.action==='feature-flag.updated'),true);assert.equal(audits.some(item=>item.action==='uat.seed.completed'),true);
  console.log('Sprint 13A UAT integration passed.');
-}finally{server.close();await pool.end()}
+}finally{
+ await pool.query('DELETE FROM feature_flags WHERE tenant_id=$1 AND flag_key=$2',[tenantA,integrationFlagKey]).catch(()=>undefined);
+ server.close();await pool.end();
+}
