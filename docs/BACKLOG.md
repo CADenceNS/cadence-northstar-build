@@ -1,19 +1,12 @@
 # Engineering Backlog
 
-## Active
+## Active — Post-CP2 Platform Readiness
 
-- [ ] Merge PR #2 after review.
-- [ ] Review and merge PR #4 after PR #2.
-- [ ] Review and merge PR #5 after PR #4.
-- [ ] Review and merge PR #6 after PR #5.
-- [ ] Review and merge PR #7 after PR #6.
-- [ ] Review and merge PR #8 after PR #7.
-- [ ] Review and merge PR #9 after PR #8.
-- [ ] Review and merge PR #10 after PR #9.
-- [ ] Review and merge architecture-planning PR #11 after PR #10.
-- [ ] Review and merge Sprint 10 PR #12 after PR #11.
-- [ ] Review and merge Sprint 11 PR #13 after PR #12.
-- [ ] Review and merge Sprint 12 PR #14 after PR #13.
+- [ ] Implement the Release Assurance foundation: environment metadata, feature flags, UAT plans/executions, defects, approvals, and deterministic demo/test data.
+- [ ] Implement the Platform commercial control plane: Platform Owner, tenant ownership, subscriptions, licenses, entitlements, suspension, and reactivation.
+- [ ] Implement Tax Engine jurisdiction/rate repositories, exemption certificates, immutable determinations, and Billing command integration.
+- [ ] Implement the White-Label Doctor Portal identity, branding, sessions, invitations, and future custom-domain verification.
+- [ ] Implement Workflow Engine templates, instances, transitions, queues, SLA timers, approvals, and transactional outbox after architecture approval.
 - [ ] Add production email delivery, identity administration, OIDC/SSO, SCIM, WebAuthn/passkeys, TOTP, and step-up authentication.
 - [ ] Add distributed rate limiting, managed secret rotation, and risk-based authentication.
 - [ ] Add managed cloud ObjectStorage, encryption-key management, malware scanning, quarantine, retention, and legal-hold controls.
@@ -24,6 +17,16 @@
 - [ ] Migrate legacy Case Intake behind an internal Digital Intake command only after ADR-001 compatibility gates are satisfied.
 - [ ] Refactor large intake route handlers into typed application services and repository interfaces.
 - [ ] Evaluate read replicas, partitioning, connection-pooling proxies, and tenant-specific data residency when scale requires them.
+
+## Architecture Complete — Sprint 13 Platform Readiness
+
+- [x] Define Tax Engine, jurisdiction hierarchy, historical rate versioning, exemptions, reports, and external provider ports.
+- [x] Define Platform Owner, tenant ownership, subscriptions, licensing, entitlements, suspension, and support-access boundaries.
+- [x] Define White-Label Doctor Portal branding, external identity, authorization, file, communication, and custom-domain boundaries.
+- [x] Define deterministic demo seed packs, Development/UAT reset controls, UAT plans, executions, defects, and certification exit criteria.
+- [x] Define Workflow Engine domain model, versioned state machine, events, queues, assignments, SLA timers, approvals, failure behavior, and AI extension points.
+- [x] Record ADR-006 through ADR-011.
+- [x] Publish phased implementation roadmap without adding runtime ERP functionality.
 
 ## Completed — Sprint 12 Digital Intake Platform Foundation
 
@@ -47,8 +50,9 @@
 ## Completed — Sprint 11 Clinical Communications Platform
 
 - [x] Add append-only communication threads, events, attachment references, and notifications.
-- [x] Add chronological timelines, threaded history, tenant-scoped search, ObjectStorage attachments, and notification read state.
+- [x] Add chronological timelines, threaded history, authorized search, ObjectStorage attachments, and notification read state.
 - [x] Integrate timelines into Practice, Doctor, Patient, Case, Shipment, and Invoice views.
+- [x] Harden entity authorization, thread integrity, recipient validation, attachment metadata, and audit separation.
 - [x] Pass strict TypeScript, integrations, Runtime Validation, and complete Playwright regressions.
 
 ## Completed — Sprint 10 Production Identity & Security
