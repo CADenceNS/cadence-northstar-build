@@ -2,105 +2,157 @@
 
 ## Purpose
 
-This document defines the commercial and operational platform capabilities required after Community Preview 2 and before broad customer deployment. It is architecture only.
+This document defines NorthStar as an enterprise multi-tenant SaaS operating platform for independent dental laboratories. It refines the Community Preview 2 architecture only; it does not implement runtime behavior.
+
+## Commercial and identity hierarchy
+
+```text
+NorthStar Platform
+└─ Platform Owner
+   └─ Tenant: subscribing dental laboratory
+      ├─ Tenant Owner / Tenant Administrator
+      ├─ Laboratory staff
+      │  ├─ Customer Service
+      │  ├─ Production / CAD / Ceramics
+      │  ├─ QC / Shipping / Accounting / Sales
+      │  └─ Management
+      └─ Doctor Practices: customers of the laboratory
+         ├─ Doctors
+         ├─ Doctor office staff
+         └─ Future patient portal users
+```
+
+The laboratory purchases the subscription and owns the tenant configuration and branded experience. A Practice is a customer account inside one laboratory tenant. A Doctor is a professional user associated with one or more authorized Practices. Doctors, office staff, and patients are never tenants merely because they use a portal.
 
 ## Context map
 
 ```text
 Platform Control Plane
   ├─ Platform Owners
-  ├─ Tenant ownership
-  ├─ Subscription and license state
-  ├─ Tier entitlements
-  └─ Tenant suspension/reactivation
+  ├─ Tenant provisioning and ownership
+  ├─ Subscription, license and entitlement state
+  ├─ Platform feature flags and health
+  └─ Time-limited tenant support grants
 
-Tenant Application Plane
-  ├─ Identity and Authorization
-  ├─ Digital Intake
+Tenant Application Plane — one isolated laboratory
+  ├─ Tenant identity and authorization
+  ├─ Tenant Customization Studio
+  ├─ Practice and Doctor customer management
+  ├─ Digital Intake and Smart Digital Prescription
+  ├─ Production, QC, Shipping and Billing
+  ├─ Product Resolution, Tax and Pricing foundations
+  ├─ Communications and Audit
   ├─ Workflow coordination
-  ├─ Billing
-  ├─ Tax determination
-  ├─ Communications
-  ├─ Audit
-  └─ White-label portal
+  └─ White-Label Laboratory Platform experience
 
 Release and Assurance Plane
+  ├─ Environment metadata
   ├─ Demo/Test Data Management
-  ├─ UAT plans and evidence
-  ├─ Defect lifecycle
+  ├─ UAT plans, executions and defects
   └─ Release certification
 ```
 
-## Domain ownership
+## Ownership boundaries
 
-| Domain | Owns | Must not own |
+| Boundary | Owns | Must not own |
 |---|---|---|
-| Tax Engine | jurisdiction resolution, rate versions, tax determinations, reports | invoice lifecycle, product identity, customer pricing |
-| Tax Exemption Management | certificates, effective periods, exemption decisions | tax rates, invoice state |
-| Licensing | subscriptions, licenses, entitlements, tenant commercial state | tenant operational data |
-| White-label Portal | branded external experience and portal sessions | tenant branding as authorization, core clinical records |
-| Demo/Test Data | deterministic scenarios and reset orchestration | Production deletion capabilities |
-| UAT | test plans, executions, defects, certification evidence | production workflow state |
-| Workflow Engine | templates, transitions, assignments, queues, SLA timers | clinical, billing, shipping, or communication source records |
+| NorthStar Platform | service governance, platform health, tenant provisioning, global commercial policy | unrestricted tenant business data |
+| Laboratory tenant | operational data, branding, configuration, staff, customer Practices and commercial settings | platform-global licensing policy |
+| Practice | laboratory customer account, Doctors, office users, addresses and account preferences | tenant administration or another Practice’s records |
+| Doctor | authorized professional identity and Practice relationships | tenant ownership |
+| Office staff | delegated Practice tasks and portal permissions | Doctor clinical authority unless explicitly delegated |
+| Tenant Customization Studio | tenant presentation and operational configuration | Platform Owner controls or authorization decisions |
+| Tax Engine | jurisdiction resolution, rate versions, exemptions, determinations and reports | invoice lifecycle, product identity or customer pricing |
+| Licensing | subscriptions, licenses, entitlements and tenant commercial state | tenant clinical or financial records |
+| Workflow Engine | templates, transitions, queues, assignments and SLA orchestration | source records owned by ERP domains |
+
+## Tenant isolation and scale
+
+NorthStar must support hundreds of independent laboratories concurrently. Every tenant-owned record, object, event, report, workflow projection and configuration must carry an immutable tenant boundary. Tenant resolution occurs from authenticated membership and trusted host/domain binding, never from user-supplied identifiers alone.
+
+Required controls:
+
+- tenant-scoped database access and repository contracts;
+- tenant-scoped ObjectStorage ownership and download authorization;
+- tenant-scoped encryption, retention and export policy where applicable;
+- no cross-tenant cache keys, queues, sessions, analytics or search results;
+- per-tenant quotas and rate limits without weakening global platform protection;
+- auditable support grants for any Platform Owner access to tenant data;
+- background jobs and events carrying tenant identity and idempotency keys.
+
+## Tenant Customization Studio
+
+Each laboratory receives a tenant-only administrative control center containing:
+
+- Business Profile and support contacts;
+- Branding and portal presentation;
+- Financial and Tax settings;
+- Payment methods and invoice numbering;
+- Turnaround times, Shipping and Pickup scheduling;
+- Materials, Product Catalog and Pricing Schedules;
+- Clinical preferences and Scanner integrations;
+- Notification and communication templates;
+- Security policies and Doctor registration policies;
+- Portal settings and document templates.
+
+The Studio cannot access Platform Owner licensing, platform health, global feature rollout or other tenants. Branding and configuration are presentation or operational inputs only; authorization always uses server-side identity, role, Practice and tenant policies.
+
+## Role-specific tenant workspaces
+
+- Customer Service: Practice onboarding, intake exceptions, pickup and communication queues.
+- Production/CAD/Ceramics: authorized production queues, files, assignments and SLAs.
+- QC: inspection queues, defects, holds and release decisions.
+- Shipping: packing, labels, pickups, tracking and delivery.
+- Accounting: billing review, invoices, statements, payments, tax and exemptions.
+- Sales: prospect/customer relationship workflows with restricted financial visibility.
+- Management: tenant analytics, capacity, quality, financial and operational oversight.
+- Tenant Owner/Administrator: users, configuration, security, licensing visibility and Customization Studio.
 
 ## Shared architectural rules
 
-- Every record is tenant-scoped unless explicitly part of the Platform control plane.
-- Platform control-plane access requires a dedicated Platform Owner permission and immutable audit.
-- Tenant suspension blocks interactive and API access but preserves data and audit history.
-- Cross-domain coordination uses application commands and events; no domain writes another domain’s tables directly.
-- Historical decisions are append-only or versioned.
-- External integrations are adapters behind stable internal ports.
-- Idempotency keys are required for externally initiated commands and event consumers.
-- Personally identifiable, clinical, tax-certificate, and licensing data use least-privilege access and explicit retention rules.
+- Cross-domain coordination uses commands and versioned events; no domain writes another domain’s tables.
+- Historical financial, tax, licensing and workflow decisions are immutable or versioned.
+- External providers remain adapters behind stable ports.
+- Commercial entitlement never grants security authorization.
+- Presentation branding never influences tenant or Practice access.
+- Platform support access requires explicit reason, scope, approval, expiration and immutable audit.
 
-## Proposed implementation sequence
+## Revised implementation roadmap
 
-### Phase 13A — Operational readiness foundation
+### Sprint 13A — Operational Readiness and tenant foundation
 
-- environment metadata
-- feature-flag foundation
-- UAT plans, executions, defects, and release approvals
-- deterministic demo/test data with Development/UAT reset controls
+Environment metadata, feature flags, UAT/defects/releases, deterministic demo data, tenant hierarchy contracts and tenant-branding schema design.
 
-### Phase 13B — Platform control plane
+### Sprint 13B — Commercial control plane
 
-- Platform Owner authorization
-- tenant ownership
-- subscriptions, licenses, entitlements, suspension/reactivation
-- control-plane audit and operational dashboards
+Platform Owner, tenant provisioning, ownership, subscription states, licensing, entitlements, suspension/reactivation and support grants.
 
-### Phase 13C — Tax foundation
+### Sprint 13C — Tenant Customization and branding foundation
 
-- jurisdiction and rate-version repositories
-- exemption certificate management
-- tax determination command consumed by Billing
-- Sales and Use Tax exports
+Business profile, branding tokens, document/communication template configuration, portal settings and tenant-scoped administrative policies.
 
-### Phase 13D — Portal foundation
+### Sprint 13D — Tax and compliance foundation
 
-- branding profiles
-- Doctor portal identity boundary
-- tenant-aware portal sessions
-- custom-domain verification architecture
+Jurisdictions, historical rates, exemption certificates, determinations, reports and Billing command integration.
 
-### Phase 13E — Workflow Engine implementation
+### Sprint 13E — White-Label Laboratory Platform
 
-- template repository
-- runtime instances
-- state transitions
-- queues and assignments
-- SLA timers and event outbox
+Laboratory-branded portal identity, Practice/Doctor/office-user access, website integration, secure portal sessions and future custom domains.
+
+### Sprint 13F — Workflow Engine implementation
+
+Versioned templates, runtime instances, transitions, queues, assignments, approvals, SLA timers and transactional outbox.
 
 ## Security review
 
-- Platform Owner is not a tenant administrator and must explicitly assume a tenant support scope with reason, duration, and audit.
-- License enforcement must fail closed for commercial entitlements while preserving emergency data export and administrative recovery paths.
-- Tax certificates are sensitive business documents stored through ObjectStorage with authorized download endpoints.
-- Portal sessions require separate audience, cookie, CSRF, rate-limit, and account-recovery policies.
-- Demo resets require environment allowlists, two-step confirmation, an execution token, and immutable audit.
-- Workflow transitions require server-side authorization and optimistic concurrency.
+- Platform Owner is not a tenant administrator.
+- Tenant support grants are least-privilege, time-limited and fully audited.
+- Doctors and office users can access only authorized Practice records within one laboratory tenant.
+- Custom domains and branding select presentation context but never grant access.
+- Tenant suspension preserves data and restricted recovery/export paths.
+- Tax certificates and tenant branding assets use ObjectStorage with safe metadata and authorized downloads.
+- Demo reset commands are absent from Production.
 
 ## Non-goals
 
-This architecture does not implement tax calculation, licensing enforcement, portal login, demo reset, UAT software, or workflow execution.
+No tax calculation, licensing enforcement, tenant customization runtime, portal login, custom-domain provisioning, UAT software, demo reset or Workflow Engine execution is implemented by this architecture refinement.
