@@ -107,6 +107,17 @@ CREATE TABLE uat_defects (
   UNIQUE(tenant_id,defect_number)
 );
 
+CREATE TABLE uat_evidence_attachments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  owner_type text NOT NULL CHECK(owner_type IN ('test-case','execution','defect')),
+  owner_id uuid NOT NULL,
+  object_id uuid NOT NULL REFERENCES object_records(id) ON DELETE RESTRICT,
+  uploaded_by text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(tenant_id,owner_type,owner_id,object_id)
+);
+
 CREATE TABLE uat_seed_runs (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
@@ -124,6 +135,7 @@ CREATE INDEX uat_plan_status_idx ON uat_test_plans(tenant_id,status,updated_at D
 CREATE INDEX uat_case_plan_idx ON uat_test_cases(tenant_id,plan_id,sort_order);
 CREATE INDEX uat_execution_case_idx ON uat_executions(tenant_id,test_case_id,created_at DESC);
 CREATE INDEX uat_defect_status_idx ON uat_defects(tenant_id,status,severity,updated_at DESC);
+CREATE INDEX uat_evidence_owner_idx ON uat_evidence_attachments(tenant_id,owner_type,owner_id,created_at DESC);
 CREATE INDEX feature_flag_lookup_idx ON feature_flags(tenant_id,flag_key,enabled);
 
 COMMIT;
