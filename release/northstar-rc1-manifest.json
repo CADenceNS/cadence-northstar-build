@@ -4,20 +4,34 @@
   "releaseCandidate": "RC1",
   "releaseName": "Sprint 13A Business UAT Release Candidate 1",
   "branch": "feature/sprint-13a-uat-interactive-platform",
-  "commitSha": "FINAL_EXACT_HEAD_SET_BY_CERTIFICATION",
+  "certifiedApplicationCommitSha": "b3daad83256a0fbb7f561fc388354b2f4b419146",
+  "manifestCommitPolicy": "The committed manifest records the exact application commit certified before this manifest-only update. The PR head containing this manifest must also pass both workflows before release approval.",
   "migrationVersion": "0007",
   "databaseSchemaVersion": "0007",
   "buildVersion": "0.13.0-rc1",
-  "buildTimestamp": "SET_BY_CERTIFICATION",
+  "buildTimestamp": "2026-07-30T18:00:00Z",
+  "certificationDate": "2026-07-30",
+  "releaseStatus": "certified-for-business-uat-pending-final-manifest-head-validation",
   "validation": {
-    "runtimeValidationWorkflowId": "SET_BY_CERTIFICATION",
-    "sprint13AValidationWorkflowId": "SET_BY_CERTIFICATION",
-    "playwright": "pending exact-head certification",
-    "uatIntegration": "pending exact-head certification",
-    "migrationRollbackReapply": "pending exact-head certification"
+    "runtimeValidation": {
+      "runId": 30570601562,
+      "status": "success",
+      "commitSha": "b3daad83256a0fbb7f561fc388354b2f4b419146"
+    },
+    "sprint13AValidation": {
+      "runId": 30570601883,
+      "status": "success",
+      "commitSha": "b3daad83256a0fbb7f561fc388354b2f4b419146"
+    },
+    "playwright": "23 of 23 scenarios passed",
+    "uatIntegration": "passed",
+    "uatAttachmentIntegration": "passed",
+    "migrationRollbackReapply": "passed",
+    "consoleAndPageErrors": "no unexpected errors",
+    "brokenRoutesOrNavigation": "none detected"
   },
   "featureFlagsEnabledByDefault": ["uat-workspace", "ecc-preview"],
-  "seedDataVersion": "northstar-uat-seed-v1",
+  "seedDataVersion": "northstar-uat-seed-v2",
   "supportedEnvironments": ["development", "uat"],
   "productionStatus": "not certified for production",
   "knownDeferredModules": [
