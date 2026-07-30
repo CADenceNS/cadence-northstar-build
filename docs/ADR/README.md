@@ -30,5 +30,9 @@ Routine implementation details that do not affect long-term architecture do not 
 - ADR-009 — Environment-isolated demo reset
 - ADR-010 — UAT certification evidence boundary
 - ADR-011 — Workflow orchestration boundary
+- ADR-012 — Executive Intelligence analytical boundary
+- ADR-013 — Accounting ledger separate from Billing
+- ADR-014 — External integrations behind stable adapters
+- ADR-015 — Disaster recovery as tested governance
 
-Future decisions may include managed cloud ObjectStorage, CAD compute orchestration, AI clinical governance, tax-provider selection, payment-provider selection, custom-domain provider and identity-provider integration.
+Future decisions may include managed cloud ObjectStorage, CAD compute orchestration, AI clinical governance, provider selections, custom-domain infrastructure, identity federation, warehouse technology and service extraction.
