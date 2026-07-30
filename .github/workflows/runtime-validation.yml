@@ -1,0 +1,145 @@
+name: Runtime Validation
+
+on:
+  pull_request:
+  push:
+    branches:
+      - agent/runtime-validation
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: northstar
+          POSTGRES_PASSWORD: northstar
+          POSTGRES_DB: northstar_runtime
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U northstar -d northstar_runtime"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://northstar:northstar@127.0.0.1:5432/northstar_runtime
+      NORTHSTAR_TENANT_ID: 00000000-0000-0000-0000-000000000001
+      NORTHSTAR_BOOTSTRAP_PASSWORD: NorthStar!2026
+    steps:
+      - name: Check out feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Migrate legacy Practice and Doctor state
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('apps/web/src/App.tsx')
+          source = path.read_text()
+          source = source.replace("const initialPractices: Practice[] = [{ id:'practice-1', accountNumber:'KDL-1001', practiceName:'NorthStar Dental Group', status:'active', phone:'818-555-0148', email:'office@northstardental.example', address:'19350 Business Ctr Dr', city:'Northridge', state:'CA', postalCode:'91324', taxExempt:false, scannerType:'iTero', createdAt:new Date().toISOString() }];", "const initialPractices: Practice[] = [{ id:'practice-1', accountNumber:'KDL-1001', practiceName:'NorthStar Dental Group', status:'active', phone:'818-555-0148', email:'office@northstardental.example', address:'19350 Business Ctr Dr', city:'Northridge', state:'CA', postalCode:'91324', taxExempt:false, scannerType:'iTero', officeManager:{name:'Alex Morgan',email:'manager@northstardental.example',phone:'818-555-0199'}, notes:'', communicationHistory:[], createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() }];")
+          source = source.replace("const initialDoctors: Doctor[] = [{ id:'doctor-1', practiceId:'practice-1', firstName:'Beibei', lastName:'Wu', specialty:'General Dentistry', email:'doctor@example.com', phone:'818-555-0171', active:true, createdAt:new Date().toISOString() }];", "const initialDoctors: Doctor[] = [{ id:'doctor-1', practiceId:'practice-1', firstName:'Beibei', lastName:'Wu', specialty:'General Dentistry', email:'doctor@example.com', phone:'818-555-0171', status:'active', notes:'', communicationHistory:[], createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() }];")
+          source = source.replace("doctors.filter(d=>d.active).length", "doctors.filter(d=>d.status==='active').length")
+          source = source.replace("<small>{d.active?'active':'inactive'}</small>", "<small>{d.status}</small>")
+          path.write_text(source)
+          PY
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add apps/web/src/App.tsx
+          if ! git diff --cached --quiet; then
+            git commit -m 'Align legacy directory state with Sprint 3 contracts'
+            git push origin HEAD:${{ github.head_ref || github.ref_name }}
+          fi
+      - name: Generate lockfile from clean install
+        run: |
+          rm -rf node_modules apps/*/node_modules packages/*/node_modules
+          pnpm install --no-frozen-lockfile
+      - name: Commit generated lockfile
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add pnpm-lock.yaml
+          if git diff --cached --quiet; then
+            echo 'Lockfile already matches the clean install.'
+          else
+            git commit -m 'Lock workspace dependencies'
+            git push origin HEAD:${{ github.head_ref || github.ref_name }}
+          fi
+      - name: Verify reproducible install
+        run: |
+          rm -rf node_modules apps/*/node_modules packages/*/node_modules
+          pnpm install --frozen-lockfile
+      - name: Typecheck and build
+        shell: bash
+        run: |
+          set -o pipefail
+          (pnpm typecheck && pnpm build) 2>&1 | tee /tmp/runtime-build.log
+      - name: Apply durable persistence, identity, communications, and intake migrations
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0001_infrastructure_core.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0002_repository_documents.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0003_identity_security.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0004_clinical_communications.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0005_digital_intake_platform.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0006_intake_administration.sql
+      - name: Start API
+        run: |
+          pnpm --filter @northstar/api dev > /tmp/northstar-api.log 2>&1 &
+          echo $! > /tmp/northstar-api.pid
+      - name: Wait for API health
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:4000/health > /tmp/health.json; then cat /tmp/health.json; exit 0; fi
+            sleep 1
+          done
+          cat /tmp/northstar-api.log
+          exit 1
+      - name: Start web application
+        run: |
+          pnpm --filter @northstar/web dev --host 127.0.0.1 > /tmp/northstar-web.log 2>&1 &
+          echo $! > /tmp/northstar-web.pid
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:5173/ > /tmp/index.html; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/northstar-web.log
+          exit 1
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Validate browser authentication lifecycle
+        shell: bash
+        run: |
+          set -o pipefail
+          pnpm test:e2e 2>&1 | tee /tmp/playwright-results.txt
+      - name: Upload validation diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-validation-diagnostics
+          path: |
+            /tmp/runtime-build.log
+            /tmp/playwright-results.txt
+            /tmp/northstar-api.log
+            /tmp/northstar-web.log
+          if-no-files-found: ignore
+      - name: Print service logs on failure
+        if: failure()
+        run: |
+          echo '--- API log ---'
+          cat /tmp/northstar-api.log || true
+          echo '--- Web log ---'
+          cat /tmp/northstar-web.log || true

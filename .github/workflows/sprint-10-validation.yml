@@ -1,0 +1,93 @@
+name: Sprint 10 Validation
+
+on:
+  push:
+    branches:
+      - feature/sprint-10-production-identity-security
+  pull_request:
+    branches:
+      - feature/cp1-beta-architecture-planning
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: northstar
+          POSTGRES_PASSWORD: northstar
+          POSTGRES_DB: northstar_security
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U northstar -d northstar_security"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://northstar:northstar@127.0.0.1:5432/northstar_security
+      NORTHSTAR_TENANT_ID: 00000000-0000-0000-0000-000000000001
+      NORTHSTAR_BOOTSTRAP_PASSWORD: NorthStar!2026
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Strict TypeScript and production build
+        run: pnpm typecheck && pnpm build
+      - name: Apply migrations
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0001_infrastructure_core.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0002_repository_documents.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0003_identity_security.sql
+      - name: Run persistence contracts
+        run: |
+          pnpm --filter @northstar/api test:repositories
+          pnpm --filter @northstar/api test:migrations
+          pnpm --filter @northstar/api test:postgres-repositories
+      - name: Run authentication and authorization integrations
+        run: pnpm --filter @northstar/api test:security
+      - name: Validate identity migration rollback and reapplication
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0003_identity_security.rollback.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0003_identity_security.sql
+      - name: Start secure application services
+        run: |
+          pnpm --filter @northstar/api dev > /tmp/sprint10-api.log 2>&1 &
+          echo $! > /tmp/sprint10-api.pid
+          pnpm --filter @northstar/web dev --host 127.0.0.1 > /tmp/sprint10-web.log 2>&1 &
+          echo $! > /tmp/sprint10-web.pid
+          for attempt in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4000/health >/dev/null && curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/sprint10-api.log /tmp/sprint10-web.log
+          exit 1
+      - name: Validate secure session API lifecycle
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:4000/api/dashboard)" = "401"
+          LOGIN=$(curl -fsS -D /tmp/login-headers -c /tmp/session-cookie -X POST http://127.0.0.1:4000/api/auth/login -H 'Content-Type: application/json' -d '{"email":"dorianhabet@yahoo.com","password":"NorthStar!2026"}')
+          CSRF=$(python -c 'import json,sys;print(json.load(sys.stdin)["csrfToken"])' <<<"$LOGIN")
+          grep -qi 'HttpOnly' /tmp/login-headers
+          grep -qi 'SameSite=Strict' /tmp/login-headers
+          curl -fsS -b /tmp/session-cookie http://127.0.0.1:4000/api/auth/session | grep -q 'system-administrator'
+          test "$(curl -s -o /dev/null -w '%{http_code}' -b /tmp/session-cookie -X POST http://127.0.0.1:4000/api/practices -H 'Content-Type: application/json' -d '{}')" = "403"
+          curl -fsS -b /tmp/session-cookie -X POST http://127.0.0.1:4000/api/auth/logout -H "X-CSRF-Token: $CSRF" >/dev/null
+          test "$(curl -s -o /dev/null -w '%{http_code}' -b /tmp/session-cookie http://127.0.0.1:4000/api/dashboard)" = "401"
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Run complete Playwright regression suite
+        run: pnpm test:e2e
+      - name: Print logs on failure
+        if: failure()
+        run: cat /tmp/sprint10-api.log /tmp/sprint10-web.log || true

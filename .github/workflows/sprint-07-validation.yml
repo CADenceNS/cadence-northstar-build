@@ -1,0 +1,58 @@
+name: Sprint 07 Validation
+
+on:
+  push:
+    branches:
+      - feature/sprint-07-shipping-logistics
+  pull_request:
+    branches:
+      - feature/sprint-06-quality-control
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install reproducibly
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck and build
+        run: pnpm typecheck && pnpm build
+      - name: Start services
+        run: |
+          pnpm --filter @northstar/api dev > /tmp/sprint07-api.log 2>&1 &
+          pnpm --filter @northstar/web dev --host 127.0.0.1 > /tmp/sprint07-web.log 2>&1 &
+          for attempt in $(seq 1 45); do
+            if curl -fsS http://127.0.0.1:4000/health >/dev/null && curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/sprint07-api.log /tmp/sprint07-web.log
+          exit 1
+      - name: Validate shipping APIs
+        run: |
+          curl -fsS -H 'Content-Type: application/json' -d '{"practiceId":"practice-1","doctorId":"doctor-1","patientReference":"API-S7","firstName":"API","lastName":"Shipping","dateOfBirth":"1991-01-01","status":"active","notes":"Sprint 7 API"}' http://127.0.0.1:4000/api/patients > /tmp/shipping-patient.json
+          PATIENT_ID=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/shipping-patient.json','utf8')).id")
+          curl -fsS -H 'Content-Type: application/json' -d "{\"patientId\":\"$PATIENT_ID\",\"practiceId\":\"practice-1\",\"doctorId\":\"doctor-1\",\"status\":\"qc\",\"toothNumbers\":[30],\"arch\":\"mandibular\",\"restoration\":\"Implant Crown\",\"material\":\"Zirconia\",\"shade\":\"A2\",\"stumpShade\":\"ND2\",\"rushPriority\":\"standard\",\"receivedDate\":\"2026-07-27\",\"prescriptionNotes\":\"Shipping validation\"}" http://127.0.0.1:4000/api/cases > /tmp/shipping-case.json
+          CASE_ID=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/shipping-case.json','utf8')).id")
+          curl -fsS -H 'Content-Type: application/json' -d "{\"caseId\":\"$CASE_ID\",\"templateId\":\"template-fixed\",\"outcome\":\"pass\",\"checklist\":[{\"checklistItemId\":\"check-fit\",\"label\":\"Internal fit and seating verified\",\"result\":\"pass\",\"note\":\"\",\"defectCategory\":\"fit\"},{\"checklistItemId\":\"check-margin\",\"label\":\"Margins are closed and continuous\",\"result\":\"pass\",\"note\":\"\",\"defectCategory\":\"margin\"},{\"checklistItemId\":\"check-contact\",\"label\":\"Proximal contacts verified\",\"result\":\"pass\",\"note\":\"\",\"defectCategory\":\"contacts\"},{\"checklistItemId\":\"check-occlusion\",\"label\":\"Occlusion verified\",\"result\":\"pass\",\"note\":\"\",\"defectCategory\":\"occlusion\"},{\"checklistItemId\":\"check-anatomy\",\"label\":\"Anatomy and contour verified\",\"result\":\"pass\",\"note\":\"\",\"defectCategory\":\"anatomy\"},{\"checklistItemId\":\"check-shade\",\"label\":\"Shade and surface finish verified\",\"result\":\"pass\",\"note\":\"\",\"defectCategory\":\"shade\"}],\"defects\":[],\"inspectorId\":\"usr-admin\",\"inspectorName\":\"Dorian Habet\",\"notes\":\"Approved\"}" http://127.0.0.1:4000/api/qc/inspections | grep -q 'pass'
+          curl -fsS http://127.0.0.1:4000/api/shipping/ready-cases | grep -q 'CASE-NS-'
+          curl -fsS -H 'Content-Type: application/json' -d "{\"caseIds\":[\"$CASE_ID\"],\"courier\":\"fedex\",\"courierName\":\"FedEx\",\"trackingNumber\":\"API-TRACK-S7\",\"packingChecklist\":[{\"label\":\"Prescription verified\",\"required\":true,\"completed\":true}],\"notes\":\"API shipment\",\"actorId\":\"usr-admin\",\"actorName\":\"Dorian Habet\"}" http://127.0.0.1:4000/api/shipping/shipments > /tmp/shipment.json
+          SHIPMENT_ID=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/shipment.json','utf8')).id")
+          grep -q 'SHP-' /tmp/shipment.json
+          curl -fsS -H 'Content-Type: application/json' -d '{"status":"awaiting-pickup","trackingNumber":"API-TRACK-S7","note":"Pickup requested","actorId":"usr-admin","actorName":"Dorian Habet","occurredAt":"2026-07-27T12:00:00.000Z"}' http://127.0.0.1:4000/api/shipping/shipments/$SHIPMENT_ID/transitions | grep -q 'awaiting-pickup'
+          curl -fsS http://127.0.0.1:4000/api/shipping/metrics | grep -q 'awaitingPickup'
+          curl -fsS http://127.0.0.1:4000/api/dashboard | grep -q 'logistics'
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Run browser lifecycle
+        run: pnpm test:e2e
+      - name: Print logs on failure
+        if: failure()
+        run: cat /tmp/sprint07-api.log /tmp/sprint07-web.log || true

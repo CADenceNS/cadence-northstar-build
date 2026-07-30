@@ -1,0 +1,51 @@
+name: Sprint 04 Validation
+
+on:
+  push:
+    branches:
+      - feature/sprint-04-patient-case-intake
+  pull_request:
+    branches:
+      - feature/sprint-03-practice-doctor-management
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install reproducibly
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck and build
+        run: pnpm typecheck && pnpm build
+      - name: Start services
+        run: |
+          pnpm --filter @northstar/api dev > /tmp/sprint04-api.log 2>&1 &
+          pnpm --filter @northstar/web dev --host 127.0.0.1 > /tmp/sprint04-web.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4000/health >/dev/null && curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/sprint04-api.log /tmp/sprint04-web.log
+          exit 1
+      - name: Validate Patient and Case APIs
+        run: |
+          curl -fsS http://127.0.0.1:4000/api/patients | grep -q 'ML-014'
+          curl -fsS -H 'Content-Type: application/json' -d '{"practiceId":"practice-1","doctorId":"doctor-1","patientReference":"API-S4","firstName":"API","lastName":"Patient","dateOfBirth":"1991-01-01","status":"active","notes":"Sprint 4 API"}' http://127.0.0.1:4000/api/patients > /tmp/patient.json
+          PATIENT_ID=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/patient.json','utf8')).id")
+          curl -fsS -H 'Content-Type: application/json' -d "{\"patientId\":\"$PATIENT_ID\",\"practiceId\":\"practice-1\",\"doctorId\":\"doctor-1\",\"status\":\"received\",\"toothNumbers\":[30],\"arch\":\"not-applicable\",\"restoration\":\"Implant Crown\",\"material\":\"Zirconia\",\"shade\":\"A2\",\"stumpShade\":\"ND2\",\"rushPriority\":\"rush\",\"receivedDate\":\"2026-07-27\",\"prescriptionNotes\":\"Verify interface\"}" http://127.0.0.1:4000/api/cases | grep -q 'NS-'
+          curl -fsS http://127.0.0.1:4000/api/dashboard | grep -q 'activePatients'
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Run browser lifecycle
+        run: pnpm test:e2e
+      - name: Print logs on failure
+        if: failure()
+        run: cat /tmp/sprint04-api.log /tmp/sprint04-web.log || true

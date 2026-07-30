@@ -1,0 +1,113 @@
+name: Sprint 09 Validation
+
+on:
+  push:
+    branches:
+      - feature/sprint-09-infrastructure-durable-persistence
+  pull_request:
+    branches:
+      - feature/sprint-08-billing-financial-engine
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: northstar
+          POSTGRES_PASSWORD: northstar
+          POSTGRES_DB: northstar_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U northstar -d northstar_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://northstar:northstar@127.0.0.1:5432/northstar_test
+      NORTHSTAR_TENANT_ID: 00000000-0000-0000-0000-000000000001
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Refresh lockfile for infrastructure dependencies
+        run: pnpm install --no-frozen-lockfile
+      - name: Verify reproducible installation
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck and build
+        run: pnpm typecheck && pnpm build
+      - name: Run repository contracts
+        run: pnpm --filter @northstar/api test:repositories
+      - name: Run migration contracts
+        run: pnpm --filter @northstar/api test:migrations
+      - name: Apply PostgreSQL migrations
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0001_infrastructure_core.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0002_repository_documents.sql
+      - name: Run PostgreSQL repository integrations
+        run: pnpm --filter @northstar/api test:postgres-repositories
+      - name: Roll back and reapply PostgreSQL migrations
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0002_repository_documents.rollback.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0001_infrastructure_core.rollback.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0001_infrastructure_core.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0002_repository_documents.sql
+      - name: Start PostgreSQL-backed application services
+        run: |
+          pnpm --filter @northstar/api dev > /tmp/sprint09-api.log 2>&1 &
+          echo $! > /tmp/sprint09-api.pid
+          pnpm --filter @northstar/web dev --host 127.0.0.1 > /tmp/sprint09-web.log 2>&1 &
+          echo $! > /tmp/sprint09-web.pid
+          for attempt in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4000/health >/dev/null && curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/sprint09-api.log /tmp/sprint09-web.log
+          exit 1
+      - name: Verify relationships, object storage, audit count, and restart persistence
+        shell: bash
+        run: |
+          set -euo pipefail
+          PRACTICE=$(curl -fsS -X POST http://127.0.0.1:4000/api/practices -H 'Content-Type: application/json' -d '{"practiceName":"Restart Persistence Dental","status":"active","phone":"818-555-0200","email":"restart@example.com","address":"100 Durable Way","city":"Northridge","state":"CA","postalCode":"91324","taxExempt":false,"scannerType":"iTero","officeManager":{"name":"Restart Manager","email":"manager.restart@example.com","phone":"818-555-0201"},"notes":"restart validation"}')
+          PRACTICE_ID=$(python -c 'import json,sys;print(json.load(sys.stdin)["id"])' <<<"$PRACTICE")
+          DOCTOR=$(curl -fsS -X POST http://127.0.0.1:4000/api/doctors -H 'Content-Type: application/json' -d "{\"practiceId\":\"$PRACTICE_ID\",\"firstName\":\"Restart\",\"lastName\":\"Doctor\",\"specialty\":\"General Dentistry\",\"email\":\"doctor.restart@example.com\",\"phone\":\"818-555-0202\",\"status\":\"active\",\"notes\":\"\"}")
+          DOCTOR_ID=$(python -c 'import json,sys;print(json.load(sys.stdin)["id"])' <<<"$DOCTOR")
+          PATIENT=$(curl -fsS -X POST http://127.0.0.1:4000/api/patients -H 'Content-Type: application/json' -d "{\"practiceId\":\"$PRACTICE_ID\",\"doctorId\":\"$DOCTOR_ID\",\"patientReference\":\"RST-001\",\"firstName\":\"Persistent\",\"lastName\":\"Patient\",\"dateOfBirth\":\"1980-01-01\",\"status\":\"active\",\"notes\":\"\"}")
+          PATIENT_ID=$(python -c 'import json,sys;print(json.load(sys.stdin)["id"])' <<<"$PATIENT")
+          CASE=$(curl -fsS -X POST http://127.0.0.1:4000/api/cases -H 'Content-Type: application/json' -d "{\"patientId\":\"$PATIENT_ID\",\"practiceId\":\"$PRACTICE_ID\",\"doctorId\":\"$DOCTOR_ID\",\"status\":\"received\",\"toothNumbers\":[30],\"arch\":\"not-applicable\",\"restoration\":\"Full Zirconia Crown\",\"material\":\"Zirconia\",\"shade\":\"A2\",\"stumpShade\":\"\",\"rushPriority\":\"standard\",\"receivedDate\":\"2026-07-27\",\"prescriptionNotes\":\"restart persistence\"}")
+          CASE_ID=$(python -c 'import json,sys;print(json.load(sys.stdin)["id"])' <<<"$CASE")
+          curl -fsS -X POST "http://127.0.0.1:4000/api/cases/$CASE_ID/attachments" -H 'Content-Type: application/json' -d '{"kind":"rx","fileName":"restart-rx.pdf","mimeType":"application/pdf","size":4,"contentBase64":"dGVzdA=="}' >/dev/null
+          AUDIT_COUNT=$(psql "$DATABASE_URL" -Atc "SELECT count(*) FROM audit_events WHERE action='practice.created' AND entity_id='$PRACTICE_ID'")
+          test "$AUDIT_COUNT" = "1"
+          test "$(psql "$DATABASE_URL" -Atc "SELECT count(*) FROM object_records WHERE owner_id='$CASE_ID'")" = "1"
+          kill "$(cat /tmp/sprint09-api.pid)" || true
+          pkill -f 'tsx watch src/qc-gateway.ts' || true
+          sleep 2
+          pnpm --filter @northstar/api dev >> /tmp/sprint09-api.log 2>&1 &
+          echo $! > /tmp/sprint09-api.pid
+          for attempt in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4000/health >/dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS "http://127.0.0.1:4000/api/practices?search=Restart%20Persistence" | grep -q "$PRACTICE_ID"
+          curl -fsS "http://127.0.0.1:4000/api/doctors?practiceId=$PRACTICE_ID" | grep -q "$DOCTOR_ID"
+          curl -fsS "http://127.0.0.1:4000/api/patients?practiceId=$PRACTICE_ID" | grep -q "$PATIENT_ID"
+          PERSISTED_CASE=$(curl -fsS "http://127.0.0.1:4000/api/cases/$CASE_ID")
+          grep -q 'dGVzdA==' <<<"$PERSISTED_CASE"
+          DASHBOARD=$(curl -fsS http://127.0.0.1:4000/api/dashboard)
+          python -c 'import json,sys;d=json.load(sys.stdin);assert d["activePractices"]>=2 and d["openCases"]>=1' <<<"$DASHBOARD"
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Run all browser regressions exclusively against PostgreSQL
+        run: pnpm test:e2e
+      - name: Print logs on failure
+        if: failure()
+        run: cat /tmp/sprint09-api.log /tmp/sprint09-web.log || true

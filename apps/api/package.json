@@ -1,23 +1,31 @@
 {
   "name": "@northstar/api",
-  "version": "0.3.0",
+  "version": "0.12.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
+    "dev": "tsx watch src/qc-gateway.ts",
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test:repositories": "tsx src/infrastructure/repository-contract.test.ts",
+    "test:postgres-repositories": "tsx src/infrastructure/postgres-repository.integration.test.ts",
+    "test:migrations": "tsx src/infrastructure/migration-contract.test.ts",
+    "test:security": "tsx src/security.integration.test.ts",
+    "test:communications": "tsx src/communications.integration.test.ts",
+    "test:digital-intake": "tsx src/digital-intake.integration.test.ts"
   },
   "dependencies": {
     "@northstar/shared": "workspace:*",
     "cors": "latest",
-    "express": "latest"
+    "express": "latest",
+    "pg": "latest"
   },
   "devDependencies": {
     "@types/cors": "latest",
     "@types/express": "latest",
     "@types/node": "latest",
+    "@types/pg": "latest",
     "tsx": "latest",
     "typescript": "latest"
   }
