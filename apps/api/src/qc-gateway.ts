@@ -11,6 +11,7 @@ import { installDigitalIntake } from './digital-intake.js';
 import { installIntakeAdministration } from './intake-administration.js';
 import { installProductCatalogFoundation } from './product-catalog-foundation.js';
 import { installUatFoundation } from './uat.js';
+import { installUatAttachments } from './uat-attachments.js';
 import { installUatIdentityExperience, provisionUatIdentities } from './uat-identity.js';
 
 const durable=await createDurableRuntime();
@@ -25,6 +26,7 @@ const security=new SecurityService(durable.pool,durable.repositories.users,durab
 await installSecurity(app,security);
 app.use((req:SecurityRequest,_res,next)=>{if(req.identity&&req.body&&typeof req.body==='object'){req.body.actorId=req.body.actorId||req.identity.userId;req.body.actorName=req.body.actorName||req.identity.name;req.body.recordedBy=req.body.recordedBy||req.identity.name;req.body.uploadedBy=req.body.uploadedBy||req.identity.name}next()});
 installUatFoundation(app,{pool:durable.pool,audit:durable.repositories.audit});
+installUatAttachments(app,{pool:durable.pool,objects:durable.objects,audit:durable.repositories.audit});
 installCommunications(app,durable.pool,durable.objects);
 const intakeWriters=new Set(['system-administrator','laboratory-administrator','tenant-owner','tenant-administrator','office-manager','customer-service','billing']);
 app.use('/api/intake',(req:SecurityRequest,res,next)=>{if(!req.identity)return res.status(401).json({error:'Authentication required.'});if(!['GET','HEAD','OPTIONS'].includes(req.method)&&!intakeWriters.has(req.identity.role))return res.status(403).json({error:'Permission denied.'});return next()});
