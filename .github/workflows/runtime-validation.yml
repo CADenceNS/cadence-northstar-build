@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - agent/runtime-validation
+      - main
   workflow_dispatch:
 
 permissions:
