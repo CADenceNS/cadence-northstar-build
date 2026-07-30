@@ -42,9 +42,12 @@ test('practice and doctor management CRUD lifecycle', async ({ page, context }) 
   await page.getByLabel('Practice notes').fill('Sprint 3 verified practice.');
   const practiceResponse = page.waitForResponse(response => response.url().endsWith('/api/practices') && response.request().method() === 'POST');
   await page.getByRole('button', { name: 'Create practice' }).click();
-  expect((await practiceResponse).status()).toBe(201);
+  const createdPracticeResponse = await practiceResponse;
+  expect(createdPracticeResponse.status()).toBe(201);
+  const createdPractice = await createdPracticeResponse.json();
+  expect(createdPractice.accountNumber).toMatch(/^KDL-\d+$/);
   await expect(page.getByText('Keramos Test Practice')).toBeVisible();
-  await expect(page.getByText('KDL-1002')).toBeVisible();
+  await expect(page.getByText(createdPractice.accountNumber)).toBeVisible();
   await page.getByLabel('Search practices').fill('Keramos Test');
   await expect(page.getByText('Keramos Test Practice')).toBeVisible();
 
