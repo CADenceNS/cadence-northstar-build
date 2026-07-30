@@ -1,8 +1,8 @@
-# Sprint 13 — Platform Readiness & Commercialization Architecture
+# Sprint 13 — Enterprise Intelligence & Commercial Platform Architecture
 
 ## Status
 
-Architecture and planning only. No runtime ERP functionality, migrations, APIs, authentication flows, React components or user-interface behavior are implemented.
+Architecture and planning only. No runtime ERP functionality, migrations, APIs, authentication changes, React components or UI behavior are implemented.
 
 ## Baseline
 
@@ -12,63 +12,69 @@ Architecture and planning only. No runtime ERP functionality, migrations, APIs, 
 
 ## Commercial model
 
-NorthStar is a multi-tenant SaaS platform sold to dental laboratories.
-
-```text
-NorthStar Platform
-→ Platform Owner
-→ Tenant: subscribing laboratory
-→ Laboratory staff
-→ Doctor Practices
-→ Doctors and office staff
-→ Future patient portal
-```
-
-Laboratories purchase subscriptions and own tenant configuration and branding. Practices and Doctors are customers of the laboratory, not tenants.
+NorthStar is a multi-tenant SaaS Laboratory Intelligence Platform sold to dental laboratories. Each subscribing laboratory is a tenant; Practices, Doctors and office staff are tenant customers and delegated users.
 
 ## Objective
 
-Define the remaining platform capabilities required before broad customer deployment while preserving CP2 module boundaries, tenant isolation, security, PostgreSQL persistence, ObjectStorage, immutable audit, Communications, Digital Intake, Product Resolution, Billing and existing ERP workflows.
+Complete the remaining enterprise architecture required for broad commercialization while preserving CP2 behavior and approved domain boundaries.
 
-## Refined architectural domains
+## Architectural domains
 
-1. Multi-state Tax Engine and customer Tax Exemption Management
+1. Operational Readiness, Demo Data, UAT and release assurance
 2. Platform Owner, laboratory tenant ownership, licensing and entitlements
-3. White-Label Laboratory Platform and Doctor/office-user portal experience
-4. Tenant Branding and Tenant Customization Studio
-5. Demonstration and resettable Development/UAT environments
-6. UAT, defect and certification governance
-7. Workflow Engine architecture
+3. Tenant Customization Studio and White-Label Laboratory Platform
+4. Tax Engine and exemption management
+5. Executive Command Center and KPI framework
+6. Enterprise Business Intelligence and analytical warehouse
+7. Financial Accounting foundation
+8. Integration Platform
+9. Disaster Recovery and Business Continuity
+10. Workflow Engine architecture
 
 ## Deliverables
 
 - `docs/PLATFORM_READINESS_ARCHITECTURE.md`
-- `docs/TAX_ENGINE_ARCHITECTURE.md`
-- `docs/PLATFORM_LICENSING_ARCHITECTURE.md`
-- `docs/WHITE_LABEL_LABORATORY_PLATFORM_ARCHITECTURE.md`
-- `docs/DEMO_AND_UAT_ARCHITECTURE.md`
-- `docs/WORKFLOW_ENGINE_ARCHITECTURE.md`
-- refined `docs/PROJECT_GOVERNANCE.md`
-- ADR-006 through ADR-011, including refined ADR-008
-- architecture diagrams, implementation roadmap and backlog sequencing
+- `docs/EXECUTIVE_COMMAND_CENTER_ARCHITECTURE.md`
+- `docs/BUSINESS_INTELLIGENCE_ARCHITECTURE.md`
+- `docs/ACCOUNTING_ARCHITECTURE.md`
+- `docs/INTEGRATION_PLATFORM_ARCHITECTURE.md`
+- `docs/DISASTER_RECOVERY_ARCHITECTURE.md`
+- `docs/NORTHSTAR_ENTERPRISE_ARCHITECTURE_BIBLE.md`
+- Tax, Licensing, White-Label Laboratory Platform, Demo/UAT and Workflow architecture documents
+- refined Project Governance and backlog
+- ADR-006 through ADR-015
+
+## Executive design requirements
+
+The Executive Command Center must answer laboratory performance, quality, customer growth/decline, financial and tax obligations, operational bottlenecks, turnaround/SLA performance and emerging trends. Executives may drill from aggregate KPIs to source records only through role-appropriate tenant authorization.
 
 ## Permanent constraints
 
-- Every subscribing laboratory is an isolated tenant.
-- Doctors, Practices and office staff are not tenants.
-- Branding, custom domains, subscription entitlements and UI visibility never grant authorization.
-- Platform Owner does not automatically receive tenant business-data access.
-- Support access is explicit, time-limited and immutable-audit protected.
-- Tax remains independent from Product Catalog, Pricing Schedules and Digital Intake.
-- Billing owns invoices and consumes immutable tax determinations.
-- Demo reset operations are absent from Production.
-- UAT evidence is separate from operational Communications and security audit.
-- Workflow Engine coordinates commands but does not own ERP source records.
+- every laboratory is an isolated tenant;
+- ECC/BI is analytical and cannot mutate operational ERP state;
+- Accounting owns ledgers while Billing owns invoice workflow;
+- Tax owns determinations while Billing owns taxable transaction amounts;
+- integrations remain adapters behind stable ports;
+- Platform Owner has no implicit tenant-data access;
+- branding, entitlements and dashboards never grant authorization;
+- recovery requires tested restores and tenant-aware evidence;
+- Workflow Engine coordinates commands but does not own source records;
+- forecasts and AI insights remain explainable and separate from historical facts.
+
+## Implementation roadmap
+
+- Sprint 13A — Operational Readiness and Tenant Foundation
+- Sprint 13B — Commercial Control Plane
+- Sprint 13C — Tenant Customization Studio
+- Sprint 13D — Tax and Compliance
+- Sprint 13E — Executive Command Center, Business Intelligence and Accounting Foundation
+- Sprint 13F — White-Label Laboratory Platform
+- Sprint 13G — Workflow Engine
 
 ## Definition of Done
 
-Sprint 13 architecture is complete when documentation and ADRs consistently define laboratory-owned tenants, platform/tenant/Practice/Doctor boundaries, branding and customization ownership, security and isolation, domain models, integration contracts, failure behavior, implementation phases, UAT criteria and deferred work without claiming runtime implementation.
+Sprint 13 architecture is complete when documentation and ADRs define domain ownership, tenant isolation, KPI formulas and lineage, analytical and accounting models, integration and recovery boundaries, security, implementation sequencing, UAT expectations and deferred work without claiming runtime implementation.
 
 ## Deferred implementation
 
-All migrations, APIs, React workspaces, tax calculations, licensing enforcement, tenant customization runtime, portal authentication, custom domains, seed/reset tooling, UAT software and Workflow Engine execution are deferred to separately approved implementation sprints.
+All migrations, APIs, React workspaces, dashboards, warehouse pipelines, accounting ledgers, integrations, recovery automation, tax calculations, licensing enforcement, portal runtime, UAT software and Workflow execution remain deferred to separately approved implementation sprints.
