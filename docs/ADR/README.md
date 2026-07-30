@@ -30,5 +30,12 @@ Routine implementation details that do not affect long-term architecture do not 
 - ADR-002 — Product Catalog and Pricing Schedule separation
 - ADR-003 — Scanner Provider adapter architecture
 - ADR-004 — Event-driven Billing Review handoff
+- ADR-005 — Communications as the operational-history domain
+- ADR-006 — Tax determination boundary
+- ADR-007 — Platform commercial control plane
+- ADR-008 — White-label Portal experience boundary
+- ADR-009 — Environment-isolated demo reset
+- ADR-010 — UAT certification evidence boundary
+- ADR-011 — Workflow orchestration boundary
 
-Future examples include Workflow Engine introduction, service extraction, cloud ObjectStorage selection, CAD compute orchestration, and AI clinical governance.
+Future decisions may include managed cloud ObjectStorage selection, CAD compute orchestration, AI clinical governance, tax-provider selection, and identity-provider integration.
