@@ -1,0 +1,10 @@
+BEGIN;
+DROP TABLE IF EXISTS uat_seed_runs;
+DROP TABLE IF EXISTS uat_evidence_attachments;
+DROP TABLE IF EXISTS uat_defects;
+DROP TABLE IF EXISTS uat_executions;
+DROP TABLE IF EXISTS uat_test_cases;
+DROP TABLE IF EXISTS uat_test_plans;
+DROP TABLE IF EXISTS feature_flags;
+DROP TABLE IF EXISTS environment_metadata;
+COMMIT;

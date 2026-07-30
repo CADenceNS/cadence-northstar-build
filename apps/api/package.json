@@ -1,6 +1,6 @@
 {
   "name": "@northstar/api",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -13,7 +13,9 @@
     "test:migrations": "tsx src/infrastructure/migration-contract.test.ts",
     "test:security": "tsx src/security.integration.test.ts",
     "test:communications": "tsx src/communications.integration.test.ts",
-    "test:digital-intake": "tsx src/digital-intake.integration.test.ts"
+    "test:digital-intake": "tsx src/digital-intake.integration.test.ts",
+    "test:uat": "tsx src/uat.integration.test.ts",
+    "test:uat-attachments": "tsx src/uat-attachments.integration.test.ts"
   },
   "dependencies": {
     "@northstar/shared": "workspace:*",
