@@ -2,7 +2,7 @@
 
 ## Purpose
 
-NorthStar is governed as an enterprise software product. This document defines the permanent development, validation, architectural-review, release, and maintenance lifecycle.
+NorthStar is governed as an enterprise multi-tenant SaaS product for dental laboratories. This document defines the permanent development, validation, architectural-review, release and maintenance lifecycle.
 
 ## Official lifecycle
 
@@ -27,33 +27,58 @@ Maintenance
 ## Semantic milestones
 
 | Milestone | Meaning |
-| --- | --- |
-| Community Preview (CP) | Internally stable, feature-complete milestone for the declared scope. Suitable for controlled internal use and architectural evaluation. |
-| Beta | Internal business users perform structured UAT against realistic workflows and data. Defects and operational feedback drive stabilization. |
-| Release Candidate (RC) | Feature freeze. Only verified defect corrections, security corrections, documentation, migration corrections, and release-engineering work are allowed. |
-| General Availability (GA) | Production-ready release after UAT, operational readiness, security review, migration verification, support readiness, and release approval. |
+|---|---|
+| Community Preview (CP) | Internally stable, feature-complete milestone for the declared scope and controlled evaluation. |
+| Beta | Laboratory business users perform structured UAT against realistic tenant workflows and data. |
+| Release Candidate (RC) | Feature freeze; only verified fixes, security, migration, documentation and release engineering changes are allowed. |
+| General Availability (GA) | Production-ready release after UAT, operational, security, support, migration and approval gates. |
 
-A milestone name must not be used until its required validation and approval gates are complete.
+A milestone name may be used only after its required gates complete.
+
+## Commercial tenant model
+
+- The NorthStar Platform is operated by the Platform Owner.
+- A subscribing dental laboratory is a tenant.
+- Tenant Owners and Administrators govern their laboratory environment.
+- Practices and Doctors are customers of the laboratory, not NorthStar tenants.
+- Office users are delegated Practice users.
+- Patient access is a future, separately governed portal boundary.
+
+Every architecture review must confirm that platform, tenant, Practice, Doctor and office-user ownership boundaries remain explicit.
+
+## Multi-tenant design requirements
+
+Every new domain must document:
+
+- tenant ownership and tenant-resolution source;
+- Practice/entity authorization where applicable;
+- cross-tenant denial tests;
+- tenant-safe ObjectStorage, cache, queue, event and analytics keys;
+- support-access behavior;
+- suspension, export, retention and deletion behavior;
+- per-tenant limits and noisy-neighbor protections;
+- whether configuration is Platform-owned or Tenant-owned.
+
+Platform Owner access never implies unrestricted tenant data access. Support access requires explicit scope, reason, approval, expiration and immutable audit.
 
 ## Branch policy
 
-- Use short-lived, focused branches.
-- Target `main` or one explicitly approved integration branch.
-- Avoid long-lived stacked branches except when a documented dependency makes them unavoidable.
-- Keep each pull request independently reviewable and small enough for meaningful architectural and security review.
-- Rebase or update before final validation when the target branch changes.
-- Delete or archive integrated branches after preserving traceability through commits, pull requests, tags, and release notes.
-- Do not begin a new major phase until the previous milestone is tagged and certified.
+- Use short-lived, focused branches from the latest certified baseline.
+- Target `main` or one approved integration branch.
+- Avoid long-lived stacks.
+- Keep pull requests independently reviewable.
+- Update with the target before final validation.
+- Archive integrated branches after preserving PR, commit, tag and release traceability.
+- Do not begin a major phase until the prior milestone is certified and tagged.
 
 ## Merge policy
 
-A pull request may merge only when:
+A pull request may merge only when its final head is current and:
 
-- its final head is current with the target branch;
-- required reviews are complete;
+- required reviews complete;
 - strict TypeScript and production builds pass;
-- applicable migrations, rollback, and reapplication pass;
-- repository, security, domain, and integration tests pass;
+- migrations, rollback and reapplication pass when applicable;
+- repository, security, tenant-isolation and domain integrations pass;
 - Runtime Validation passes;
 - complete Playwright regressions pass;
 - documentation and ADRs are current;
@@ -62,108 +87,81 @@ A pull request may merge only when:
 
 Validation from an older commit does not certify a newer head.
 
+## Architecture policy
+
+Review domain ownership, layer separation, tenant isolation, authorization, persistence, events, APIs, migration safety, coupling, duplication, scalability and provider boundaries. Significant decisions require ADRs.
+
+Branding, subscription entitlements, feature flags, hostnames and UI visibility are never authorization controls. Cross-domain coordination uses commands and events; one domain does not write another domain’s source tables.
+
 ## Release policy
 
 ### Feature Development
 
-New functionality is permitted. Scope, architecture, tests, documentation, and migrations evolve together.
+New functionality is permitted. Architecture, security, tests, documentation and migrations evolve together.
 
 ### Engineering Validation
 
-The branch must pass deterministic automated validation. Failures must be corrected without weakening production controls.
+The branch passes deterministic automated validation without weakening production controls.
 
 ### Architectural Review
 
-Review domain ownership, module boundaries, authorization, persistence, event contracts, API behavior, migration safety, coupling, duplication, and long-term integration strategy.
-
-Significant decisions require ADRs.
+Review the permanent boundaries and require ADRs for significant decisions.
 
 ### Release Candidate
 
-Feature freeze begins. Allowed changes are limited to:
-
-- verified defect corrections;
-- security and authorization corrections;
-- migration and rollback corrections;
-- test-alignment corrections that preserve production behavior;
-- documentation and release engineering.
-
-Every RC must identify its exact commit, migration version, validation evidence, known limitations, and rollback strategy.
+Feature freeze permits only verified defects, security/authorization corrections, migration/rollback corrections, production-preserving test corrections, documentation and release engineering. Every RC identifies commit, migration version, validation, limitations and rollback.
 
 ### Community Preview
 
-A CP is a stable internal milestone. It requires an integrated primary branch, release notes, a version and tag, current validation evidence, ADR completeness, and a baseline manifest.
+Requires an integrated primary branch, release notes, version/tag, current validation, ADR completeness and baseline manifest.
 
 ### Beta
 
-Beta adds structured UAT by internal business users, realistic test data, defect triage, release approvals, and operational-readiness review.
+Adds structured UAT by laboratory business users, realistic tenant scenarios, defect triage, approvals and operational-readiness review.
 
 ### General Availability
 
-GA requires production deployment readiness, support and incident processes, backup and recovery validation, security approval, operational monitoring, data-retention controls, and formal release approval.
+Requires deployment, support, incident response, backup/recovery, monitoring, retention, privacy, security and formal commercial-readiness approval.
 
 ### Maintenance
 
-Maintenance changes use small branches and preserve compatibility unless an approved migration plan states otherwise. Hotfixes require regression validation and a patch release.
+Uses small branches and patch releases; compatibility changes require approved migration strategy.
 
 ## Validation requirements
 
-Every release candidate and stable milestone must include:
+Every RC and stable milestone includes:
 
 - frozen dependency installation;
-- strict TypeScript;
-- shared, API, and frontend production builds;
-- all PostgreSQL migrations;
-- rollback and reapplication for changed migrations;
-- repository and domain integration tests;
-- security and authorization tests;
+- strict TypeScript and production builds;
+- all migrations and changed rollback/reapplication;
+- repository/domain integrations;
+- authentication, authorization and tenant-isolation tests;
 - Runtime Validation;
 - complete Playwright regression;
-- release-document and ADR validation;
-- validation on the exact final commit.
+- documentation/ADR validation;
+- exact-final-commit evidence.
 
-Runtime and release validation should be read-only. Workflows must not silently modify source files or dependency locks.
+Validation should be read-only and must not silently modify source or lockfiles.
 
 ## ADR requirements
 
-An ADR is required when work:
+An ADR is required for new domains, ownership changes, long-term integrations, persistence/events, authorization/tenant strategy, compatibility/deprecation, orchestration, commercial-control boundaries, provider abstractions and significant infrastructure.
 
-- introduces a new domain;
-- changes module ownership or boundaries;
-- defines a long-term integration strategy;
-- changes persistence or event architecture;
-- changes authorization or tenant-isolation strategy;
-- establishes compatibility or deprecation policy;
-- introduces a cross-domain workflow or orchestration model;
-- adopts a significant infrastructure provider or abstraction.
-
-ADRs record context, decision, consequences, alternatives, status, and supersession relationships. They do not replace implementation documentation or tests.
+ADRs record context, decision, consequences, alternatives, status and supersession. They do not replace tests or implementation documentation.
 
 ## Documentation policy
 
-Each sprint or release must document:
-
-- implemented and verified behavior;
-- exact final validation evidence;
-- deferred work;
-- technical debt;
-- migration and rollback considerations;
-- architecture decisions and ADR references;
-- compatibility and known limitations.
-
-Unverified functionality must never be described as complete.
+Each sprint/release documents implemented and verified behavior, exact evidence, deferred work, technical debt, rollback, ADRs, compatibility and limitations. Architecture-only work must say explicitly that runtime behavior is not implemented.
 
 ## Release cadence
 
-NorthStar adopts this repeatable cadence:
-
-1. Sprint planning and architecture
+1. Planning and architecture
 2. Focused implementation
 3. Engineering validation
 4. Architectural review
 5. Release Candidate and feature freeze
-6. Community Preview or Beta milestone
-7. General Availability when readiness gates are satisfied
+6. Community Preview or Beta
+7. General Availability when gates pass
 8. Maintenance and patch releases
 
-The next major development phase must begin from the latest certified and tagged baseline.
+The next phase begins from the latest certified and tagged baseline.
