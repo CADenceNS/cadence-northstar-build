@@ -5,74 +5,69 @@
 ### Sprint 13A — Operational Readiness and Tenant Foundation
 
 - [ ] Implement environment metadata, feature flags, UAT plans/executions, defects, release approvals and deterministic demo/test data.
-- [ ] Establish canonical laboratory-tenant, Practice-customer, Doctor and office-user ownership contracts across repositories and authorization tests.
-- [ ] Add tenant-isolation validation for caches, queues, events, ObjectStorage, analytics and background jobs.
+- [ ] Establish canonical laboratory-tenant ownership contracts and tenant-isolation tests for repositories, ObjectStorage, caches, queues, events, analytics and jobs.
 
 ### Sprint 13B — Platform Commercial Control Plane
 
-- [ ] Implement Platform Owner, laboratory tenant provisioning, ownership, subscriptions, licenses and lifecycle states.
-- [ ] Implement entitlement evaluation in the order: deployment configuration, subscription entitlement, tenant configuration, user permission and domain prerequisites.
-- [ ] Implement tenant suspension/reactivation and explicit, expiring, audited support grants.
+- [ ] Implement Platform Owner, tenant provisioning, subscriptions, licenses, lifecycle states and entitlements.
+- [ ] Implement suspension/reactivation and explicit, expiring, audited support grants.
 
-### Sprint 13C — Tenant Customization and Branding Foundation
+### Sprint 13C — Tenant Customization Studio
 
-- [ ] Implement Tenant Customization Studio foundations for Business Profile, branding, support contacts, security and portal policies.
-- [ ] Implement versioned document templates for invoices, statements, receipts, packing slips, labels, prescriptions and reports.
-- [ ] Implement versioned email, SMS and notification templates using approved merge fields.
-- [ ] Add safe logo/favicon assets, approved color/typography tokens and login/dashboard theme configuration.
+- [ ] Implement Business Profile, branding, support contacts, document/communication templates, portal settings and tenant policies.
+- [ ] Add safe asset, typography, color and theme configuration without influencing authorization.
 
-### Sprint 13D — Tax and Compliance Foundation
+### Sprint 13D — Tax and Compliance
 
-- [ ] Implement jurisdiction and immutable historical tax-rate repositories.
-- [ ] Implement customer-level exemption profiles, certificate ObjectStorage, verification, expiration and reminders.
-- [ ] Implement immutable tax determinations and Sales/Use Tax exports.
-- [ ] Integrate Tax with Billing through a dedicated command without moving tax logic into Billing.
+- [ ] Implement jurisdictions, immutable historical tax rates, exemption profiles/certificates, renewal, determinations and Sales/Use Tax exports.
+- [ ] Integrate Tax with Billing through a dedicated command.
 
-### Sprint 13E — White-Label Laboratory Platform
+### Sprint 13E — Executive Command Center, BI and Accounting Foundation
 
-- [ ] Implement laboratory-branded portal identities, invitations, sessions and Practice memberships.
-- [ ] Implement Doctor and office-user case, file, prescription, status, communication, billing, payment, pickup and supply-request policies.
-- [ ] Implement laboratory website login/redirection and future custom-domain verification/certificate adapters.
-- [ ] Preserve strict Practice and tenant isolation across all portal workflows.
+- [ ] Implement governed KPI definitions, targets, thresholds, snapshots, dashboard layouts and drill-down contracts.
+- [ ] Implement tenant-isolated analytical facts, dimensions, lineage, time intelligence and certified snapshots.
+- [ ] Implement production, quality, communication, financial, customer and operational KPI calculators.
+- [ ] Implement chart of accounts, journals, periods, fiscal years, posting rules, revenue recognition and reconciliation foundations.
+- [ ] Add authorized exports, data-quality checks and forecasting extension ports.
 
-### Sprint 13F — Workflow Engine
+### Sprint 13F — White-Label Laboratory Platform
 
-- [ ] Implement versioned templates, instances, guarded transitions, queues, assignments, approvals and SLA policies.
-- [ ] Implement transactional outbox, idempotent consumers, fair tenant scheduling, timer leases and dead-letter review.
-- [ ] Integrate through domain commands without transferring ERP record ownership to Workflow.
+- [ ] Implement laboratory-branded portal identity, invitations, sessions and Practice memberships.
+- [ ] Implement Doctor/office-user case, file, prescription, status, communication, billing, payment, pickup and supply workflows.
+- [ ] Implement website redirection and future custom-domain adapters.
+
+### Sprint 13G — Workflow Engine
+
+- [ ] Implement versioned templates, runtime instances, guarded transitions, queues, assignments, approvals and SLA policies.
+- [ ] Implement transactional outbox, idempotent consumers, fair tenant scheduling, timers and dead-letter review.
 
 ## Cross-cutting deferred work
 
-- [ ] Production email/SMS delivery, OIDC/SSO, SCIM, WebAuthn/passkeys, TOTP and step-up authentication.
-- [ ] Distributed rate limiting, managed secrets and risk-based authentication.
-- [ ] Managed cloud ObjectStorage, encryption-key management, malware scanning, quarantine, retention and legal holds.
-- [ ] Production scanner-provider adapters, webhooks and portal SDKs.
+- [ ] Implement Integration Platform foundations for REST, webhooks, imports, exports, credentials, mappings and provider adapters.
+- [ ] Implement backup, point-in-time recovery, ObjectStorage recovery, tenant restore and recovery-testing automation.
+- [ ] Production email/SMS, OIDC/SSO, SCIM, passkeys, TOTP and step-up authentication.
+- [ ] Distributed rate limiting, managed secrets, managed ObjectStorage, malware scanning, retention and legal holds.
+- [ ] Production scanner, payment, shipping, tax, accounting, AI and identity-provider adapters.
 - [ ] Billing-owned Pricing Schedule calculation and post-QC Billing command/outbox.
-- [ ] Invoice/shipping document bundling and automated statement inclusion.
-- [ ] Controlled legacy Case Intake migration behind Digital Intake.
-- [ ] Typed application-service/repository refactoring for large intake handlers.
-- [ ] Read replicas, partitioning, pooling proxies and tenant-specific data residency when scale requires them.
+- [ ] Controlled legacy Case Intake migration and typed intake application-service refactoring.
+- [ ] Scale infrastructure such as read replicas, partitioning, pooling proxies and data residency when evidence requires it.
 
-## Architecture Complete — Sprint 13 Platform Readiness Refinement
+## Architecture Complete — Sprint 13
 
-- [x] Define laboratories as subscribing tenants; Practices and Doctors as tenant customers.
-- [x] Define Platform, Tenant, Practice, Doctor, office-user and future patient ownership boundaries.
-- [x] Replace White-Label Doctor Portal terminology with White-Label Laboratory Platform architecture.
-- [x] Define Business identity, visual, document and communication branding.
-- [x] Define Tenant Customization Studio and separation from Platform Owner controls.
-- [x] Define laboratory website integration and future custom-domain lifecycle.
-- [x] Define Doctor/office-user and role-specific laboratory staff experiences.
-- [x] Refine subscription states, entitlement evaluation and support grants.
-- [x] Refine Tax, exemptions, reporting, historical preservation and provider neutrality.
-- [x] Define module-level UAT criteria and blocking defects.
-- [x] Refine Workflow Engine tenant isolation, fair scheduling and integration boundaries.
-- [x] Update ADR-008 and ADR index.
-- [x] Publish phased roadmap without runtime changes.
+- [x] Define laboratory-owned tenant, Practice, Doctor and office-user boundaries.
+- [x] Define Platform control plane, licensing, Tenant Customization Studio and White-Label Laboratory Platform.
+- [x] Define Tax, exemption, UAT, demo/reset and Workflow architecture.
+- [x] Define Executive Command Center dashboard hierarchy and executive questions.
+- [x] Define governed KPI model, thresholds, refresh, retention, lineage and drill-down.
+- [x] Define production, quality, communications, financial, customer and operational KPI catalogs.
+- [x] Define enterprise warehouse facts, dimensions, cubes, snapshots and time intelligence.
+- [x] Define Accounting boundary, double-entry journals, periods, recognition, AR/AP and close procedures.
+- [x] Define provider-neutral Integration Platform.
+- [x] Define Disaster Recovery, RPO/RTO, tenant recovery and continuity testing.
+- [x] Publish NorthStar Enterprise Architecture Bible.
+- [x] Record ADR-006 through ADR-015.
+- [x] Publish revised Sprint 13A–13G roadmap without runtime changes.
 
 ## Completed — Community Preview 2 Platform
 
-- [x] Sprint 12 Digital Intake Platform Foundation.
-- [x] Sprint 11 hardened Clinical Communications Platform.
-- [x] Sprint 10 Production Identity and Security.
-- [x] Sprint 9 durable PostgreSQL persistence and ObjectStorage.
-- [x] Sprints 3–8 Practice/Doctor, Patient/Case, Production, QC, Shipping and Billing foundations.
+- [x] Sprints 3–12 implementation baseline: Identity/Security, PostgreSQL/ObjectStorage, Practice/Doctor, Patient/Case, Production, QC, Shipping, Billing, Communications and Digital Intake.
