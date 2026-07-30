@@ -1,74 +1,73 @@
 # Engineering Backlog
 
-## Active
+## Active — Post-CP2 Platform Readiness
 
-- [ ] Merge PR #2 after review.
-- [ ] Review and merge PR #4 after PR #2.
-- [ ] Review and merge PR #5 after PR #4.
-- [ ] Review and merge PR #6 after PR #5.
-- [ ] Review and merge PR #7 after PR #6.
-- [ ] Review and merge PR #8 after PR #7.
-- [ ] Review and merge PR #9 after PR #8.
-- [ ] Review and merge PR #10 after PR #9.
-- [ ] Review and merge architecture-planning PR #11 after PR #10.
-- [ ] Review and merge Sprint 10 PR #12 after PR #11.
-- [ ] Review and merge Sprint 11 PR #13 after PR #12.
-- [ ] Review and merge Sprint 12 PR #14 after PR #13.
-- [ ] Add production email delivery, identity administration, OIDC/SSO, SCIM, WebAuthn/passkeys, TOTP, and step-up authentication.
-- [ ] Add distributed rate limiting, managed secret rotation, and risk-based authentication.
-- [ ] Add managed cloud ObjectStorage, encryption-key management, malware scanning, quarantine, retention, and legal-hold controls.
-- [ ] Implement production scanner-provider adapters, credential exchange, webhooks, and portal SDKs.
-- [ ] Implement Billing-owned Pricing Schedule calculation, contract/promotion eligibility, and customer override resolution.
-- [ ] Introduce the dedicated post-QC Billing command and transactional-outbox event defined by ADR-004.
-- [ ] Generate invoices from approved frozen Product Resolution records, bundle invoice/shipping documents, and include invoices in statements.
-- [ ] Migrate legacy Case Intake behind an internal Digital Intake command only after ADR-001 compatibility gates are satisfied.
-- [ ] Refactor large intake route handlers into typed application services and repository interfaces.
-- [ ] Evaluate read replicas, partitioning, connection-pooling proxies, and tenant-specific data residency when scale requires them.
+### Sprint 13A — Operational Readiness and Tenant Foundation
 
-## Completed — Sprint 12 Digital Intake Platform Foundation
+- [ ] Implement environment metadata, feature flags, UAT plans/executions, defects, release approvals and deterministic demo/test data.
+- [ ] Establish canonical laboratory-tenant ownership contracts and tenant-isolation tests for repositories, ObjectStorage, caches, queues, events, analytics and jobs.
 
-- [x] Add unified automatic digital, manual digital, and physical submission records.
-- [x] Require a versioned Smart Digital Prescription before acceptance.
-- [x] Add fixed, implant, removable, orthodontic, appliance, and diagnostic validation rules.
-- [x] Support multiple restorations, arches, teeth/units, implant positions, notes, attachments, and printable copies.
-- [x] Add provider-neutral Scanner Provider contracts with explicit simulator and production-ready metadata.
-- [x] Add Doctor Preference Profile administration with versioned clinical, material, production, routing, and outsource defaults.
-- [x] Add Practice and tenant routing administration with verified precedence.
-- [x] Add a price-free Product Catalog boundary and catalog-backed Product Resolution.
-- [x] Remove customer-pricing columns from Product Catalog and establish separate Pricing Schedules.
-- [x] Add pending Billing Review and product freezing on approval without moving pricing into Digital Intake.
-- [x] Store STL, OBJ, PLY, CBCT, DICOM, X-ray, clinical photo, shade photo, ZIP, and prescription PDF objects through PostgreSQL-backed ObjectStorage.
-- [x] Record communications, notifications, immutable audit, and immutable intake history.
-- [x] Add Digital Intake and Intake Administration React workspaces.
-- [x] Preserve legacy Case Intake compatibility and document the migration strategy in ADR-001.
-- [x] Establish permanent ADR operating policy and ADRs 002–004.
-- [x] Pass frozen install, strict TypeScript, production builds, migrations 0001–0006, rollback/reapplication, inherited integrations, Digital Intake integrations, Runtime Validation, and complete Playwright regressions.
+### Sprint 13B — Platform Commercial Control Plane
 
-## Completed — Sprint 11 Clinical Communications Platform
+- [ ] Implement Platform Owner, tenant provisioning, subscriptions, licenses, lifecycle states and entitlements.
+- [ ] Implement suspension/reactivation and explicit, expiring, audited support grants.
 
-- [x] Add append-only communication threads, events, attachment references, and notifications.
-- [x] Add chronological timelines, threaded history, tenant-scoped search, ObjectStorage attachments, and notification read state.
-- [x] Integrate timelines into Practice, Doctor, Patient, Case, Shipment, and Invoice views.
-- [x] Pass strict TypeScript, integrations, Runtime Validation, and complete Playwright regressions.
+### Sprint 13C — Tenant Customization Studio
 
-## Completed — Sprint 10 Production Identity & Security
+- [ ] Implement Business Profile, branding, support contacts, document/communication templates, portal settings and tenant policies.
+- [ ] Add safe asset, typography, color and theme configuration without influencing authorization.
 
-- [x] Add PostgreSQL credentials, memberships, sessions, one-time tokens, password hashing, lockout, CSRF, authorization, tenant scope, and immutable security auditing.
-- [x] Replace browser-local authentication authority with secure server sessions.
-- [x] Pass final security CI, Runtime Validation, and complete Playwright regressions.
+### Sprint 13D — Tax and Compliance
 
-## Completed — Sprint 9 Infrastructure Core: Durable Persistence
+- [ ] Implement jurisdictions, immutable historical tax rates, exemption profiles/certificates, renewal, determinations and Sales/Use Tax exports.
+- [ ] Integrate Tax with Billing through a dedicated command.
 
-- [x] Add tenant-aware PostgreSQL repositories, transactions, migrations, rollback, ObjectStorage, immutable audit, snapshot migration, and durable runtime composition.
-- [x] Cut production ERP modules over to PostgreSQL and pass full browser regressions.
-- [x] Achieve Community Preview 1 Beta.
+### Sprint 13E — Executive Command Center, BI and Accounting Foundation
 
-## Completed — Sprints 3–8
+- [ ] Implement governed KPI definitions, targets, thresholds, snapshots, dashboard layouts and drill-down contracts.
+- [ ] Implement tenant-isolated analytical facts, dimensions, lineage, time intelligence and certified snapshots.
+- [ ] Implement production, quality, communication, financial, customer and operational KPI calculators.
+- [ ] Implement chart of accounts, journals, periods, fiscal years, posting rules, revenue recognition and reconciliation foundations.
+- [ ] Add authorized exports, data-quality checks and forecasting extension ports.
 
-- [x] Practice and Doctor Management.
-- [x] Patient and Case Intake.
-- [x] Production Workflow Engine.
-- [x] Quality Control Engine.
-- [x] Shipping & Logistics.
-- [x] Billing & Financial Engine.
-- [x] Preserve API-backed authentication, protected routes, session persistence, and browser regressions.
+### Sprint 13F — White-Label Laboratory Platform
+
+- [ ] Implement laboratory-branded portal identity, invitations, sessions and Practice memberships.
+- [ ] Implement Doctor/office-user case, file, prescription, status, communication, billing, payment, pickup and supply workflows.
+- [ ] Implement website redirection and future custom-domain adapters.
+
+### Sprint 13G — Workflow Engine
+
+- [ ] Implement versioned templates, runtime instances, guarded transitions, queues, assignments, approvals and SLA policies.
+- [ ] Implement transactional outbox, idempotent consumers, fair tenant scheduling, timers and dead-letter review.
+
+## Cross-cutting deferred work
+
+- [ ] Implement Integration Platform foundations for REST, webhooks, imports, exports, credentials, mappings and provider adapters.
+- [ ] Implement backup, point-in-time recovery, ObjectStorage recovery, tenant restore and recovery-testing automation.
+- [ ] Production email/SMS, OIDC/SSO, SCIM, passkeys, TOTP and step-up authentication.
+- [ ] Distributed rate limiting, managed secrets, managed ObjectStorage, malware scanning, retention and legal holds.
+- [ ] Production scanner, payment, shipping, tax, accounting, AI and identity-provider adapters.
+- [ ] Billing-owned Pricing Schedule calculation and post-QC Billing command/outbox.
+- [ ] Controlled legacy Case Intake migration and typed intake application-service refactoring.
+- [ ] Scale infrastructure such as read replicas, partitioning, pooling proxies and data residency when evidence requires it.
+
+## Architecture Complete — Sprint 13
+
+- [x] Define laboratory-owned tenant, Practice, Doctor and office-user boundaries.
+- [x] Define Platform control plane, licensing, Tenant Customization Studio and White-Label Laboratory Platform.
+- [x] Define Tax, exemption, UAT, demo/reset and Workflow architecture.
+- [x] Define Executive Command Center dashboard hierarchy and executive questions.
+- [x] Define governed KPI model, thresholds, refresh, retention, lineage and drill-down.
+- [x] Define production, quality, communications, financial, customer and operational KPI catalogs.
+- [x] Define enterprise warehouse facts, dimensions, cubes, snapshots and time intelligence.
+- [x] Define Accounting boundary, double-entry journals, periods, recognition, AR/AP and close procedures.
+- [x] Define provider-neutral Integration Platform.
+- [x] Define Disaster Recovery, RPO/RTO, tenant recovery and continuity testing.
+- [x] Publish NorthStar Enterprise Architecture Bible.
+- [x] Record ADR-006 through ADR-015.
+- [x] Publish revised Sprint 13A–13G roadmap without runtime changes.
+
+## Completed — Community Preview 2 Platform
+
+- [x] Sprints 3–12 implementation baseline: Identity/Security, PostgreSQL/ObjectStorage, Practice/Doctor, Patient/Case, Production, QC, Shipping, Billing, Communications and Digital Intake.
