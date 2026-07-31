@@ -8,7 +8,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         northstar: resolve(__dirname, 'index.html'),
-        designStudio: resolve(__dirname, '../design-studio/index.html'),
+        designStudio: resolve(__dirname, 'design-studio.html'),
       },
     },
   },
@@ -26,8 +26,8 @@ export default defineConfig({
             if (publicHost) proxyRequest.setHeader('x-forwarded-host', publicHost);
             proxyRequest.setHeader('x-forwarded-proto', 'http');
           });
-        }
-      }
-    }
-  }
+        },
+      },
+    },
+  },
 });
