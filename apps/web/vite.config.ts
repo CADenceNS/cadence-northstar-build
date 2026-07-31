@@ -4,6 +4,13 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    alias: {
+      react: resolve(__dirname, 'node_modules/react'),
+      'react-dom': resolve(__dirname, 'node_modules/react-dom'),
+    },
+    dedupe: ['react', 'react-dom'],
+  },
   build: {
     rollupOptions: {
       input: {
