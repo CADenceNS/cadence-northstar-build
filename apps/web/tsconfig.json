@@ -14,7 +14,13 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "react": ["node_modules/react"],
+      "react/jsx-runtime": ["node_modules/react/jsx-runtime"],
+      "react-dom/client": ["node_modules/react-dom/client"]
+    }
   },
   "include": ["src", "../design-studio/src", "vite.config.ts"],
   "references": [{ "path": "../../packages/shared" }]
