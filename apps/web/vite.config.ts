@@ -1,28 +1,31 @@
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+
+const configDirectory = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      react: resolve(__dirname, 'node_modules/react'),
-      'react-dom': resolve(__dirname, 'node_modules/react-dom'),
+      react: resolve(configDirectory, 'node_modules/react'),
+      'react-dom': resolve(configDirectory, 'node_modules/react-dom'),
     },
     dedupe: ['react', 'react-dom'],
   },
   build: {
     rollupOptions: {
       input: {
-        northstar: resolve(__dirname, 'index.html'),
-        designStudio: resolve(__dirname, 'design-studio.html'),
+        northstar: resolve(configDirectory, 'index.html'),
+        designStudio: resolve(configDirectory, 'design-studio.html'),
       },
     },
   },
   server: {
     port: 5173,
     fs: {
-      allow: [resolve(__dirname, '..')],
+      allow: [resolve(configDirectory, '..')],
     },
     proxy: {
       '/api': {
