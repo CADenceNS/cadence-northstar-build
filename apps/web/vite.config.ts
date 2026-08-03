@@ -9,6 +9,7 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
+      '/design-studio': resolve(configDirectory, '../design-studio'),
       react: resolve(configDirectory, 'node_modules/react'),
       'react-dom': resolve(configDirectory, 'node_modules/react-dom'),
     },
