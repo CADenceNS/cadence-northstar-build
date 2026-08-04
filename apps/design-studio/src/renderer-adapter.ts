@@ -1,5 +1,7 @@
 import type { ArtifactRecord, CameraState, ProjectionMode, SceneObject } from './core';
 import type { IRenderer } from './interfaces';
+import type { Bounds3 } from './geometry';
+import type { MeasurementVisual, ProjectedPoint, SurfaceHit, ViewerOverlay } from './inspection-types';
 import { runtimeMetrics } from './metrics';
 import { ViewerRuntime } from './viewer';
 
@@ -22,8 +24,14 @@ export class InstrumentedRenderer implements IRenderer {
   setCamera(camera: CameraState): void { this.runtime.setCamera(camera); this.measureFrame(); }
   getCamera(): CameraState { return this.runtime.getCamera(); }
   fitToScreen(): void { this.runtime.fitToScreen(); this.measureFrame(); }
+  fitObjects(objectIds?: string[]): void { this.runtime.fitObjects(objectIds); this.measureFrame(); }
   resetCamera(): void { this.runtime.resetCamera(); this.measureFrame(); }
   setProjection(projection: ProjectionMode): void { this.runtime.setProjection(projection); this.measureFrame(); }
+  pick(clientX: number, clientY: number): SurfaceHit | null { return this.runtime.pick(clientX, clientY); }
+  projectWorld(position: [number, number, number]): ProjectedPoint { return this.runtime.projectWorld(position); }
+  setMeasurementVisuals(visuals: MeasurementVisual[]): void { this.runtime.setMeasurementVisuals(visuals); this.measureFrame(); }
+  setValidationOverlays(overlays: ViewerOverlay[]): void { this.runtime.setValidationOverlays(overlays); this.measureFrame(); }
+  focusBounds(bounds: Bounds3): void { this.runtime.focusBounds(bounds); this.measureFrame(); }
   dispose(): void { this.runtime.dispose(); }
 
   private measureFrame(): void {
