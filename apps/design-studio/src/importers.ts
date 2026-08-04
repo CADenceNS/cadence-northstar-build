@@ -46,7 +46,13 @@ export class ManagedMeshImporter implements IImporter {
       byteLength: bytes.byteLength, units: request.units ?? inferUnits(request.file.name), orientation: request.orientation ?? 'source',
       metadata: { vertexCount: mesh.positions.length / 3, triangleCount: mesh.indices.length / 3, format, sourceLastModified: request.file.lastModified, sourceMimeType: request.file.type || 'application/octet-stream' },
       history: [{ at: now, action: 'imported', detail: `${format.toUpperCase()} source preserved by SHA-256 checksum` }],
-      mesh: { positions: [...mesh.positions], normals: [...mesh.normals], indices: [...mesh.indices], bounds: { min: [...mesh.bounds.min] as ArtifactRecord['mesh']['bounds']['min'], max: [...mesh.bounds.max] as ArtifactRecord['mesh']['bounds']['max'] } },
+      mesh: {
+        positions: [...mesh.positions],
+        normals: [...mesh.normals],
+        indices: [...mesh.indices],
+        bounds: { min: [...mesh.bounds.min] as ArtifactRecord['mesh']['bounds']['min'], max: [...mesh.bounds.max] as ArtifactRecord['mesh']['bounds']['max'] },
+        sourceTopology: mesh.sourceTopology ? { positions: [...mesh.sourceTopology.positions], indices: [...mesh.sourceTopology.indices] } : undefined,
+      },
     };
 
     const totalMetric = { name: 'import.total', durationMs: performance.now() - startedAt, startedAt: new Date().toISOString(), metadata: { format, bytes: bytes.byteLength, triangles: mesh.indices.length / 3 } };
