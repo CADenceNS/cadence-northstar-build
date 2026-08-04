@@ -37,10 +37,10 @@ test('imports multiple STL OBJ and PLY artifacts and manages scene commands', as
     { name: 'bite.ply', content: ply },
   ]);
 
-  await expect(page.getByText('3 objects')).toBeVisible();
-  await expect(page.getByText('upper · 100%')).toBeVisible();
-  await expect(page.getByText('lower · 100%')).toBeVisible();
-  await expect(page.getByText('bite · 100%')).toBeVisible();
+  await expect(page.getByText('3 objects', { exact: true })).toBeVisible();
+  await expect(page.getByText('Upper arch · STL · 0% transparent')).toBeVisible();
+  await expect(page.getByText('Lower arch · OBJ · 0% transparent')).toBeVisible();
+  await expect(page.getByText('Bite scan · PLY · 0% transparent')).toBeVisible();
 
   await page.getByText('upper_arch.stl').click();
   await expect(page.getByText('Object ID')).toBeVisible();
@@ -75,13 +75,13 @@ test('supports multi-selection, immutable duplicate detection and artifact delet
 
   await importFiles(page, [{ name: 'duplicate_upper.stl', content: asciiStl() }]);
   await expect(page.getByText(/Duplicate source detected/)).toBeVisible();
-  await expect(page.getByText('2 objects')).toBeVisible();
+  await expect(page.getByText('2 objects', { exact: true })).toBeVisible();
 
   await page.getByText('lower_arch.stl').click();
   await page.getByRole('button', { name: 'Remove artifact' }).click();
-  await expect(page.getByText('1 objects')).toBeVisible();
+  await expect(page.getByText('1 objects', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Undo' }).click();
-  await expect(page.getByText('2 objects')).toBeVisible();
+  await expect(page.getByText('2 objects', { exact: true })).toBeVisible();
   expect(errors).toEqual([]);
 });
 
@@ -92,12 +92,12 @@ test('persists project scene, artifacts, camera and selection across reload', as
   await page.getByLabel('Project name').fill('Persistence Validation');
   await page.getByRole('button', { name: 'Orthographic' }).click();
   await page.getByRole('button', { name: 'Save', exact: true }).click();
-  await expect(page.getByText('Saved · Schema v1')).toBeVisible();
+  await expect(page.getByText('Saved · Schema v2')).toBeVisible();
 
   await page.reload();
   await page.getByRole('button', { name: 'Open' }).click();
   await page.getByRole('button', { name: /Persistence Validation/ }).click();
-  await expect(page.getByText('1 objects')).toBeVisible();
+  await expect(page.getByText('1 objects', { exact: true })).toBeVisible();
   await expect(page.getByText('orthographic', { exact: true })).toBeVisible();
   await expect(page.locator('.scene-row.selected')).toHaveCount(1);
   expect(errors).toEqual([]);
@@ -108,7 +108,7 @@ test('creates and restores an auto-save recovery snapshot', async ({ page }) => 
   await importFiles(page, [{ name: 'recovery_upper.stl', content: asciiStl() }]);
   await expect(page.getByText(/Auto-saved/)).toBeVisible({ timeout: 5_000 });
   await page.reload();
-  await expect(page.getByText('1 objects')).toBeVisible();
+  await expect(page.getByText('1 objects', { exact: true })).toBeVisible();
   await expect(page.getByText('Recovery snapshot available')).toBeVisible();
   expect(errors).toEqual([]);
 });

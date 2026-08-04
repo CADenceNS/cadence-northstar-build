@@ -1,4 +1,5 @@
 import type { ArtifactRecord, CameraState, ProjectionMode, SceneObject } from './core';
+import type { MutableCollectionStore } from './state-managers';
 import type {
   CommandHistoryEntry,
   CommandMetadata,
@@ -138,7 +139,11 @@ export class DeleteArtifactCommand extends BaseCommand {
   private previousArtifacts: ArtifactRecord[] = [];
   private previousScene: SceneObject[] = [];
   constructor(private readonly context: RuntimeContext, private readonly artifactId: string) { super('artifact.delete', 'Delete artifact', ['artifact', 'scene']); }
-  validate(): CommandValidation { return this.context.artifacts.get(this.artifactId) ? valid() : invalid(`Artifact ${this.artifactId} not found`); }
+  validate(): CommandValidation {
+    if (!this.context.artifacts.get(this.artifactId)) return invalid(`Artifact ${this.artifactId} not found`);
+    const locked = this.context.scene.list().find((object) => object.artifactId === this.artifactId && object.locked);
+    return locked ? invalid(`Locked object ${locked.name} cannot be deleted`) : valid();
+  }
   execute(): void {
     this.previousArtifacts = this.context.artifacts.list();
     this.previousScene = this.context.scene.list();
@@ -183,4 +188,64 @@ export class ProjectionChangeCommand extends BaseCommand {
   constructor(private readonly renderer: IRenderer, private readonly projection: ProjectionMode) { super('camera.projection.change', `Set ${projection} projection`, ['camera']); }
   execute(): void { this.previous = this.renderer.getCamera().projection; this.renderer.setProjection(this.projection); }
   undo(): void { if (this.previous) this.renderer.setProjection(this.previous); }
+}
+
+export class SceneObjectUpdateCommand extends BaseCommand {
+  private previous?: SceneObject;
+  constructor(
+    private readonly scene: ISceneManager,
+    private readonly objectId: string,
+    private readonly patch: Partial<Omit<SceneObject, 'id' | 'artifactId'>>,
+    label = 'Update scene object',
+    private readonly transformRelated = false,
+  ) { super('scene.object.update', label, ['scene']); }
+  validate(): CommandValidation {
+    const object = this.scene.get(this.objectId);
+    if (!object) return invalid(`Scene object ${this.objectId} not found`);
+    if (object.locked && (this.transformRelated || this.patch.transform !== undefined)) return invalid(`Locked object ${object.name} cannot be transformed`);
+    return valid();
+  }
+  execute(): void { this.previous = this.scene.get(this.objectId); this.scene.update(this.objectId, this.patch); }
+  undo(): void {
+    if (!this.previous) return;
+    const { id: _id, artifactId: _artifactId, ...previous } = this.previous;
+    this.scene.update(this.objectId, previous);
+  }
+}
+
+export class FitObjectsCommand extends BaseCommand {
+  private previous?: CameraState;
+  constructor(private readonly renderer: IRenderer, private readonly objectIds?: string[]) { super('camera.fit', objectIds?.length ? 'Fit selected' : 'Fit all', ['camera']); }
+  execute(): void { this.previous = this.renderer.getCamera(); this.renderer.fitObjects(this.objectIds); }
+  undo(): void { if (this.previous) this.renderer.setCamera(this.previous); }
+}
+
+export class CameraViewCommand extends BaseCommand {
+  private previous?: CameraState;
+  constructor(private readonly renderer: IRenderer, private readonly camera: CameraState, label: string) { super('camera.view.change', label, ['camera']); }
+  execute(): void { this.previous = this.renderer.getCamera(); this.renderer.setCamera(this.camera); }
+  undo(): void { if (this.previous) this.renderer.setCamera(this.previous); }
+}
+
+export class AddCollectionRecordCommand<T extends { id: string }> extends BaseCommand {
+  constructor(private readonly store: MutableCollectionStore<T>, private readonly value: T, type: string, label: string) { super(type, label); }
+  validate(): CommandValidation { return this.store.get(this.value.id) ? invalid(`Record ${this.value.id} already exists`) : valid(); }
+  execute(): void { this.store.add(this.value); }
+  undo(): void { this.store.remove(this.value.id); }
+}
+
+export class UpdateCollectionRecordCommand<T extends { id: string }> extends BaseCommand {
+  private previous?: T;
+  constructor(private readonly store: MutableCollectionStore<T>, private readonly id: string, private readonly patch: Partial<Omit<T, 'id'>>, type: string, label: string) { super(type, label); }
+  validate(): CommandValidation { return this.store.get(this.id) ? valid() : invalid(`Record ${this.id} not found`); }
+  execute(): void { this.previous = this.store.get(this.id); this.store.update(this.id, this.patch); }
+  undo(): void { if (this.previous) this.store.replace(this.store.list().map((value) => value.id === this.id ? this.previous! : value)); }
+}
+
+export class DeleteCollectionRecordCommand<T extends { id: string }> extends BaseCommand {
+  private previous?: T;
+  constructor(private readonly store: MutableCollectionStore<T>, private readonly id: string, type: string, label: string) { super(type, label); }
+  validate(): CommandValidation { return this.store.get(this.id) ? valid() : invalid(`Record ${this.id} not found`); }
+  execute(): void { this.previous = this.store.get(this.id); this.store.remove(this.id); }
+  undo(): void { if (this.previous) this.store.add(this.previous); }
 }

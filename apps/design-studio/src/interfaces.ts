@@ -8,6 +8,8 @@ import type {
   ProjectionMode,
   SceneObject,
 } from './core';
+import type { Bounds3 } from './geometry';
+import type { MeasurementVisual, ProjectedPoint, SurfaceHit, ViewerOverlay } from './inspection-types';
 
 export interface RuntimeMetric {
   name: string;
@@ -21,8 +23,14 @@ export interface IRenderer {
   setCamera(camera: CameraState): void;
   getCamera(): CameraState;
   fitToScreen(): void;
+  fitObjects(objectIds?: string[]): void;
   resetCamera(): void;
   setProjection(projection: ProjectionMode): void;
+  pick(clientX: number, clientY: number): SurfaceHit | null;
+  projectWorld(position: [number, number, number]): ProjectedPoint;
+  setMeasurementVisuals(visuals: MeasurementVisual[]): void;
+  setValidationOverlays(overlays: ViewerOverlay[]): void;
+  focusBounds(bounds: Bounds3): void;
   dispose(): void;
 }
 
