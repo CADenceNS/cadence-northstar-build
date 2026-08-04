@@ -1,4 +1,5 @@
 import type { MeasurementRecord, ProjectHistoryEntry, SavedView, StoredValidationReport } from './core';
+import type { CaseScanSet, StoredRegistrationReport } from './registration-types';
 
 export interface CollectionStore<T extends { id: string }> {
   list(): T[];
@@ -12,7 +13,7 @@ export interface MutableCollectionStore<T extends { id: string }> extends Collec
   remove(id: string): void;
 }
 
-class ObservableCollection<T extends { id: string }> implements CollectionStore<T> {
+export class ObservableCollection<T extends { id: string }> implements CollectionStore<T> {
   private values = new Map<string, T>();
   private readonly listeners = new Set<() => void>();
 
@@ -42,6 +43,20 @@ export class SavedViewManager extends ObservableCollection<SavedView> {}
 export class ValidationReportManager extends ObservableCollection<StoredValidationReport> {
   update(): never { throw new Error('Validation reports are immutable'); }
   remove(): never { throw new Error('Validation reports are immutable'); }
+}
+
+export class RegistrationReportManager extends ObservableCollection<StoredRegistrationReport> {
+  update(): never { throw new Error('Registration reports are immutable'); }
+  remove(): never { throw new Error('Registration reports are immutable'); }
+}
+
+export class CaseScanSetManager {
+  private value: CaseScanSet;
+  private readonly listeners = new Set<() => void>();
+  constructor(initial: CaseScanSet) { this.value = structuredClone(initial); }
+  subscribe(listener: () => void): () => void { this.listeners.add(listener); return () => this.listeners.delete(listener); }
+  get(): CaseScanSet { return structuredClone(this.value); }
+  replace(value: CaseScanSet): void { this.value = structuredClone(value); this.listeners.forEach((listener) => listener()); }
 }
 
 export class ProjectHistoryManager extends ObservableCollection<ProjectHistoryEntry> {}
