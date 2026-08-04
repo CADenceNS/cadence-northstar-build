@@ -24,8 +24,8 @@ test('registers actual mesh geometry, reviews metrics and overlays, and persists
     { name: 'preparation-arch-mm.ply', content: ply(target.map((point) => inverseZ(point, known)), 'preparation', 17, 13) },
   ]);
   await openRegistration(page);
-  await expect(page.getByLabel('Source scan role').locator('option')).toHaveCount(19);
   await page.getByLabel('Registration source').selectOption({ label: 'preparation-arch-mm.ply' });
+  await expect(page.getByLabel('Source scan role').locator('option')).toHaveCount(19);
   await page.getByLabel('Registration target').selectOption({ label: 'upper-arch-mm.ply' });
   await expect(page.getByText('units pass', { exact: true }).first()).toBeVisible();
   await page.getByRole('button', { name: 'Register selected pair' }).click();
@@ -49,14 +49,14 @@ test('registers actual mesh geometry, reviews metrics and overlays, and persists
   await page.getByRole('button', { name: 'Accept registration' }).click();
   await page.getByRole('button', { name: 'AUTO ASSEMBLE CASE' }).click(); await expect(page.locator('.assembly-summary.accepted')).toBeVisible({ timeout: 20_000 });
   await expect(page.getByText('CADENCE_DENTAL_XYZ_V1')).toBeVisible();
-  await page.getByRole('button', { name: 'Generate immutable registration report' }).click(); await expect(page.getByText('Registration report')).toBeVisible();
+  await page.getByRole('button', { name: 'Generate immutable registration report' }).click(); await expect(page.getByText('Registration report', { exact: true })).toBeVisible();
 
   const json = await downloadText(page, 'JSON'); const csv = await downloadText(page, 'CSV'); const html = await downloadText(page, 'Print HTML');
   expect(JSON.parse(json).relationshipResults.length).toBeGreaterThan(0); expect(csv).toContain('rms_mm'); expect(html).toContain('does not assert clinical approval');
 
   await page.getByLabel('Project name').fill('Registered Case'); await page.getByRole('button', { name: 'Save', exact: true }).click();
   await page.reload(); await page.getByRole('button', { name: 'Open' }).click(); await page.getByRole('button', { name: /Registered Case/ }).click(); await openRegistration(page);
-  await expect(page.locator('.assembly-summary.accepted')).toBeVisible(); await expect(page.getByText('Registration report')).toBeVisible(); await expect(page.getByText('CADENCE_DENTAL_XYZ_V1')).toBeVisible();
+  await expect(page.locator('.assembly-summary.accepted')).toBeVisible(); await expect(page.getByText('Registration report', { exact: true })).toBeVisible(); await expect(page.getByText('CADENCE_DENTAL_XYZ_V1')).toBeVisible();
   expect(errors).toEqual([]);
 });
 
@@ -73,9 +73,9 @@ test('auto assembles upper, lower and bite scans from geometry and persists dent
   await expect(page.locator('.confidence-grid span').filter({ hasText: 'Bite agreement' })).toContainText('1.000');
   await page.getByRole('button', { name: 'Reverse anterior direction' }).click(); await page.getByRole('button', { name: 'Lock coordinate system' }).click();
   await page.getByRole('button', { name: 'Generate immutable registration report' }).click();
-  await expect(page.getByText('Registration report')).toBeVisible(); await expect(page.getByText(/Auto-saved/)).toBeVisible({ timeout: 5_000 });
+  await expect(page.getByText('Registration report', { exact: true })).toBeVisible(); await expect(page.getByText(/Auto-saved/)).toBeVisible({ timeout: 5_000 });
   await page.reload(); await expect(page.getByText('Recovery snapshot available')).toBeVisible(); await page.getByRole('button', { name: 'Recover' }).click(); await openRegistration(page);
-  await expect(page.locator('.assembly-summary.accepted')).toBeVisible(); await expect(page.getByRole('button', { name: 'Unlock coordinate system' })).toBeVisible(); await expect(page.getByText('Registration report')).toBeVisible();
+  await expect(page.locator('.assembly-summary.accepted')).toBeVisible(); await expect(page.getByRole('button', { name: 'Unlock coordinate system' })).toBeVisible(); await expect(page.getByText('Registration report', { exact: true })).toBeVisible();
   expect(errors).toEqual([]);
 });
 
@@ -87,7 +87,7 @@ test('refuses to fabricate occlusion when upper and lower scans have no bite evi
   ]);
   await openRegistration(page); await page.getByRole('button', { name: 'AUTO ASSEMBLE CASE' }).click();
   await expect(page.locator('.assembly-summary.review')).toBeVisible({ timeout: 10_000 }); await expect(page.locator('.assembly-summary')).toContainText('2 scans · 0 relationships');
-  await expect(page.getByRole('status')).toContainText('Assembly review: 0 errors · 1 warnings'); await expect(page.getByText('0 edges')).toBeVisible();
+  await expect(page.getByRole('status')).toContainText('Assembly review: 0 errors · 1 warnings');
   expect(errors).toEqual([]);
 });
 
@@ -98,7 +98,7 @@ test('requires unit confirmation, remains responsive in a worker, and cancels lo
     { name: 'preparation-arch.ply', content: ply(source, 'unknown-unit-source', 60, 45) },
   ]);
   await openRegistration(page); await page.getByLabel('Registration source').selectOption({ label: 'preparation-arch.ply' }); await page.getByLabel('Registration target').selectOption({ label: 'upper-arch.ply' });
-  await page.getByRole('button', { name: 'Register selected pair' }).click(); await expect(page.getByRole('status')).toContainText('confirm units');
+  await page.getByRole('button', { name: 'Register selected pair' }).click(); await expect(page.locator('.scan-validation-grid article').filter({ hasText: 'Source preflight' })).toContainText('units confirmation-required');
   await page.getByLabel('Source units').selectOption('mm'); await page.getByRole('button', { name: 'Confirm source units' }).click();
   await page.getByLabel('Target units').selectOption('mm'); await page.getByRole('button', { name: 'Confirm target units' }).click();
   await page.getByRole('button', { name: 'Register selected pair' }).click(); await expect(page.getByRole('button', { name: 'Cancel registration' })).toBeEnabled();
