@@ -18,6 +18,8 @@ export interface ViewerOverlay {
   elementCount: number;
   bounds: Bounds3;
   visible: boolean;
+  label?: string;
+  labelPosition?: Vec3;
 }
 
 export interface MeasurementVisual {
