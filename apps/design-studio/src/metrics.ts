@@ -8,6 +8,11 @@ export type MetricName =
   | 'scene.update'
   | 'renderer.frame'
   | 'project.recovery'
+  | 'project.save'
+  | 'project.reopen'
+  | 'validation.total'
+  | 'validation.overlay-generation'
+  | 'measurement.calculate'
   | 'memory.estimate';
 
 export class RuntimeMetrics {
