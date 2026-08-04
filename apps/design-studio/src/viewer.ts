@@ -1,11 +1,17 @@
 import type { ArtifactRecord, CameraState, SceneObject, Vec3 } from './core';
+import { boundsOfTriangles, intersectRayTriangle, meshTriangles, normalize3 } from './geometry';
+import type { Bounds3 } from './geometry';
+import type { MeasurementVisual, ProjectedPoint, SurfaceHit, ViewerOverlay } from './inspection-types';
 
 type Mat4 = Float32Array;
-type GpuMesh = { vao: WebGLVertexArrayObject; indexBuffer: WebGLBuffer; count: number };
+type GpuMesh = { vao: WebGLVertexArrayObject; buffers: WebGLBuffer[]; count: number };
 
 export class ViewerRuntime {
   private readonly gl: WebGL2RenderingContext;
   private readonly program: WebGLProgram;
+  private readonly overlayProgram: WebGLProgram;
+  private readonly overlayVao: WebGLVertexArrayObject;
+  private readonly overlayBuffer: WebGLBuffer;
   private readonly meshes = new Map<string, GpuMesh>();
   private objects: SceneObject[] = [];
   private artifacts = new Map<string, ArtifactRecord>();
@@ -14,6 +20,9 @@ export class ViewerRuntime {
   private resizeObserver: ResizeObserver;
   private pointer?: { x: number; y: number };
   private uniforms: Record<string, WebGLUniformLocation | null>;
+  private overlayUniforms: Record<string, WebGLUniformLocation | null>;
+  private measurementVisuals: MeasurementVisual[] = [];
+  private validationOverlays: ViewerOverlay[] = [];
 
   constructor(private readonly canvas: HTMLCanvasElement, initialCamera: CameraState, private readonly onCameraChange: (camera: CameraState) => void) {
     const gl = canvas.getContext('webgl2', { antialias: true, alpha: false, powerPreference: 'high-performance', preserveDrawingBuffer: false });
@@ -21,11 +30,21 @@ export class ViewerRuntime {
     this.gl = gl;
     this.camera = structuredClone(initialCamera);
     this.program = createProgram(gl, vertexShader, fragmentShader);
+    this.overlayProgram = createProgram(gl, overlayVertexShader, overlayFragmentShader);
+    const overlayVao = gl.createVertexArray(); const overlayBuffer = gl.createBuffer();
+    if (!overlayVao || !overlayBuffer) throw new Error('Unable to allocate inspection overlay buffers');
+    this.overlayVao = overlayVao; this.overlayBuffer = overlayBuffer;
+    gl.bindVertexArray(overlayVao); gl.bindBuffer(gl.ARRAY_BUFFER, overlayBuffer); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0); gl.bindVertexArray(null);
     this.uniforms = {
       viewProjection: gl.getUniformLocation(this.program, 'uViewProjection'),
       model: gl.getUniformLocation(this.program, 'uModel'),
       color: gl.getUniformLocation(this.program, 'uColor'),
       light: gl.getUniformLocation(this.program, 'uLightDirection'),
+    };
+    this.overlayUniforms = {
+      viewProjection: gl.getUniformLocation(this.overlayProgram, 'uViewProjection'),
+      color: gl.getUniformLocation(this.overlayProgram, 'uColor'),
+      pointSize: gl.getUniformLocation(this.overlayProgram, 'uPointSize'),
     };
     gl.enable(gl.DEPTH_TEST);
     gl.enable(gl.CULL_FACE);
@@ -42,10 +61,13 @@ export class ViewerRuntime {
     this.resizeObserver.disconnect();
     for (const mesh of this.meshes.values()) {
       this.gl.deleteVertexArray(mesh.vao);
-      this.gl.deleteBuffer(mesh.indexBuffer);
+      mesh.buffers.forEach((buffer) => this.gl.deleteBuffer(buffer));
     }
     this.meshes.clear();
+    this.gl.deleteVertexArray(this.overlayVao);
+    this.gl.deleteBuffer(this.overlayBuffer);
     this.gl.deleteProgram(this.program);
+    this.gl.deleteProgram(this.overlayProgram);
   }
 
   setScene(objects: SceneObject[], artifacts: ArtifactRecord[]): void {
@@ -59,7 +81,7 @@ export class ViewerRuntime {
     for (const [artifactId, mesh] of this.meshes) {
       if (!required.has(artifactId)) {
         this.gl.deleteVertexArray(mesh.vao);
-        this.gl.deleteBuffer(mesh.indexBuffer);
+        mesh.buffers.forEach((buffer) => this.gl.deleteBuffer(buffer));
         this.meshes.delete(artifactId);
       }
     }
@@ -70,13 +92,15 @@ export class ViewerRuntime {
   getCamera(): CameraState { return structuredClone(this.camera); }
 
   fitToScreen(): void {
-    const bounds = combinedBounds(this.objects, this.artifacts);
+    this.fitObjects();
+  }
+
+  fitObjects(objectIds?: string[]): void {
+    const requested = objectIds ? new Set(objectIds) : null;
+    const objects = this.objects.filter((object) => requested ? requested.has(object.id) : object.visible);
+    const bounds = combinedBounds(objects, this.artifacts);
     if (!bounds) return;
-    this.camera.target = midpoint(bounds.min, bounds.max);
-    const size = Math.hypot(bounds.max[0] - bounds.min[0], bounds.max[1] - bounds.min[1], bounds.max[2] - bounds.min[2]);
-    this.camera.distance = Math.max(20, size * 1.35);
-    this.camera.orthographicScale = Math.max(20, size * 0.72);
-    this.changedCamera();
+    this.focusBounds(bounds);
   }
 
   resetCamera(): void {
@@ -85,6 +109,52 @@ export class ViewerRuntime {
   }
 
   setProjection(projection: CameraState['projection']): void { this.camera.projection = projection; this.changedCamera(); }
+
+  setMeasurementVisuals(visuals: MeasurementVisual[]): void { this.measurementVisuals = structuredClone(visuals); this.requestRender(); }
+  setValidationOverlays(overlays: ViewerOverlay[]): void { this.validationOverlays = structuredClone(overlays); this.requestRender(); }
+
+  focusBounds(bounds: Bounds3): void {
+    this.camera.target = midpoint(bounds.min, bounds.max);
+    const size = Math.hypot(bounds.max[0] - bounds.min[0], bounds.max[1] - bounds.min[1], bounds.max[2] - bounds.min[2]);
+    this.camera.distance = Math.max(2, size * 1.35);
+    this.camera.orthographicScale = Math.max(1, size * 0.72);
+    this.changedCamera();
+  }
+
+  pick(clientX: number, clientY: number): SurfaceHit | null {
+    const rect = this.canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height || clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) return null;
+    const x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    const y = 1 - ((clientY - rect.top) / rect.height) * 2;
+    const inverse = invert(cameraMatrix(this.camera, rect.width / rect.height));
+    if (!inverse) return null;
+    const near = unproject(inverse, x, y, -1); const far = unproject(inverse, x, y, 1);
+    const direction = normalize3([far[0] - near[0], far[1] - near[1], far[2] - near[2]]);
+    let hit: SurfaceHit | null = null;
+    for (const object of this.objects.filter((candidate) => candidate.visible)) {
+      const artifact = this.artifacts.get(object.artifactId); if (!artifact) continue;
+      for (const triangle of meshTriangles(artifact, object)) {
+        const distance = intersectRayTriangle(near, direction, triangle);
+        if (distance === null || (hit && distance >= hit.distance)) continue;
+        hit = {
+          position: [near[0] + direction[0] * distance, near[1] + direction[1] * distance, near[2] + direction[2] * distance],
+          objectId: object.id,
+          artifactId: artifact.id,
+          triangleIndex: triangle.id,
+          distance,
+        };
+      }
+    }
+    return hit;
+  }
+
+  projectWorld(position: Vec3): ProjectedPoint {
+    const matrix = cameraMatrix(this.camera, this.canvas.width / Math.max(1, this.canvas.height));
+    const clip = transform4(matrix, [position[0], position[1], position[2], 1]);
+    if (!clip[3]) return { x: 0, y: 0, visible: false };
+    const ndcX = clip[0] / clip[3]; const ndcY = clip[1] / clip[3]; const ndcZ = clip[2] / clip[3];
+    return { x: (ndcX * 0.5 + 0.5) * this.canvas.clientWidth, y: (1 - (ndcY * 0.5 + 0.5)) * this.canvas.clientHeight, visible: clip[3] > 0 && ndcZ >= -1 && ndcZ <= 1 };
+  }
 
   private bindControls(): void {
     this.canvas.addEventListener('pointerdown', (event) => { this.pointer = { x: event.clientX, y: event.clientY }; this.canvas.setPointerCapture(event.pointerId); });
@@ -140,13 +210,30 @@ export class ViewerRuntime {
     for (const object of visible) {
       const mesh = this.meshes.get(object.artifactId);
       if (!mesh) continue;
-      const model = composeTransform(object.transform.position, object.transform.scale);
+      const model = composeTransform(object.transform.position, object.transform.scale, object.transform.rotation);
       gl.uniformMatrix4fv(this.uniforms.model, false, model);
       const [r, g, b] = object.selected ? [0.94, 0.72, 0.28] : object.material.color;
       gl.uniform4f(this.uniforms.color, r, g, b, object.material.opacity);
       gl.disable(gl.CULL_FACE);
       gl.bindVertexArray(mesh.vao);
       gl.drawElements(gl.TRIANGLES, mesh.count, gl.UNSIGNED_INT, 0);
+    }
+    gl.bindVertexArray(null);
+    this.renderInspection(viewProjection);
+  }
+
+  private renderInspection(viewProjection: Mat4): void {
+    const gl = this.gl;
+    gl.useProgram(this.overlayProgram); gl.uniformMatrix4fv(this.overlayUniforms.viewProjection, false, viewProjection); gl.bindVertexArray(this.overlayVao);
+    const draw = (positions: number[], primitive: number, color: [number, number, number, number], pointSize = 7) => {
+      if (!positions.length) return;
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.overlayBuffer); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.DYNAMIC_DRAW);
+      gl.uniform4f(this.overlayUniforms.color, ...color); gl.uniform1f(this.overlayUniforms.pointSize, pointSize); gl.drawArrays(primitive, 0, positions.length / 3);
+    };
+    for (const overlay of this.validationOverlays.filter((item) => item.visible)) draw(overlay.positions, overlay.primitive === 'lines' ? gl.LINES : overlay.primitive === 'points' ? gl.POINTS : gl.TRIANGLES, overlay.color, 8);
+    for (const visual of this.measurementVisuals.filter((item) => item.visible)) {
+      draw(visual.segments.flatMap(([a, b]) => [...a, ...b]), gl.LINES, visual.color, 8);
+      draw(visual.points.flatMap((point) => [...point]), gl.POINTS, visual.color, 9);
     }
     gl.bindVertexArray(null);
   }
@@ -160,7 +247,7 @@ function uploadMesh(gl: WebGL2RenderingContext, artifact: ArtifactRecord): GpuMe
   gl.bindBuffer(gl.ARRAY_BUFFER, normals); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(artifact.mesh.normals), gl.STATIC_DRAW); gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indices); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint32Array(artifact.mesh.indices), gl.STATIC_DRAW);
   gl.bindVertexArray(null);
-  return { vao, indexBuffer: indices, count: artifact.mesh.indices.length };
+  return { vao, buffers: [positions, normals, indices], count: artifact.mesh.indices.length };
 }
 
 function createProgram(gl: WebGL2RenderingContext, vertex: string, fragment: string): WebGLProgram {
@@ -187,6 +274,16 @@ uniform vec4 uColor;
 uniform vec3 uLightDirection;
 out vec4 outColor;
 void main(){ vec3 n=normalize(vNormal); float diffuse=max(dot(n,normalize(uLightDirection)),0.0); float rim=pow(1.0-abs(n.z),2.0); vec3 color=uColor.rgb*(0.3+0.7*diffuse)+vec3(0.1)*rim; outColor=vec4(color,uColor.a); }`;
+const overlayVertexShader = `#version 300 es
+layout(location=0) in vec3 aPosition;
+uniform mat4 uViewProjection;
+uniform float uPointSize;
+void main(){ gl_Position=uViewProjection*vec4(aPosition,1.0); gl_PointSize=uPointSize; }`;
+const overlayFragmentShader = `#version 300 es
+precision highp float;
+uniform vec4 uColor;
+out vec4 outColor;
+void main(){ outColor=uColor; }`;
 
 function cameraMatrix(camera: CameraState, aspect: number): Mat4 {
   const cp = Math.cos(camera.pitch), sp = Math.sin(camera.pitch), cy = Math.cos(camera.yaw), sy = Math.sin(camera.yaw);
@@ -203,10 +300,30 @@ function lookAt(eye: Vec3, target: Vec3, up: Vec3): Mat4 {
 function perspective(fovy:number,aspect:number,near:number,far:number):Mat4{const f=1/Math.tan(fovy/2),nf=1/(near-far);return new Float32Array([f/aspect,0,0,0,0,f,0,0,0,0,(far+near)*nf,-1,0,0,2*far*near*nf,0]);}
 function orthographic(l:number,r:number,b:number,t:number,n:number,f:number):Mat4{return new Float32Array([2/(r-l),0,0,0,0,2/(t-b),0,0,0,0,-2/(f-n),0,-(r+l)/(r-l),-(t+b)/(t-b),-(f+n)/(f-n),1]);}
 function multiply(a:Mat4,b:Mat4):Mat4{const out=new Float32Array(16);for(let c=0;c<4;c++)for(let r=0;r<4;r++)out[c*4+r]=a[r]*b[c*4]+a[4+r]*b[c*4+1]+a[8+r]*b[c*4+2]+a[12+r]*b[c*4+3];return out;}
-function composeTransform(position:Vec3,scale:Vec3):Mat4{return new Float32Array([scale[0],0,0,0,0,scale[1],0,0,0,0,scale[2],0,position[0],position[1],position[2],1]);}
+function transform4(matrix:Mat4,value:[number,number,number,number]):[number,number,number,number]{return[
+  matrix[0]*value[0]+matrix[4]*value[1]+matrix[8]*value[2]+matrix[12]*value[3],
+  matrix[1]*value[0]+matrix[5]*value[1]+matrix[9]*value[2]+matrix[13]*value[3],
+  matrix[2]*value[0]+matrix[6]*value[1]+matrix[10]*value[2]+matrix[14]*value[3],
+  matrix[3]*value[0]+matrix[7]*value[1]+matrix[11]*value[2]+matrix[15]*value[3],
+];}
+function unproject(inverse:Mat4,x:number,y:number,z:number):Vec3{const result=transform4(inverse,[x,y,z,1]);const w=result[3]||1;return[result[0]/w,result[1]/w,result[2]/w];}
+function invert(matrix:Mat4):Mat4|null{const out=new Float32Array(16);const m=matrix;
+  const b00=m[0]*m[5]-m[1]*m[4],b01=m[0]*m[6]-m[2]*m[4],b02=m[0]*m[7]-m[3]*m[4],b03=m[1]*m[6]-m[2]*m[5],b04=m[1]*m[7]-m[3]*m[5],b05=m[2]*m[7]-m[3]*m[6];
+  const b06=m[8]*m[13]-m[9]*m[12],b07=m[8]*m[14]-m[10]*m[12],b08=m[8]*m[15]-m[11]*m[12],b09=m[9]*m[14]-m[10]*m[13],b10=m[9]*m[15]-m[11]*m[13],b11=m[10]*m[15]-m[11]*m[14];
+  const determinant=b00*b11-b01*b10+b02*b09+b03*b08-b04*b07+b05*b06;if(!determinant)return null;const d=1/determinant;
+  out[0]=(m[5]*b11-m[6]*b10+m[7]*b09)*d;out[1]=(-m[1]*b11+m[2]*b10-m[3]*b09)*d;out[2]=(m[13]*b05-m[14]*b04+m[15]*b03)*d;out[3]=(-m[9]*b05+m[10]*b04-m[11]*b03)*d;
+  out[4]=(-m[4]*b11+m[6]*b08-m[7]*b07)*d;out[5]=(m[0]*b11-m[2]*b08+m[3]*b07)*d;out[6]=(-m[12]*b05+m[14]*b02-m[15]*b01)*d;out[7]=(m[8]*b05-m[10]*b02+m[11]*b01)*d;
+  out[8]=(m[4]*b10-m[5]*b08+m[7]*b06)*d;out[9]=(-m[0]*b10+m[1]*b08-m[3]*b06)*d;out[10]=(m[12]*b04-m[13]*b02+m[15]*b00)*d;out[11]=(-m[8]*b04+m[9]*b02-m[11]*b00)*d;
+  out[12]=(-m[4]*b09+m[5]*b07-m[6]*b06)*d;out[13]=(m[0]*b09-m[1]*b07+m[2]*b06)*d;out[14]=(-m[12]*b03+m[13]*b01-m[14]*b00)*d;out[15]=(m[8]*b03-m[9]*b01+m[10]*b00)*d;return out;}
+function composeTransform(position:Vec3,scale:Vec3,rotation:[number,number,number,number]):Mat4{const[x,y,z,w]=rotation,xx=x*x,yy=y*y,zz=z*z,xy=x*y,xz=x*z,yz=y*z,wx=w*x,wy=w*y,wz=w*z;return new Float32Array([
+  (1-2*(yy+zz))*scale[0],(2*(xy+wz))*scale[0],(2*(xz-wy))*scale[0],0,
+  (2*(xy-wz))*scale[1],(1-2*(xx+zz))*scale[1],(2*(yz+wx))*scale[1],0,
+  (2*(xz+wy))*scale[2],(2*(yz-wx))*scale[2],(1-2*(xx+yy))*scale[2],0,
+  position[0],position[1],position[2],1,
+]);}
 function normalize(v:Vec3):Vec3{const length=Math.hypot(...v)||1;return[v[0]/length,v[1]/length,v[2]/length];}
 function cross(a:Vec3,b:Vec3):Vec3{return[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];}
 function dot(a:Vec3,b:Vec3):number{return a[0]*b[0]+a[1]*b[1]+a[2]*b[2];}
 function midpoint(a:Vec3,b:Vec3):Vec3{return[(a[0]+b[0])/2,(a[1]+b[1])/2,(a[2]+b[2])/2];}
 function clamp(value:number,min:number,max:number):number{return Math.max(min,Math.min(max,value));}
-function combinedBounds(objects:SceneObject[],artifacts:Map<string,ArtifactRecord>):{min:Vec3;max:Vec3}|null{const min:Vec3=[Infinity,Infinity,Infinity],max:Vec3=[-Infinity,-Infinity,-Infinity];let found=false;for(const object of objects.filter(item=>item.visible)){const artifact=artifacts.get(object.artifactId);if(!artifact)continue;found=true;for(let axis=0;axis<3;axis++){min[axis]=Math.min(min[axis],artifact.mesh.bounds.min[axis]*object.transform.scale[axis]+object.transform.position[axis]);max[axis]=Math.max(max[axis],artifact.mesh.bounds.max[axis]*object.transform.scale[axis]+object.transform.position[axis]);}}return found?{min,max}:null;}
+function combinedBounds(objects:SceneObject[],artifacts:Map<string,ArtifactRecord>):{min:Vec3;max:Vec3}|null{const values=objects.map(object=>{const artifact=artifacts.get(object.artifactId);return artifact?boundsOfTriangles(meshTriangles(artifact,object)):null;}).filter((value):value is Bounds3=>Boolean(value));if(!values.length)return null;const min:Vec3=[Infinity,Infinity,Infinity],max:Vec3=[-Infinity,-Infinity,-Infinity];for(const value of values)for(let axis=0;axis<3;axis++){min[axis]=Math.min(min[axis],value.min[axis]);max[axis]=Math.max(max[axis],value.max[axis]);}return{min,max};}
