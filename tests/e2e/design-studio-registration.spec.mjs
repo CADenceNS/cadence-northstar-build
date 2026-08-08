@@ -43,6 +43,8 @@ test('registers actual mesh geometry, reviews metrics and overlays, and persists
   await page.getByRole('button', { name: 'Undo' }).click(); await expect(page.getByRole('status')).toContainText('Undid last command');
   await page.getByRole('button', { name: 'Redo' }).click(); await expect(page.getByRole('status')).toContainText('Redid command');
   await page.getByRole('button', { name: 'Lock registration' }).click();
+  await expect(page.getByRole('button', { name: 'Unlock registration' })).toBeVisible();
+  await expect(page.getByText(/Auto-saved/)).toBeVisible({ timeout: 5_000 });
   await page.getByLabel('Translation X').fill('0.2'); await page.getByRole('button', { name: 'Apply numeric transform' }).click(); await expect(page.getByRole('status')).toContainText('Locked scan');
   await page.getByRole('button', { name: 'Unlock registration' }).click();
   await page.getByRole('button', { name: 'Local re-refinement' }).click(); await expect(page.locator('.registration-result.manual-review-required')).toBeVisible({ timeout: 20_000 });
