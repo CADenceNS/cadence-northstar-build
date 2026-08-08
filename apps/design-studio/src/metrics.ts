@@ -13,6 +13,13 @@ export type MetricName =
   | 'validation.total'
   | 'validation.overlay-generation'
   | 'measurement.calculate'
+  | 'registration.preprocessing'
+  | 'registration.coarse'
+  | 'registration.fine'
+  | 'registration.assembly'
+  | 'registration.heatmap'
+  | 'registration.save'
+  | 'registration.reopen'
   | 'memory.estimate';
 
 export class RuntimeMetrics {

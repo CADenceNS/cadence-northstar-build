@@ -1,3 +1,5 @@
+import type { CaseScanSet, StoredRegistrationReport } from './registration-types';
+
 export type Vec3 = [number, number, number];
 export type Quat = [number, number, number, number];
 export type ArtifactKind =
@@ -117,17 +119,17 @@ export interface StoredValidationReport {
 }
 export interface ProjectHistoryEntry {
   id: string;
-  type: 'validation-report';
+  type: 'validation-report' | 'registration-report';
   artifactId: string;
   payloadId: string;
   payloadHash: string;
   createdAt: string;
 }
 export interface DesignProject {
-  schemaVersion: 2; id: string; name: string; createdAt: string; updatedAt: string;
+  schemaVersion: 3; id: string; name: string; createdAt: string; updatedAt: string;
   camera: CameraState; settings: ProjectSettings; scene: SceneObject[]; artifacts: ArtifactRecord[];
   savedViews: SavedView[]; measurements: MeasurementRecord[]; validationReports: StoredValidationReport[];
-  history: ProjectHistoryEntry[];
+  registrationReports: StoredRegistrationReport[]; caseScanSet: CaseScanSet; history: ProjectHistoryEntry[];
 }
 
 export const DEFAULT_CAMERA: CameraState = { projection: 'perspective', target: [0, 0, 0], distance: 140, yaw: 0.45, pitch: 0.3, orthographicScale: 90 };
@@ -137,9 +139,10 @@ const defaultMaterial = (): MaterialState => ({ color: [0.78, 0.82, 0.9, 1], opa
 
 export function createProject(name = 'Untitled Project'): DesignProject {
   const now = new Date().toISOString();
+  const id = crypto.randomUUID();
   return {
-    schemaVersion: 2,
-    id: crypto.randomUUID(),
+    schemaVersion: 3,
+    id,
     name,
     createdAt: now,
     updatedAt: now,
@@ -150,6 +153,8 @@ export function createProject(name = 'Untitled Project'): DesignProject {
     savedViews: [],
     measurements: [],
     validationReports: [],
+    registrationReports: [],
+    caseScanSet: emptyCaseScanSet(id, now),
     history: [],
   };
 }
@@ -202,7 +207,7 @@ export class ProjectStore {
   private readonly recentKey = 'cadence.design-studio.recent';
   private readonly recoveryKey = 'cadence.design-studio.recovery';
   save(project: DesignProject): DesignProject { const next = { ...structuredClone(project), updatedAt: new Date().toISOString() }; localStorage.setItem(`${this.projectPrefix}${next.id}`, JSON.stringify(next)); this.touchRecent(next); localStorage.removeItem(this.recoveryKey); return next; }
-  saveAs(project: DesignProject, name: string): DesignProject { const now = new Date().toISOString(); return this.save({ ...structuredClone(project), id: crypto.randomUUID(), name, createdAt: now, updatedAt: now }); }
+  saveAs(project: DesignProject, name: string): DesignProject { const now = new Date().toISOString(); const id = crypto.randomUUID(); return this.save({ ...structuredClone(project), id, name, createdAt: now, updatedAt: now, caseScanSet: { ...structuredClone(project.caseScanSet), projectId: id, updatedAt: now } }); }
   open(id: string): DesignProject { const raw = localStorage.getItem(`${this.projectPrefix}${id}`); if (!raw) throw new Error('Project not found'); return migrateProject(JSON.parse(raw) as unknown); }
   listRecent(): Array<Pick<DesignProject, 'id' | 'name' | 'updatedAt'>> { try { return JSON.parse(localStorage.getItem(this.recentKey) ?? '[]') as Array<Pick<DesignProject, 'id' | 'name' | 'updatedAt'>>; } catch { return []; } }
   autoSave(project: DesignProject): void { localStorage.setItem(this.recoveryKey, JSON.stringify({ ...structuredClone(project), updatedAt: new Date().toISOString() })); }
@@ -214,12 +219,12 @@ export class ProjectStore {
 export function migrateProject(input: unknown): DesignProject {
   if (!input || typeof input !== 'object') throw new Error('Invalid project document');
   const candidate = input as Partial<DesignProject> & { schemaVersion?: number };
-  if (![1, 2].includes(candidate.schemaVersion ?? 0) || !candidate.id || !candidate.name) throw new Error('Unsupported project schema');
+  if (![1, 2, 3].includes(candidate.schemaVersion ?? 0) || !candidate.id || !candidate.name) throw new Error('Unsupported project schema');
   const scene = Array.isArray(candidate.scene)
     ? candidate.scene.map((object) => ({ ...structuredClone(object), locked: object.locked ?? false }))
     : [];
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     id: candidate.id,
     name: candidate.name,
     createdAt: candidate.createdAt ?? new Date().toISOString(),
@@ -231,8 +236,14 @@ export function migrateProject(input: unknown): DesignProject {
     savedViews: Array.isArray(candidate.savedViews) ? structuredClone(candidate.savedViews) : [],
     measurements: Array.isArray(candidate.measurements) ? structuredClone(candidate.measurements) : [],
     validationReports: Array.isArray(candidate.validationReports) ? structuredClone(candidate.validationReports) : [],
+    registrationReports: Array.isArray(candidate.registrationReports) ? structuredClone(candidate.registrationReports) : [],
+    caseScanSet: candidate.caseScanSet && typeof candidate.caseScanSet === 'object' ? structuredClone(candidate.caseScanSet) : emptyCaseScanSet(candidate.id, candidate.createdAt ?? new Date().toISOString()),
     history: Array.isArray(candidate.history) ? structuredClone(candidate.history) : [],
   };
+}
+
+function emptyCaseScanSet(projectId: string, createdAt: string): CaseScanSet {
+  return { schemaVersion: 1, id: crypto.randomUUID(), projectId, caseId: null, scans: [], relationships: [], transformGraph: [], dentalCoordinates: null, assemblyStatus: 'unregistered', assemblyConfidence: null, createdAt, updatedAt: createdAt };
 }
 
 export function inferArtifactKind(name: string): ArtifactKind {
