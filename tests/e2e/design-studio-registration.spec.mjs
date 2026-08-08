@@ -21,10 +21,10 @@ test('registers actual mesh geometry, reviews metrics and overlays, and persists
   const errors = await openStudio(page); const target = archPoints(17, 13); const known = { angle: 14, translation: [6.2, -3.4, 1.7] };
   await importFiles(page, [
     { name: 'upper-arch-mm.ply', content: ply(target, 'upper', 17, 13) },
-    { name: 'preparation-arch-mm.ply', content: ply(target.map((point) => inverseZ(point, known)), 'preparation', 17, 13) },
+    { name: 'full-bite-mm.ply', content: ply(target.map((point) => inverseZ(point, known)), 'bite', 17, 13) },
   ]);
   await openRegistration(page);
-  await page.getByLabel('Registration source').selectOption({ label: 'preparation-arch-mm.ply' });
+  await page.getByLabel('Registration source').selectOption({ label: 'full-bite-mm.ply' });
   await expect(page.getByLabel('Source scan role').locator('option')).toHaveCount(19);
   await page.getByLabel('Registration target').selectOption({ label: 'upper-arch-mm.ply' });
   await expect(page.getByText('units pass', { exact: true }).first()).toBeVisible();
@@ -45,7 +45,7 @@ test('registers actual mesh geometry, reviews metrics and overlays, and persists
   await page.getByRole('button', { name: 'Lock registration' }).click();
   await page.getByLabel('Translation X').fill('0.2'); await page.getByRole('button', { name: 'Apply numeric transform' }).click(); await expect(page.getByRole('status')).toContainText('Locked scan');
   await page.getByRole('button', { name: 'Unlock registration' }).click();
-  await page.getByRole('button', { name: 'Local re-refinement' }).click(); await expect(page.locator('.registration-result.accepted')).toBeVisible({ timeout: 20_000 });
+  await page.getByRole('button', { name: 'Local re-refinement' }).click(); await expect(page.locator('.registration-result.manual-review-required')).toBeVisible({ timeout: 20_000 });
   await page.getByRole('button', { name: 'Accept registration' }).click();
   await page.getByRole('button', { name: 'AUTO ASSEMBLE CASE' }).click(); await expect(page.locator('.assembly-summary.accepted')).toBeVisible({ timeout: 20_000 });
   await expect(page.getByText('CADENCE_DENTAL_XYZ_V1')).toBeVisible();
@@ -102,7 +102,9 @@ test('requires unit confirmation, remains responsive in a worker, and cancels lo
   await page.getByLabel('Source units').selectOption('mm'); await page.getByRole('button', { name: 'Confirm source units' }).click();
   await page.getByLabel('Target units').selectOption('mm'); await page.getByRole('button', { name: 'Confirm target units' }).click();
   await page.getByRole('button', { name: 'Register selected pair' }).click(); await expect(page.getByRole('button', { name: 'Cancel registration' })).toBeEnabled();
-  await page.getByRole('button', { name: 'Fit registered pair' }).click(); await page.getByRole('button', { name: 'Cancel registration' }).click();
+  const frameDurationMs = await page.evaluate(() => new Promise((resolve) => { const startedAt = performance.now(); requestAnimationFrame(() => resolve(performance.now() - startedAt)); }));
+  expect(frameDurationMs).toBeLessThan(250);
+  await page.getByRole('button', { name: 'Cancel registration' }).click();
   await expect(page.locator('.registration-result.cancelled')).toBeVisible({ timeout: 30_000 }); await expect(page.getByLabel('Registration confidence measurements')).toContainText('not available');
   expect(errors).toEqual([]);
 });

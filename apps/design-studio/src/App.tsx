@@ -54,6 +54,7 @@ import { RegistrationWorkerClient } from './registration-client';
 import { buildRegistrationOverlays, coordinateOverlays } from './registration-overlays';
 import { composeRigid, identityRigid, invertRigid } from './registration-math';
 import { createRegistrationReport, registrationReportToCsv, registrationReportToHtml, registrationReportToJson } from './registration-reports';
+import { enforceRegistrationSupport, registrationSupportDecision } from './registration-support';
 import { synchronizeCaseScanSet, updateScan } from './scan-set';
 import { SCAN_ROLES, type CaseScanRecord, type CaseScanSet, type PairwiseRegistrationResult, type RegistrationProgress, type RigidTransform, type ScanRole, type StoredRegistrationReport } from './registration-types';
 import { validateScanForRegistration } from './scan-validation';
@@ -446,7 +447,8 @@ export function App() {
     if (!sourceValidation.canRegisterAutomatically) throw new Error(sourceValidation.issues.filter((issue) => issue.status === 'fail' || issue.status === 'confirmation-required').map((issue) => `${source.assignedRole}: ${issue.explanation}`).join(' '));
     if (!targetValidation.canRegisterAutomatically) throw new Error(targetValidation.issues.filter((issue) => issue.status === 'fail' || issue.status === 'confirmation-required').map((issue) => `${target.assignedRole}: ${issue.explanation}`).join(' '));
     const requestId = crypto.randomUUID(); setActiveRegistrationId(requestId); setRegistrationProgress({ requestId, stage: 'geometry-preparation', progress: 0, message: 'Queued' });
-    const result = await registrationClient.register({ requestId, source: { artifact: artifactForScan(source), role: source.assignedRole }, target: { artifact: artifactForScan(target), role: target.assignedRole }, options: initial ? { initialTransform: initial } : undefined }, setRegistrationProgress);
+    const rawResult = await registrationClient.register({ requestId, source: { artifact: artifactForScan(source), role: source.assignedRole }, target: { artifact: artifactForScan(target), role: target.assignedRole }, options: initial ? { initialTransform: initial } : undefined }, setRegistrationProgress);
+    const result = enforceRegistrationSupport(rawResult, registrationSupportDecision(source.assignedRole, target.assignedRole, purpose));
     setActiveRegistrationId(null); setRegistrationProgress(null);
     for (const timing of result.timings) runtimeMetrics.record({ name: `registration.${timing.stage}`, durationMs: timing.durationMs, startedAt: result.startedAt, metadata: { source: source.id, target: target.id } });
     return result;
@@ -474,7 +476,7 @@ export function App() {
     if (!caseScanSet.scans.length) { setStatus('Import and classify scans before assembly.'); return; }
     setAssembling(true); setStatus('Auto Assemble Case validating scan roles and units…');
     try {
-      const result = await runtimeMetrics.measureAsync('registration.assembly', () => autoAssembleCase(caseScanSet, artifactManager.list(), (source, target, purpose) => executePair(source, target, purpose), (progress) => setStatus(`AUTO ASSEMBLE CASE ${progress.completed}/${progress.total}: ${progress.message}`)), { scans: caseScanSet.scans.length });
+      const result = await runtimeMetrics.measureAsync('registration.assembly', () => autoAssembleCase(caseScanSet, artifactManager.list(), (source, target, purpose) => executePair(source, target, purpose, composeRelative(source.registrationTransform, target.registrationTransform)), (progress) => setStatus(`AUTO ASSEMBLE CASE ${progress.completed}/${progress.total}: ${progress.message}`)), { scans: caseScanSet.scans.length });
       await applyRegistrationState(result.scanSet, 'Auto Assemble Case', 'registration.case.auto-assemble');
       const last = result.results.at(-1) ?? null; setRegistrationResult(last);
       if (last) { const source = result.scanSet.scans.find((scan) => scan.artifactId === last.sourceArtifactId); const target = result.scanSet.scans.find((scan) => scan.artifactId === last.targetArtifactId); if (source && target) refreshRegistrationOverlays(last, source, target); }

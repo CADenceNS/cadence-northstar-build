@@ -21,10 +21,13 @@ describe('case scan assembly and dental coordinate normalization', () => {
     const setup = assemblyFixture(1); const artifactsBefore = structuredClone(setup.artifacts);
     const progress: number[] = []; const assembled = await autoAssembleCase(setup.scanSet, setup.artifacts, setup.execute, (value) => progress.push(value.completed));
     expect(assembled.errors).toHaveLength(0); expect(assembled.results).toHaveLength(2); expect(assembled.scanSet.assemblyStatus).toBe('accepted');
+    const upper = assembled.scanSet.scans.find((scan) => scan.assignedRole === 'upper-arch')!;
     const lower = assembled.scanSet.scans.find((scan) => scan.assignedRole === 'lower-arch')!;
+    const bite = assembled.scanSet.scans.find((scan) => scan.assignedRole === 'buccal-bite-left')!;
     const difference = transformDifference(lower.registrationTransform, setup.lowerCaseTransform);
     expect(difference.translationError <= 0.05).toBe(true); expect(difference.rotationErrorDegrees <= 0.1).toBe(true);
     expect(assembled.scanSet.transformGraph.some((edge) => edge.sourceScanId === lower.id)).toBe(true);
+    expect(assembled.scanSet.transformGraph.some((edge) => edge.sourceScanId === bite.id && edge.targetScanId === upper.id)).toBe(true);
     expect(assembled.scanSet.dentalCoordinates?.convention).toBe('CADENCE_DENTAL_XYZ_V1');
     expect(progress.at(-1)).toBe(2); expect(setup.artifacts).toEqual(artifactsBefore);
   });

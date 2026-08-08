@@ -32,6 +32,18 @@ describe('registration preflight and scan-set ownership', () => {
     expect(validation.issues.find((issue) => issue.id === 'duplicate-scan')?.status).toBe('fail');
   });
 
+  it('rejects a millimeter arch at one-tenth plausible dental scale', () => {
+    const artifact = archArtifact('upper-arch', 15, 11);
+    artifact.mesh.bounds.min = artifact.mesh.bounds.min.map((value) => value * 0.1) as [number, number, number];
+    artifact.mesh.bounds.max = artifact.mesh.bounds.max.map((value) => value * 0.1) as [number, number, number];
+    const scene = new SceneManager(); const object = scene.addFromArtifact(artifact);
+    const scan = createCaseScanSet('project', scene.list(), [artifact]).scans[0];
+    const validation = validateScanForRegistration(artifact, object, scan, [artifact]);
+    expect(scan.assignedRole).toBe('upper-arch');
+    expect(validation.issues.find((issue) => issue.id === 'invalid-scale')?.status).toBe('fail');
+    expect(validation.canRegisterAutomatically).toBe(false);
+  });
+
   it('reports orientation uncertainty without silently changing source coordinates', () => {
     const artifact = archArtifact('raw-orientation', 15, 11); artifact.orientation = 'source'; const before = structuredClone(artifact.mesh);
     const scene = new SceneManager(); const object = scene.addFromArtifact(artifact); const scan = createCaseScanSet('project', scene.list(), [artifact]).scans[0];

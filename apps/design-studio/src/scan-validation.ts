@@ -24,8 +24,9 @@ export function validateScanForRegistration(
   issues.push(issue('units', unitsCertain ? 'pass' : 'confirmation-required', artifact.units, 'explicit confirmation', unitsCertain ? `Source units confirmed as ${artifact.units}.` : 'Mesh files do not carry reliable units; confirm units before automatic registration.'));
   const scale = unitScaleToMillimeters(artifact.units);
   const maximumDimensionMm = Math.max(...dimensions) * scale;
-  const validScale = Number.isFinite(maximumDimensionMm) && maximumDimensionMm >= MIN_DENTAL_DIMENSION_MM && maximumDimensionMm <= MAX_DENTAL_DIMENSION_MM;
-  issues.push(issue('invalid-scale', unitsCertain && validScale ? 'pass' : unitsCertain ? 'fail' : 'confirmation-required', maximumDimensionMm, `${MIN_DENTAL_DIMENSION_MM}-${MAX_DENTAL_DIMENSION_MM} mm`, unitsCertain ? validScale ? 'Confirmed scale is plausible for supported dental and facial scan geometry.' : 'Confirmed scale is outside the supported dental geometry envelope.' : 'Scale cannot be validated until source units are confirmed.'));
+  const roleMinimumDimensionMm = minimumDimensionForRole(scan.assignedRole);
+  const validScale = Number.isFinite(maximumDimensionMm) && maximumDimensionMm >= roleMinimumDimensionMm && maximumDimensionMm <= MAX_DENTAL_DIMENSION_MM;
+  issues.push(issue('invalid-scale', unitsCertain && validScale ? 'pass' : unitsCertain ? 'fail' : 'confirmation-required', maximumDimensionMm, `${roleMinimumDimensionMm}-${MAX_DENTAL_DIMENSION_MM} mm for ${scan.assignedRole}`, unitsCertain ? validScale ? 'Confirmed scale is plausible for the assigned scan role.' : 'Confirmed scale is outside the supported envelope for the assigned scan role.' : 'Scale cannot be validated until source units are confirmed.'));
 
   const transformValid = [...object.transform.position, ...object.transform.rotation, ...object.transform.scale].every(Number.isFinite)
     && object.transform.scale.every((value) => value > 0)
@@ -62,6 +63,12 @@ export function boundsDimensions(artifact: ArtifactRecord): Vec3 {
 }
 
 export function sourceBoundsDiagonal(artifact: ArtifactRecord): number { return distance3(artifact.mesh.bounds.min, artifact.mesh.bounds.max); }
+
+function minimumDimensionForRole(role: CaseScanRecord['assignedRole']): number {
+  if (['upper-arch', 'lower-arch', 'pre-operative-upper', 'pre-operative-lower'].includes(role)) return 20;
+  if (['preparation-arch', 'implant-arch'].includes(role)) return 10;
+  return MIN_DENTAL_DIMENSION_MM;
+}
 
 function issue(id: string, status: ScanValidationIssue['status'], measuredValue: ScanValidationIssue['measuredValue'], threshold: ScanValidationIssue['threshold'], explanation: string): ScanValidationIssue {
   return { id, status, measuredValue, threshold, explanation };

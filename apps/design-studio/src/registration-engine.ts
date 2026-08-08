@@ -27,7 +27,7 @@ import type {
 import { unitScaleToMillimeters, validateOverlapPotential } from './scan-validation';
 import { artifactGeometry, deterministicSample, geometryDiagonal, KdTree, type GeometryPoint } from './spatial-index';
 
-export const REGISTRATION_ENGINE_VERSION = '1.0.0';
+export const REGISTRATION_ENGINE_VERSION = '1.0.1';
 
 const DEFAULT_OPTIONS: RegistrationOptions = {
   maxIterations: 54,
@@ -57,8 +57,24 @@ interface RefinedCandidate {
   transform: RigidTransform;
   correspondences: CorrespondenceWork[];
   rms: number;
+  overlap: number;
+  fitness: number;
+  precisionSupported: boolean;
   iterations: number;
   convergence: RegistrationMetrics['convergenceState'];
+}
+
+interface CoarseCandidate extends RegistrationCandidate {
+  fitness: number;
+  precisionSupported: boolean;
+}
+
+interface CorrespondenceEvaluation {
+  correspondences: CorrespondenceWork[];
+  rms: number;
+  overlap: number;
+  fitness: number;
+  precisionSupported: boolean;
 }
 
 export async function registerPair(request: RegistrationRequest, hooks: RegistrationHooks = {}): Promise<PairwiseRegistrationResult> {
@@ -82,7 +98,7 @@ export async function registerPair(request: RegistrationRequest, hooks: Registra
     if (overlap.status === 'fail') throw new RegistrationFailure(overlap.explanation);
 
     const targetTree = new KdTree(sampled.target);
-    const coarse = await stage('coarse-alignment', 0.18, 'Evaluating deterministic coarse alignment candidates', () => coarseCandidates(sampled.source, sampled.target, targetTree, request, options));
+    const coarse = await stage('coarse-alignment', 0.18, 'Evaluating deterministic coarse alignment candidates', () => coarseCandidates(sampled.source, sampled.target, prepared.source, prepared.target, targetTree, request, options));
     if (!coarse.length) throw new RegistrationFailure('No rigid coarse-alignment candidate could be established.');
 
     const refined: RefinedCandidate[] = [];
@@ -91,10 +107,10 @@ export async function registerPair(request: RegistrationRequest, hooks: Registra
       const result = await stage('multi-resolution-refinement', 0.25 + candidateIndex * 0.1, `Refining candidate ${candidateIndex + 1}`, () => refineCandidate(sampled.source, sampled.target, candidate.transform, options, hooks, request.requestId, candidateIndex));
       refined.push(result);
     }
-    refined.sort((a, b) => a.rms - b.rms);
+    refined.sort(compareRefinedCandidates);
     let best = refined[0];
     if (options.usePointToPlane && best.correspondences.some((item) => item.target.normal)) {
-      best = await stage('fine-surface-registration', 0.72, 'Applying point-to-plane surface refinement', () => pointToPlaneRefine(best, sampled.target, options, hooks));
+      best = await stage('fine-surface-registration', 0.72, 'Applying point-to-plane surface refinement', () => pointToPlaneRefine(best, sampled.source, sampled.target, options, hooks));
     } else warnings.push('Point-to-plane refinement was not executed because valid target normals were unavailable.');
 
     const verified = await stage('bidirectional-verification', 0.84, 'Verifying forward and reverse surface residuals', () => verify(best, sampled.source, sampled.target, options));
@@ -168,10 +184,12 @@ function prepare(sourceArtifact: ArtifactRecord, targetArtifact: ArtifactRecord)
   return { source, target };
 }
 
-function coarseCandidates(source: GeometryPoint[], target: GeometryPoint[], tree: KdTree, request: RegistrationRequest, options: RegistrationOptions): RegistrationCandidate[] {
+function coarseCandidates(source: GeometryPoint[], target: GeometryPoint[], fullSource: GeometryPoint[], fullTarget: GeometryPoint[], tree: KdTree, request: RegistrationRequest, options: RegistrationOptions): CoarseCandidate[] {
   const sourcePoints = source.map((item) => item.position); const targetPoints = target.map((item) => item.position);
   const candidates: RigidTransform[] = [];
   if (options.initialTransform) candidates.push(options.initialTransform);
+  candidates.push(identityRigid());
+  candidates.push(...topologyFeatureCandidates(fullSource, fullTarget, request.source.artifact, request.target.artifact));
   candidates.push(...localFeatureCandidates(source, target, tree, options));
   candidates.push(...pcaRigidCandidates(sourcePoints, targetPoints));
   const sourceCenter = mean(sourcePoints); const targetCenter = mean(targetPoints);
@@ -184,15 +202,16 @@ function coarseCandidates(source: GeometryPoint[], target: GeometryPoint[], tree
   const diagonal = Math.max(geometryDiagonal(target), 1);
   return [...unique.values()].map((transform, index) => {
     const work = searchCorrespondences(source, tree, transform, Math.max(1, diagonal * 0.3));
-    const selected = rejectOutliers(work, options.outlierFraction);
-    return { id: `coarse-${index}`, transform, rmsResidual: rms(selected), overlapPercent: selected.length / source.length * 100, rank: 0, ambiguous: false };
-  }).filter((candidate) => Number.isFinite(candidate.rmsResidual)).sort((a, b) => a.rmsResidual - b.rmsResidual).map((candidate, rank) => ({ ...candidate, rank: rank + 1 }));
+    const evaluated = evaluateCorrespondences(work, source.length, diagonal, options);
+    return { id: `coarse-${index}`, transform, rmsResidual: evaluated.rms, overlapPercent: evaluated.overlap * 100, rank: 0, ambiguous: false, fitness: evaluated.fitness, precisionSupported: evaluated.precisionSupported };
+  }).filter((candidate) => Number.isFinite(candidate.rmsResidual)).sort(compareCoarseCandidates).map((candidate, rank) => ({ ...candidate, rank: rank + 1 }));
 }
 
 async function refineCandidate(source: GeometryPoint[], target: GeometryPoint[], initial: RigidTransform, options: RegistrationOptions, hooks: RegistrationHooks, requestId: string, candidateIndex: number): Promise<RefinedCandidate> {
   let transform = initial; let previousRms = Infinity; let convergence: RegistrationMetrics['convergenceState'] = 'iteration-limit'; let correspondences: CorrespondenceWork[] = [];
   const levels = [Math.min(256, source.length), Math.min(1024, source.length), source.length].filter((value, index, values) => value >= 6 && values.indexOf(value) === index);
   let iteration = 0; const targetTree = new KdTree(target); const diagonal = Math.max(geometryDiagonal(target), 1);
+  const initialEvaluation = evaluateCorrespondences(searchCorrespondences(source, targetTree, initial, Math.max(1, diagonal * 0.3)), source.length, diagonal, options);
   const perLevel = Math.max(4, Math.floor(options.maxIterations / levels.length));
   for (const size of levels) {
     const level = deterministicSample(source, size);
@@ -200,7 +219,7 @@ async function refineCandidate(source: GeometryPoint[], target: GeometryPoint[],
       ensureActive(hooks); iteration += 1;
       const maximum = Math.max(0.5, diagonal * Math.max(0.025, 0.25 * (1 - iteration / (options.maxIterations + 4))));
       const searched = searchCorrespondences(level, targetTree, transform, maximum);
-      correspondences = rejectOutliers(searched, options.outlierFraction);
+      correspondences = evaluateCorrespondences(searched, level.length, diagonal, options).correspondences;
       if (correspondences.length < 6) { convergence = 'insufficient-correspondence'; break; }
       const delta = bestFitRigid(correspondences.map((item) => item.source), correspondences.map((item) => item.target.position));
       transform = composeRigid(delta, transform);
@@ -212,15 +231,20 @@ async function refineCandidate(source: GeometryPoint[], target: GeometryPoint[],
     }
     if (convergence === 'insufficient-correspondence') break;
   }
-  correspondences = rejectOutliers(searchCorrespondences(source, targetTree, transform, Math.max(0.5, diagonal * 0.08)), options.outlierFraction);
-  return { transform, correspondences, rms: rms(correspondences), iterations: iteration, convergence };
+  const refinedEvaluation = evaluateCorrespondences(searchCorrespondences(source, targetTree, transform, Math.max(0.5, diagonal * 0.08)), source.length, diagonal, options);
+  const refined = candidateFromEvaluation(transform, refinedEvaluation, iteration, convergence);
+  const seed = candidateFromEvaluation(initial, initialEvaluation, iteration, initialEvaluation.precisionSupported ? 'converged' : convergence);
+  const refinedImprovement = (seed.fitness - refined.fitness) / Math.max(seed.fitness, 1e-9);
+  return seed.precisionSupported && refinedImprovement < 0.12
+    ? seed
+    : compareRefinedCandidates(seed, refined) <= 0 ? seed : refined;
 }
 
-async function pointToPlaneRefine(candidate: RefinedCandidate, target: GeometryPoint[], options: RegistrationOptions, hooks: RegistrationHooks): Promise<RefinedCandidate> {
+async function pointToPlaneRefine(candidate: RefinedCandidate, source: GeometryPoint[], target: GeometryPoint[], options: RegistrationOptions, hooks: RegistrationHooks): Promise<RefinedCandidate> {
   let transform = candidate.transform; let correspondences = candidate.correspondences; const tree = new KdTree(target); const diagonal = Math.max(geometryDiagonal(target), 1);
   let iterations = candidate.iterations; let previous = candidate.rms;
   for (let index = 0; index < Math.min(12, options.maxIterations - candidate.iterations); index += 1) {
-    ensureActive(hooks); correspondences = rejectOutliers(searchCorrespondences(correspondences.map((item) => item.sourceOriginal), tree, transform, Math.max(0.4, diagonal * 0.05)).filter((item) => item.target.normal), options.outlierFraction);
+    ensureActive(hooks); correspondences = evaluateCorrespondences(searchCorrespondences(source, tree, transform, Math.max(0.4, diagonal * 0.05)).filter((item) => item.target.normal), source.length, diagonal, options).correspondences;
     if (correspondences.length < 6) break;
     const system = normalEquations(correspondences); const solution = solveLinear(system.matrix, system.vector);
     if (!solution) break;
@@ -230,22 +254,24 @@ async function pointToPlaneRefine(candidate: RefinedCandidate, target: GeometryP
     const current = rms(correspondences); if (Math.abs(previous - current) <= options.convergenceTolerance) break; previous = current;
     if (hooks.yieldControl) await hooks.yieldControl();
   }
-  correspondences = rejectOutliers(searchCorrespondences(candidate.correspondences.map((item) => item.sourceOriginal), tree, transform, Math.max(0.5, diagonal * 0.08)), options.outlierFraction);
-  const refinedRms = rms(correspondences);
+  const evaluation = evaluateCorrespondences(searchCorrespondences(source, tree, transform, Math.max(0.5, diagonal * 0.08)), source.length, diagonal, options);
+  const refined = candidateFromEvaluation(transform, evaluation, iterations, candidate.convergence);
   // Surface refinement is optional and may be ill-conditioned on nearly planar
   // patches. Never replace the converged point-to-point result with a transform
   // that increases its accepted surface residual.
-  return Number.isFinite(refinedRms) && refinedRms < candidate.rms
-    ? { transform, correspondences, rms: refinedRms, iterations, convergence: candidate.convergence }
-    : candidate;
+  return compareRefinedCandidates(refined, candidate) < 0 ? refined : candidate;
 }
 
 function verify(candidate: RefinedCandidate, source: GeometryPoint[], target: GeometryPoint[], options: RegistrationOptions): { metrics: RegistrationMetrics; correspondences: RegistrationCorrespondence[] } {
   const transform = candidate.transform;
   const targetTree = new KdTree(target); const sourceTree = new KdTree(source.map((point) => ({ ...point, position: applyRigid(transform, point.position), normal: point.normal ? applyRigidDirection(transform, point.normal) : null })));
   const diagonal = Math.max(geometryDiagonal(target), 1); const maximum = Math.max(0.5, diagonal * 0.08);
-  const forwardAll = searchCorrespondences(source, targetTree, transform, maximum); const forward = rejectOutliers(forwardAll, options.outlierFraction);
-  const reverseDistances = target.map((point) => sourceTree.nearest(point.position, maximum)?.distance).filter((value): value is number => value !== undefined);
+  const forwardAll = searchCorrespondences(source, targetTree, transform, maximum);
+  const forwardEvaluation = evaluateCorrespondences(forwardAll, source.length, diagonal, options);
+  if (!forwardEvaluation.precisionSupported) throw new RegistrationFailure(`Registration did not establish the required ${(options.overlapThreshold * 100).toFixed(1)}% precision overlap.`);
+  const forward = forwardEvaluation.correspondences;
+  const precisionLimit = precisionCorrespondenceRadius(diagonal);
+  const reverseDistances = target.map((point) => sourceTree.nearest(point.position, precisionLimit)?.distance).filter((value): value is number => value !== undefined);
   if (forward.length < 6) throw new RegistrationFailure('Fine registration produced insufficient accepted correspondences.');
   const distances = forward.map((item) => item.distance).sort((a, b) => a - b); const acceptedIds = new Set(forward.map((item) => item.sourceOriginal.id));
   const normalValues = forward.map((item) => item.sourceNormal && item.target.normal ? Math.max(-1, Math.min(1, dot3(item.sourceNormal, item.target.normal))) : null).filter((value): value is number => value !== null);
@@ -306,6 +332,45 @@ function rejectOutliers(values: CorrespondenceWork[], fraction: number): Corresp
   return sorted.slice(0, trimCount);
 }
 
+function evaluateCorrespondences(values: CorrespondenceWork[], sourceCount: number, diagonal: number, options: RegistrationOptions): CorrespondenceEvaluation {
+  const precisionLimit = precisionCorrespondenceRadius(diagonal);
+  const precise = values.filter((item) => item.distance <= precisionLimit);
+  const minimumCount = Math.max(6, Math.ceil(sourceCount * options.overlapThreshold));
+  const precisionSupported = precise.length >= minimumCount;
+  const correspondences = rejectOutliers(precisionSupported ? precise : values, options.outlierFraction);
+  const residual = rms(correspondences);
+  const overlap = correspondences.length / Math.max(1, sourceCount);
+  const fitness = precisionSupported
+    ? residual / Math.max(overlap, options.overlapThreshold)
+    : 1_000_000 + residual / Math.max(overlap, 1e-9);
+  return { correspondences, rms: residual, overlap, fitness, precisionSupported };
+}
+
+function precisionCorrespondenceRadius(diagonal: number): number {
+  return Math.max(0.5, Math.min(1.5, diagonal * 0.006));
+}
+
+function candidateFromEvaluation(transform: RigidTransform, evaluation: CorrespondenceEvaluation, iterations: number, convergence: RegistrationMetrics['convergenceState']): RefinedCandidate {
+  return {
+    transform,
+    correspondences: evaluation.correspondences,
+    rms: evaluation.rms,
+    overlap: evaluation.overlap,
+    fitness: evaluation.fitness,
+    precisionSupported: evaluation.precisionSupported,
+    iterations,
+    convergence,
+  };
+}
+
+function compareCoarseCandidates(first: CoarseCandidate, second: CoarseCandidate): number {
+  return first.fitness - second.fitness || second.overlapPercent - first.overlapPercent || first.rmsResidual - second.rmsResidual;
+}
+
+function compareRefinedCandidates(first: RefinedCandidate, second: RefinedCandidate): number {
+  return first.fitness - second.fitness || second.overlap - first.overlap || first.rms - second.rms;
+}
+
 function normalEquations(values: CorrespondenceWork[]): { matrix: number[][]; vector: number[] } {
   const matrix = Array.from({ length: 6 }, () => new Array<number>(6).fill(0)); const vector = new Array<number>(6).fill(0);
   for (const item of values) {
@@ -328,14 +393,14 @@ function solveLinear(input: number[][], rhs: number[]): number[] | null {
   return matrix.map((row) => row[size]);
 }
 
-function buildCandidateResults(refined: RefinedCandidate[], bestRms: number, sourceCount: number): RegistrationCandidate[] {
+function buildCandidateResults(refined: RefinedCandidate[], _bestRms: number, sourceCount: number): RegistrationCandidate[] {
   return refined.slice(0, 3).map((candidate, index) => ({
     id: `candidate-${index + 1}`,
     transform: candidate.transform,
     rmsResidual: candidate.rms,
-    overlapPercent: candidate.correspondences.length / Math.max(1, sourceCount) * 100,
+    overlapPercent: candidate.overlap * 100,
     rank: index + 1,
-    ambiguous: index > 0 && candidate.rms <= bestRms * 1.05,
+    ambiguous: index > 0 && candidate.fitness <= refined[0].fitness * 1.05,
   }));
 }
 
@@ -397,6 +462,70 @@ function localFeatureCandidates(source: GeometryPoint[], target: GeometryPoint[]
 
 interface LocalFeature { point: GeometryPoint; signature: number[] }
 
+/**
+ * Creates rigid coarse candidates from triangle edge-length signatures. Source
+ * topology is immutable, and exact triangle subsets survive deterministic
+ * cropping and decimation even when vertex identifiers and centroids change.
+ */
+function topologyFeatureCandidates(source: GeometryPoint[], target: GeometryPoint[], sourceArtifact: ArtifactRecord, targetArtifact: ArtifactRecord): RigidTransform[] {
+  const sourceIndices = (sourceArtifact.mesh.sourceTopology ?? { indices: sourceArtifact.mesh.indices }).indices;
+  const targetIndices = (targetArtifact.mesh.sourceTopology ?? { indices: targetArtifact.mesh.indices }).indices;
+  const targetFeatures = new Map<string, Array<[Vec3, Vec3, Vec3]>>();
+  for (const offset of sampledTriangleOffsets(targetIndices.length, 4_096)) {
+    const triangle = triangleAt(target, targetIndices, offset); if (!triangle) continue;
+    const key = triangleSignature(triangle); const values = targetFeatures.get(key) ?? [];
+    if (values.length < 8) values.push(triangle); targetFeatures.set(key, values);
+  }
+  const candidates: RigidTransform[] = [];
+  for (const offset of sampledTriangleOffsets(sourceIndices.length, 4_096)) {
+    const sourceTriangle = triangleAt(source, sourceIndices, offset); if (!sourceTriangle) continue;
+    const targets = targetFeatures.get(triangleSignature(sourceTriangle)); if (!targets) continue;
+    for (const targetTriangle of targets) {
+      const candidate = triangleRigidCandidate(sourceTriangle, targetTriangle);
+      if (candidate) candidates.push(candidate);
+      if (candidates.length >= 24) return candidates;
+    }
+  }
+  return candidates;
+}
+
+function sampledTriangleOffsets(indexCount: number, limit: number): number[] {
+  const triangleCount = Math.floor(indexCount / 3); const stride = Math.max(1, Math.ceil(triangleCount / limit)); const offsets: number[] = [];
+  for (let triangle = 0; triangle < triangleCount && offsets.length < limit; triangle += stride) offsets.push(triangle * 3);
+  return offsets;
+}
+
+function triangleAt(points: GeometryPoint[], indices: number[], offset: number): [Vec3, Vec3, Vec3] | null {
+  const ids = [indices[offset], indices[offset + 1], indices[offset + 2]];
+  if (ids.some((id) => !Number.isInteger(id) || id < 0 || id >= points.length)) return null;
+  const triangle = ids.map((id) => points[id].position) as [Vec3, Vec3, Vec3];
+  return triangleArea(...triangle) > 1e-8 ? triangle : null;
+}
+
+function triangleSignature(triangle: [Vec3, Vec3, Vec3]): string {
+  const lengths = [length3(subtract3(triangle[0], triangle[1])), length3(subtract3(triangle[1], triangle[2])), length3(subtract3(triangle[2], triangle[0]))].sort((a, b) => a - b);
+  return lengths.map((value) => value.toFixed(5)).join(':');
+}
+
+function triangleRigidCandidate(source: [Vec3, Vec3, Vec3], target: [Vec3, Vec3, Vec3]): RigidTransform | null {
+  // Only cyclic permutations preserve triangle winding. Reversed permutations
+  // can fit one isolated triangle through a 180° rotation while inverting the
+  // surrounding surface orientation and producing a false coarse candidate.
+  const permutations: Array<[number, number, number]> = [[0, 1, 2], [1, 2, 0], [2, 0, 1]];
+  let best: { transform: RigidTransform; residual: number } | null = null;
+  for (const permutation of permutations) {
+    const ordered = permutation.map((index) => target[index]) as [Vec3, Vec3, Vec3];
+    try {
+      const transform = bestFitRigid(source, ordered);
+      const residual = Math.max(...source.map((point, index) => length3(subtract3(applyRigid(transform, point), ordered[index]))));
+      if (!best || residual < best.residual) best = { transform, residual };
+    } catch {
+      // Degenerate permutations do not establish a rigid candidate.
+    }
+  }
+  return best && best.residual <= 0.01 ? best.transform : null;
+}
+
 function localFeatures(points: GeometryPoint[]): LocalFeature[] {
   return points.map((point) => {
     const distances = points.filter((candidate) => candidate.id !== point.id).map((candidate) => length3(subtract3(candidate.position, point.position))).sort((a, b) => a - b).slice(0, 12);
@@ -414,7 +543,9 @@ function triangleArea(a: Vec3, b: Vec3, c: Vec3): number { return length3(cross(
 
 function candidateAmbiguity(candidates: RegistrationCandidate[]): number {
   if (candidates.length < 2 || !Number.isFinite(candidates[1].rmsResidual)) return 0;
-  const difference = (candidates[1].rmsResidual - candidates[0].rmsResidual) / Math.max(candidates[0].rmsResidual, 1e-6);
+  const fitness = (candidate: RegistrationCandidate) => candidate.rmsResidual / Math.max(candidate.overlapPercent / 100, 1e-6);
+  const firstFitness = fitness(candidates[0]); const secondFitness = fitness(candidates[1]);
+  const difference = (secondFitness - firstFitness) / Math.max(firstFitness, 1e-6);
   const transformDelta = transformDifference(candidates[1].transform, candidates[0].transform);
   return difference <= 0.05 && (transformDelta.rotationErrorDegrees > 2 || transformDelta.translationError > 0.5) ? Math.max(0, 1 - difference / 0.05) : 0;
 }

@@ -1,0 +1,16 @@
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+playwright-report/
+test-results/
+*.tsbuildinfo
+
+# Restricted certification inputs and generated private evidence must remain
+# outside the public repository. These entries are defense in depth only; the
+# private harness also rejects an in-repository output path at runtime.
+.cadence-private-corpus/
+private-corpus/
+private-evidence/
+apps/design-studio/private-corpus/
+apps/design-studio/private-evidence/

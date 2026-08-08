@@ -1,6 +1,7 @@
 import type { ArtifactRecord } from './core';
 import { estimateDentalCoordinates } from './dental-coordinates';
 import { averageRigid, composeRigid, identityRigid, invertRigid, transformDifference } from './registration-math';
+import { enforceRegistrationSupport, registrationSupportDecision } from './registration-support';
 import type {
   CaseScanRecord,
   CaseScanSet,
@@ -32,7 +33,9 @@ export async function autoAssembleCase(
   const planned = relationshipPlan(scanSet, upper, lower, bites); let completed = 0;
   const run = async (source: CaseScanRecord, target: CaseScanRecord, purpose: RegistrationRelationship['purpose']) => {
     onProgress?.({ completed, total: planned.length, message: `Registering ${source.assignedRole} to ${target.assignedRole}` });
-    const result = await execute(source, target, purpose); results.push(result); completed += 1;
+    const rawResult = await execute(source, target, purpose);
+    const result = enforceRegistrationSupport(rawResult, registrationSupportDecision(source.assignedRole, target.assignedRole, purpose));
+    results.push(result); completed += 1;
     scanSet = appendRelationship(scanSet, source, target, purpose, result);
     onProgress?.({ completed, total: planned.length, message: `${source.assignedRole} → ${target.assignedRole}: ${result.outcome}` });
     return result;
@@ -49,6 +52,7 @@ export async function autoAssembleCase(
         if (accepted(toUpper) && accepted(toLower) && toUpper.transform && toLower.transform) {
           const lowerToUpper = composeRigid(toUpper.transform, invertRigid(toLower.transform)); lowerCandidates.push({ bite, transform: lowerToUpper, upper: toUpper, lower: toLower });
           scanSet = setScanTransform(scanSet, bite.id, toUpper.transform, statusOf(toUpper), toUpper, 'Bite registered into the upper-arch case frame.');
+          scanSet.transformGraph.push(graphEdge(bite.id, upper.id, `${bite.id}:${upper.id}:bite-upper`, toUpper.transform, statusOf(toUpper)));
         }
       }
       if (!lowerCandidates.length) {

@@ -11,6 +11,7 @@ export type RegistrationFixtureName =
   | 'partial-overlap'
   | 'surface-noise'
   | 'outlier-contamination'
+  | 'compound-partial-overlap'
   | 'missing-regions'
   | 'mirrored-scan'
   | 'incorrect-units'
@@ -42,6 +43,10 @@ export function goldenRegistrationCorpus(): GoldenRegistrationFixture[] {
   const noisyTransform = composeRigid(rigidFromRotationTranslation([0, 0, 0, 1], [3.1, 5.4, -1.2]), axisAngleRigid([0.8, 0.2, 0.1], 11 * Math.PI / 180));
   const noisy = transformArtifact(base, invertRigid(noisyTransform), 'surface-noise-source', (point, index) => [point[0] + Math.sin(index * 1.7) * 0.025, point[1] + Math.cos(index * 0.9) * 0.025, point[2] + Math.sin(index * 0.43) * 0.018]);
   const outlierBase = addOutliers(base, 20); const outlierTransform = composeRigid(rigidFromRotationTranslation([0, 0, 0, 1], [-2.2, 4.8, 0.7]), axisAngleRigid([0.4, 0.3, 0.8], -8 * Math.PI / 180));
+  const compoundTarget = archArtifact('compound-target', 17, 13);
+  const compoundOverlap = archArtifact('compound-overlap', 17, 13, 0, 5);
+  const compoundRemote = transformArtifact(archArtifact('compound-remote-base', 17, 10), rigidFromRotationTranslation([0, 0, 0, 1], [0.8, 1.1, -7.2]), 'compound-remote');
+  const compoundSource = mergeArtifacts(compoundOverlap, compoundRemote, 'compound-source');
   const mirrored = reflectArtifact(base, 'mirrored-source'); mirrored.metadata.likelyMirrored = true;
   const cmSource = transformArtifact(base, invertRigid(translation), 'centimeter-source'); cmSource.units = 'cm'; cmSource.mesh = scaleMesh(cmSource.mesh, 0.1);
   const insufficient = artifactFromMesh('insufficient-source', topology([[0, 0, 0], [1, 0, 0], [0, 1, 0]], [[0, 1, 2]]));
@@ -55,6 +60,7 @@ export function goldenRegistrationCorpus(): GoldenRegistrationFixture[] {
     fixture('partial-overlap', transformArtifact(partialSourceBase, invertRigid(partialTransform), 'partial-source'), partialTarget, partialTransform, 'accepted', 0.2, 0.5),
     fixture('surface-noise', noisy, base, noisyTransform, 'accepted', 0.2, 0.5),
     fixture('outlier-contamination', transformArtifact(outlierBase, invertRigid(outlierTransform), 'outlier-source'), base, outlierTransform, 'accepted', 0.2, 0.5),
+    fixture('compound-partial-overlap', compoundSource, compoundTarget, identityRigid(), 'accepted', 0.05, 0.1),
     fixture('missing-regions', transformArtifact(partialSourceBase, invertRigid(partialTransform), 'missing-source'), partialTarget, partialTransform, 'accepted', 0.2, 0.5),
     fixture('mirrored-scan', mirrored, base, null, 'validation-blocked', 0, 0),
     fixture('incorrect-units', cmSource, base, translation, 'accepted', 0.05, 0.1),
@@ -102,6 +108,14 @@ function addOutliers(artifact: ArtifactRecord, count: number): ArtifactRecord {
     const base = vertices.length; const x = 80 + index * 1.3; vertices.push([x, 50, 30], [x + 0.5, 50, 30], [x, 50.5, 30]); faces.push([base, base + 1, base + 2]);
   }
   return artifactFromMesh('outlier-base', topology(vertices, faces));
+}
+
+function mergeArtifacts(first: ArtifactRecord, second: ArtifactRecord, name: string): ArtifactRecord {
+  const firstTopology = first.mesh.sourceTopology!; const secondTopology = second.mesh.sourceTopology!;
+  const vertices = [...chunk(firstTopology.positions, 3), ...chunk(secondTopology.positions, 3)] as Vec3[];
+  const offset = firstTopology.positions.length / 3;
+  const faces = [...chunk(firstTopology.indices, 3), ...chunk(secondTopology.indices, 3).map((face) => face.map((index) => index + offset))];
+  return artifactFromMesh(name, topology(vertices, faces));
 }
 
 function scaleMesh(mesh: MeshData, factor: number): MeshData {
