@@ -185,7 +185,7 @@ test('validates actual mesh topology, visualizes defects, and exports immutable 
   const report = JSON.parse(await (await import('node:fs/promises')).readFile(path, 'utf8'));
   expect(report.artifactId).toBeTruthy();
   expect(report.fileHash).toMatch(/^[a-f0-9]{64}$/);
-  expect(report.engineVersion).toBe('1.0.0');
+  expect(report.engineVersion).toBe('1.1.0');
   expect(report.overall).toBe('fail');
   expect(report.checks.find((check) => check.id === 'boundary-edges').affectedCount).toBe(3);
   expect(report).not.toHaveProperty('clinicalApproval');
