@@ -1,0 +1,28 @@
+.editing-workspace { display: flex; flex-direction: column; min-height: 0; overflow: auto; padding-bottom: 20px; }
+.properties-panel .inspector-tabs { grid-template-columns: repeat(5, 1fr); }
+.production-badge { font-size: 7px; letter-spacing: .12em; color: #65ddb0; border: 1px solid #28785b; border-radius: 12px; padding: 4px 7px; }
+.editing-categories { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; padding: 8px 12px; border-bottom: 1px solid #253149; }
+.editing-categories button { text-transform: capitalize; font-size: 8px; padding: 6px 3px; }
+.editing-categories button.active { background: #214f6f; border-color: #4cbce9; }
+.tool-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 9px 12px; max-height: 260px; overflow: auto; background: #08111e; }
+.tool-grid button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 42px; padding: 7px; text-align: left; }
+.tool-grid button strong { font-size: 8px; }
+.tool-grid button span { font-size: 7px; color: #7589a6; }
+.tool-grid button.active { border-color: #4dd4a8; background: #173a39; }
+.tool-console { margin: 8px 12px; padding: 9px; border: 1px solid #36516f; border-radius: 7px; background: #0b1727; box-shadow: 0 10px 28px #0005; }
+.tool-console > p { font-size: 8px; color: #95a7bf; line-height: 1.45; }
+.tool-console label { display: grid; grid-template-columns: 1fr minmax(70px, 110px); align-items: center; gap: 7px; font-size: 8px; }
+.tool-console input, .tool-console select { width: 100%; min-width: 0; }
+.curve-placement, .tool-progress { display: flex; flex-direction: column; gap: 4px; margin: 7px 0; padding: 7px; border-left: 3px solid #e7bd5d; background: #161c25; font-size: 8px; }
+.curve-coordinate-editor { display: grid; gap: 4px; margin: 7px 0; padding: 7px; border: 1px solid #2d4562; border-radius: 5px; }
+.tool-progress progress { width: 100%; accent-color: #4dd4a8; }
+.tool-error { color: #ff8a94 !important; border: 1px solid #7e2f3b; padding: 6px; border-radius: 4px; }
+.editing-selection-summary, .geometry-comparison, .exact-transform-report { margin: 8px 12px; padding: 8px; border: 1px solid #2c3e58; border-radius: 6px; background: #091422; display: flex; flex-direction: column; gap: 4px; font-size: 8px; }
+.editing-selection-summary code, .geometry-comparison code { overflow: hidden; text-overflow: ellipsis; color: #7f9dc1; }
+.exact-transform-report code { color: #9bc3dc; white-space: normal; overflow-wrap: anywhere; }
+.geometry-comparison { display: grid; grid-template-columns: 1fr 1fr; }
+.geometry-comparison strong, .geometry-comparison code { grid-column: 1 / -1; }
+.curve-list { padding: 0 12px; }
+.curve-list article { display: flex; flex-direction: column; gap: 4px; padding: 8px; background: #0b1727; border: 1px solid #2c3e58; border-radius: 5px; font-size: 8px; }
+.curve-list code { overflow: hidden; text-overflow: ellipsis; }
+.editing-shortcuts { margin: 10px 12px; padding: 7px; background: #06101d; color: #7488a6; font-size: 7px; line-height: 1.5; border-top: 1px solid #253149; }
