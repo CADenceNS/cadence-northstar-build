@@ -1,6 +1,6 @@
 import type { Vec3 } from './core';
-import { add3, cross3, dot3, normalize3, scale3, subtract3 } from './geometry';
-import { compactMesh, faceCentroid, mergeIndexed, quantizedKey, triangulatePolygon, type Face, type IndexedMesh } from './editing-geometry';
+import { add3, boundsOfPoints, closestPointOnTriangle, cross3, distance3, dot3, normalize3, scale3, subtract3 } from './geometry';
+import { buildTopology, compactMesh, faceArea, mergeIndexed, quantizedKey, triangulatePolygon, validateGeometryResult, type Face, type IndexedMesh } from './editing-geometry';
 import { weldVertices } from './mesh-edit-tools';
 
 export interface CuttingPlane { origin: Vec3; normal: Vec3; }
@@ -60,15 +60,197 @@ export function curveBasedCut(source: IndexedMesh, curvePoints: Vec3[], extrusio
   return implicitCut(source, signedDistance, capNormal.some(Math.abs) ? capNormal : frames[0].normal, { keep, cap, toleranceMm: 1e-7 });
 }
 
-export function trimByClosedCurve(source: IndexedMesh, curvePoints: Vec3[], keepInside = true): IndexedMesh {
+export function trimByClosedCurve(source: IndexedMesh, curvePoints: Vec3[], keepInside: boolean, curveClosed: boolean, toleranceMm = 1e-5): IndexedMesh {
+  if (!curveClosed) throw new Error('Closed-curve trim rejects open curves. Close the model-space curve before trimming.');
   validateCurve(curvePoints, true);
-  const normal = polygonNormal(curvePoints); if (!normal.some(Math.abs)) throw new Error('Closed trim curve is planar-degenerate.');
-  const axes = planeAxes(normal); const origin = average(curvePoints);
-  const polygon = curvePoints.map((point) => project2(point, origin, axes));
-  const faces = source.faces.filter((face) => pointInPolygon(project2(faceCentroid(source, face), origin, axes), polygon) === keepInside);
-  if (!faces.length || faces.length === source.faces.length) throw new Error('Closed-curve trim must retain and remove actual mesh faces.');
-  return compactMesh({ positions: source.positions, faces }).mesh;
+  if (!(toleranceMm > 0) || !Number.isFinite(toleranceMm)) throw new Error('Closed-curve trim tolerance must be a finite value greater than zero.');
+  const requestedCurve = deduplicateCurveClosure(curvePoints, toleranceMm);
+  if (requestedCurve.length < 3) throw new Error('Closed-curve trim requires at least three distinct model-space points.');
+  const curve = projectCurveToSource(source, requestedCurve, toleranceMm);
+  const normal = polygonNormal(curve); if (!normal.some(Math.abs)) throw new Error('Closed trim curve is planar-degenerate.');
+  const axes = planeAxes(normal); const origin = average(curve);
+  const polygon = curve.map((point) => project2(point, origin, axes));
+  validateSimplePolygon(polygon, toleranceMm);
+  const segments = polygon.map((start, index) => ({ start, end: polygon[(index + 1) % polygon.length] }));
+  const retained: RetainedTrimCell[] = [];
+  let retainedArea = 0, removedArea = 0;
+  for (const face of source.faces) {
+    const triangle = face.map((id, index) => ({ point: source.positions[id], projected: project2(source.positions[id], origin, axes), barycentric: [Number(index === 0), Number(index === 1), Number(index === 2)] as Vec3 })) as [TrimVertex, TrimVertex, TrimVertex];
+    let cells: TrimVertex[][] = [triangle];
+    for (const segment of segments.filter(({ start, end }) => segmentTouchesPolygon(start, end, triangle.map(({ projected }) => projected), toleranceMm))) {
+      cells = cells.flatMap((cell) => splitTrimCell(cell, segment.start, segment.end, toleranceMm));
+    }
+    for (const cell of cells) {
+      const area = Math.abs(polygonArea2(cell.map(({ projected }) => projected)));
+      if (area <= toleranceMm * toleranceMm) continue;
+      const centroid = { x: cell.reduce((sum, vertex) => sum + vertex.projected.x, 0) / cell.length, y: cell.reduce((sum, vertex) => sum + vertex.projected.y, 0) / cell.length };
+      const inside = pointInPolygon(centroid, polygon);
+      if (inside === keepInside) { retained.push({ vertices: cell, sourceFace: face }); retainedArea += area; } else removedArea += area;
+    }
+  }
+  if (!retained.length || retainedArea <= toleranceMm * toleranceMm || removedArea <= toleranceMm * toleranceMm) throw new Error('Closed-curve trim must retain and remove non-zero mesh surface regions.');
+  const candidate = trimPolygonsToMesh(conformTrimCells(source, retained, toleranceMm), toleranceMm);
+  const seen = new Set<string>();
+  const faces = candidate.faces.filter((face) => {
+    if (new Set(face).size < 3 || faceArea(candidate, face) <= toleranceMm * toleranceMm) return false;
+    const key = [...face].sort((a, b) => a - b).join(':'); if (seen.has(key)) return false; seen.add(key); return true;
+  });
+  const result = compactMesh({ positions: candidate.positions, faces }).mesh;
+  validateGeometryResult(result, { allowBoundaries: true, allowDisconnected: buildTopology(source).shells.length > 1 });
+  return result;
 }
+
+interface Point2 { x: number; y: number; }
+interface TrimVertex { point: Vec3; projected: Point2; barycentric: Vec3; }
+interface RetainedTrimCell { vertices: TrimVertex[]; sourceFace: Face; }
+
+function deduplicateCurveClosure(points: Vec3[], tolerance: number): Vec3[] {
+  const values: Vec3[] = [];
+  for (const point of points) if (!values.length || distance3(values.at(-1)!, point) > tolerance) values.push([...point]);
+  if (values.length > 1 && distance3(values[0], values.at(-1)!) <= tolerance) values.pop();
+  return values;
+}
+
+function projectCurveToSource(source: IndexedMesh, curve: Vec3[], tolerance: number): Vec3[] {
+  if (!source.faces.length) throw new Error('Closed-curve trim requires triangle geometry.');
+  const bounds = boundsOfPoints(source.positions); const diagonal = bounds ? distance3(bounds.min, bounds.max) : 0;
+  const projectionTolerance = Math.max(tolerance, diagonal * 1e-7);
+  const projectedCurve: Vec3[] = [];
+  for (let pointId = 0; pointId < curve.length; pointId += 1) {
+    let closest = Infinity; let closestPoint: Vec3 | null = null;
+    for (let faceId = 0; faceId < source.faces.length; faceId += 1) {
+      const [a, b, c] = source.faces[faceId];
+      const projected = closestPointOnTriangle(curve[pointId], { id: faceId, a: source.positions[a], b: source.positions[b], c: source.positions[c] });
+      const distance = distance3(curve[pointId], projected);
+      if (distance < closest) { closest = distance; closestPoint = projected; }
+      if (closest <= projectionTolerance) break;
+    }
+    if (closest > projectionTolerance) throw new Error(`Closed trim curve point ${pointId} is ${closest.toFixed(6)} mm from the source surface, above the ${projectionTolerance.toFixed(6)} mm projection tolerance.`);
+    projectedCurve.push(closestPoint!);
+  }
+  return projectedCurve;
+}
+
+function validateSimplePolygon(polygon: Point2[], tolerance: number): void {
+  for (let index = 0; index < polygon.length; index += 1) {
+    const next = (index + 1) % polygon.length;
+    if (distance2(polygon[index], polygon[next]) <= tolerance) throw new Error(`Closed trim curve segment ${index} has zero projected length.`);
+    for (let other = index + 1; other < polygon.length; other += 1) {
+      const otherNext = (other + 1) % polygon.length;
+      if (index === other || next === other || otherNext === index) continue;
+      if (segmentsIntersect2(polygon[index], polygon[next], polygon[other], polygon[otherNext], tolerance)) throw new Error(`Closed trim curve self-intersects between segments ${index} and ${other}.`);
+    }
+  }
+  if (Math.abs(polygonArea2(polygon)) <= tolerance * tolerance) throw new Error('Closed trim curve has zero projected area.');
+}
+
+function splitTrimCell(cell: TrimVertex[], lineStart: Point2, lineEnd: Point2, tolerance: number): TrimVertex[][] {
+  const distances = cell.map(({ projected }) => crossPoint2(lineStart, lineEnd, projected));
+  if (distances.every((value) => value >= -tolerance) || distances.every((value) => value <= tolerance)) return [cell];
+  return [clipTrimHalfPlane(cell, lineStart, lineEnd, true, tolerance), clipTrimHalfPlane(cell, lineStart, lineEnd, false, tolerance)]
+    .filter((value) => value.length >= 3 && Math.abs(polygonArea2(value.map(({ projected }) => projected))) > tolerance * tolerance);
+}
+
+function clipTrimHalfPlane(cell: TrimVertex[], lineStart: Point2, lineEnd: Point2, positive: boolean, tolerance: number): TrimVertex[] {
+  const output: TrimVertex[] = [];
+  for (let index = 0; index < cell.length; index += 1) {
+    const current = cell[index], next = cell[(index + 1) % cell.length];
+    const currentDistance = crossPoint2(lineStart, lineEnd, current.projected), nextDistance = crossPoint2(lineStart, lineEnd, next.projected);
+    const currentInside = positive ? currentDistance >= -tolerance : currentDistance <= tolerance;
+    const nextInside = positive ? nextDistance >= -tolerance : nextDistance <= tolerance;
+    if (currentInside) output.push(current);
+    if (currentInside !== nextInside) {
+      const amount = currentDistance / (currentDistance - nextDistance);
+      output.push({ point: add3(current.point, scale3(subtract3(next.point, current.point), amount)), projected: { x: current.projected.x + (next.projected.x - current.projected.x) * amount, y: current.projected.y + (next.projected.y - current.projected.y) * amount }, barycentric: add3(current.barycentric, scale3(subtract3(next.barycentric, current.barycentric), amount)) });
+    }
+  }
+  return deduplicateTrimRing(output, tolerance);
+}
+
+function deduplicateTrimRing(points: TrimVertex[], tolerance: number): TrimVertex[] {
+  const output: TrimVertex[] = [];
+  for (const point of points) if (!output.length || distance2(output.at(-1)!.projected, point.projected) > tolerance) output.push(point);
+  if (output.length > 1 && distance2(output[0].projected, output.at(-1)!.projected) <= tolerance) output.pop();
+  return output;
+}
+
+function conformTrimCells(source: IndexedMesh, cells: RetainedTrimCell[], tolerance: number): Vec3[][] {
+  const splitPoints = new Map<string, Array<{ amount: number; point: Vec3 }>>();
+  for (const cell of cells) for (const vertex of cell.vertices) for (const edge of sourceEdgesAtVertex(source, cell.sourceFace, vertex, tolerance)) {
+    const values = splitPoints.get(edge.key) ?? [];
+    if (!values.some(({ amount }) => Math.abs(amount - edge.amount) <= tolerance)) values.push({ amount: edge.amount, point: vertex.point });
+    splitPoints.set(edge.key, values);
+  }
+  for (const values of splitPoints.values()) values.sort((first, second) => first.amount - second.amount);
+  return cells.map((cell) => {
+    const points: Vec3[] = [];
+    for (let index = 0; index < cell.vertices.length; index += 1) {
+      const current = cell.vertices[index], next = cell.vertices[(index + 1) % cell.vertices.length];
+      points.push(current.point);
+      const currentEdges = new Map(sourceEdgesAtVertex(source, cell.sourceFace, current, tolerance).map((edge) => [edge.key, edge]));
+      const common = sourceEdgesAtVertex(source, cell.sourceFace, next, tolerance).find((edge) => currentEdges.has(edge.key));
+      if (!common) continue;
+      const start = currentEdges.get(common.key)!;
+      const low = Math.min(start.amount, common.amount), high = Math.max(start.amount, common.amount);
+      const interior = (splitPoints.get(common.key) ?? []).filter(({ amount }) => amount > low + tolerance && amount < high - tolerance);
+      if (common.amount < start.amount) interior.reverse();
+      points.push(...interior.map(({ point }) => point));
+    }
+    return deduplicateRing(points, tolerance);
+  }).filter((points) => points.length >= 3);
+}
+
+function trimPolygonsToMesh(polygons: Vec3[][], tolerance: number): IndexedMesh {
+  const positions: Vec3[] = []; const faces: Face[] = [];
+  for (const polygon of polygons) {
+    const offset = positions.length;
+    const center = average(polygon);
+    positions.push(...polygon.map((point) => [...point] as Vec3), center);
+    const centerId = offset + polygon.length;
+    for (let index = 0; index < polygon.length; index += 1) faces.push([offset + index, offset + (index + 1) % polygon.length, centerId]);
+  }
+  return weldVertices({ positions, faces }, tolerance);
+}
+
+function sourceEdgesAtVertex(source: IndexedMesh, face: Face, vertex: TrimVertex, tolerance: number): Array<{ key: string; amount: number }> {
+  const values: Array<{ key: string; amount: number }> = [];
+  for (let omitted = 0; omitted < 3; omitted += 1) {
+    if (Math.abs(vertex.barycentric[omitted]) > tolerance * 10) continue;
+    const ids = [face[(omitted + 1) % 3], face[(omitted + 2) % 3]].sort((a, b) => a - b);
+    const start = source.positions[ids[0]], end = source.positions[ids[1]], direction = subtract3(end, start), denominator = dot3(direction, direction);
+    const amount = denominator ? dot3(subtract3(vertex.point, start), direction) / denominator : 0;
+    values.push({ key: `${ids[0]}:${ids[1]}`, amount: Math.max(0, Math.min(1, amount)) });
+  }
+  return values;
+}
+
+function segmentTouchesPolygon(start: Point2, end: Point2, polygon: Point2[], tolerance: number): boolean {
+  if (pointInTriangle2(start, polygon, tolerance) || pointInTriangle2(end, polygon, tolerance)) return true;
+  for (let index = 0; index < polygon.length; index += 1) if (segmentsIntersect2(start, end, polygon[index], polygon[(index + 1) % polygon.length], tolerance)) return true;
+  return false;
+}
+
+function pointInTriangle2(point: Point2, triangle: Point2[], tolerance: number): boolean {
+  const values = triangle.map((start, index) => crossPoint2(start, triangle[(index + 1) % triangle.length], point));
+  return !(values.some((value) => value < -tolerance) && values.some((value) => value > tolerance));
+}
+
+function segmentsIntersect2(a: Point2, b: Point2, c: Point2, d: Point2, tolerance: number): boolean {
+  const values = [crossPoint2(a, b, c), crossPoint2(a, b, d), crossPoint2(c, d, a), crossPoint2(c, d, b)];
+  if (values[0] * values[1] < -tolerance * tolerance && values[2] * values[3] < -tolerance * tolerance) return true;
+  return Math.abs(values[0]) <= tolerance && pointOnSegment2(c, a, b, tolerance)
+    || Math.abs(values[1]) <= tolerance && pointOnSegment2(d, a, b, tolerance)
+    || Math.abs(values[2]) <= tolerance && pointOnSegment2(a, c, d, tolerance)
+    || Math.abs(values[3]) <= tolerance && pointOnSegment2(b, c, d, tolerance);
+}
+
+function pointOnSegment2(point: Point2, start: Point2, end: Point2, tolerance: number): boolean {
+  return point.x >= Math.min(start.x, end.x) - tolerance && point.x <= Math.max(start.x, end.x) + tolerance && point.y >= Math.min(start.y, end.y) - tolerance && point.y <= Math.max(start.y, end.y) + tolerance;
+}
+
+function crossPoint2(a: Point2, b: Point2, c: Point2): number { return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x); }
+function polygonArea2(points: Point2[]): number { return points.reduce((sum, point, index) => { const next = points[(index + 1) % points.length]; return sum + point.x * next.y - next.x * point.y; }, 0) * 0.5; }
+function distance2(a: Point2, b: Point2): number { return Math.hypot(a.x - b.x, a.y - b.y); }
 
 function clipPolygon(points: Vec3[], distances: number[], positive: boolean, tolerance: number): Vec3[] {
   const output: Vec3[] = [];
@@ -189,7 +371,12 @@ function validateCurve(points: Vec3[], closed: boolean): void {
 function polygonNormal(points: Vec3[]): Vec3 {
   const normal: Vec3 = [0, 0, 0];
   for (let index = 0; index < points.length; index += 1) { const current = points[index], next = points[(index + 1) % points.length]; normal[0] += (current[1] - next[1]) * (current[2] + next[2]); normal[1] += (current[2] - next[2]) * (current[0] + next[0]); normal[2] += (current[0] - next[0]) * (current[1] + next[1]); }
-  return normalize3(normal);
+  if (normal.some(Math.abs)) return normalize3(normal);
+  for (let first = 0; first < points.length - 2; first += 1) for (let second = first + 1; second < points.length - 1; second += 1) for (let third = second + 1; third < points.length; third += 1) {
+    const fallback = cross3(subtract3(points[second], points[first]), subtract3(points[third], points[first]));
+    if (fallback.some(Math.abs)) return normalize3(fallback);
+  }
+  return [0, 0, 0];
 }
 
 function planeAxes(normal: Vec3): [Vec3, Vec3] { const tangent = normalize3(Math.abs(normal[0]) < 0.9 ? cross3(normal, [1, 0, 0]) : cross3(normal, [0, 1, 0])); return [tangent, normalize3(cross3(normal, tangent))]; }

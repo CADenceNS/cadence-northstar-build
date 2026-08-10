@@ -403,7 +403,7 @@ export function App() {
     if (!validationTarget || !validationArtifact) { setStatus('Select a scene object to validate.'); return; }
     setValidating(true); setStatus(`Validating ${validationTarget.name} in the geometry worker…`);
     try {
-      const result = await runtimeMetrics.measureAsync('validation.total', () => validationClient.validate(validationArtifact), { triangles: validationArtifact.mesh.indices.length / 3 });
+      const result = await runtimeMetrics.measureAsync('validation.total', () => validationClient.validate(validationArtifact, validationTarget.id), { triangles: validationArtifact.mesh.indices.length / 3 });
       const generated = runtimeMetrics.measure('validation.overlay-generation', () => buildValidationOverlays(result, validationTarget), { checks: result.checks.length });
       setValidationHistory((current) => ({ ...current, [validationArtifact.id]: { current: result, previous: current[validationArtifact.id]?.current } }));
       setOverlays((current) => [...current.filter((overlay) => !overlay.id.startsWith(`${validationArtifact.id}:`)), ...generated]);

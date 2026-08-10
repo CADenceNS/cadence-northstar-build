@@ -1,7 +1,7 @@
 import type { Vec3 } from './core';
 import type { TriangleQualityReport } from './editing-types';
 import { add3, distance3, dot3, normalize3, scale3, subtract3 } from './geometry';
-import { averageEdgeLength, buildTopology, cloneIndexed, compactMesh, faceArea, faceNormal, type Face, type IndexedMesh } from './editing-geometry';
+import { averageEdgeLength, buildTopology, cloneIndexed, compactMesh, detectSelfIntersections, faceArea, faceNormal, type Face, type IndexedMesh } from './editing-geometry';
 import { smoothRegion, weldVertices } from './mesh-edit-tools';
 
 export interface RemeshOptions {
@@ -70,7 +70,7 @@ export function decimate(source: IndexedMesh, targetTriangleCount: number, prese
     let collapsed = false;
     for (const candidate of candidates) {
       const next = collapseEdge(mesh, candidate.a, candidate.b); const nextTopology = buildTopology(next);
-      if (next.faces.length >= targetTriangleCount && !nextTopology.nonManifoldEdges.length) { mesh = next; collapsed = true; break; }
+      if (next.faces.length >= targetTriangleCount && !nextTopology.nonManifoldEdges.length && !detectSelfIntersections(next).length) { mesh = next; collapsed = true; break; }
     }
     if (!collapsed) throw new Error(`Decimation stopped at ${mesh.faces.length} triangles because every remaining collapse would violate preserved topology.`);
   }
@@ -127,7 +127,7 @@ function collapseShortEdges(source: IndexedMesh, threshold: number, preserveBoun
       .sort((a, b) => a.length - b.length || a.id - b.id)[0];
     if (!candidate) break;
     const next = collapseEdge(mesh, candidate.a, candidate.b);
-    if (!buildTopology(next).nonManifoldEdges.length) { mesh = next; rejected.clear(); }
+    if (!buildTopology(next).nonManifoldEdges.length && !detectSelfIntersections(next).length) { mesh = next; rejected.clear(); }
     else rejected.add(candidate.key);
   }
   return mesh;

@@ -10,6 +10,28 @@ export interface IndexedMesh {
   faces: Face[];
 }
 
+export type TriangleIntersectionClassification =
+  | 'non-coplanar-crossing'
+  | 'coplanar-overlap'
+  | 'shared-vertex-crossing'
+  | 'shared-edge-fold-through'
+  | 'bow-tie-topology'
+  | 'degenerate-point-contact'
+  | 'degenerate-edge-contact'
+  | 'legitimate-shared-vertex'
+  | 'legitimate-shared-edge';
+
+export interface TriangleIntersectionRecord {
+  triangleIds: [number, number];
+  classification: TriangleIntersectionClassification;
+  topology: 'independent' | 'shared-vertex' | 'shared-edge' | 'duplicate';
+  geometry: 'point' | 'segment' | 'area' | 'topology';
+  points: Vec3[];
+  invalid: boolean;
+  objectId: string | null;
+  explanation: string;
+}
+
 export interface MeshTopology {
   edges: Edge[];
   edgeFaces: number[][];
@@ -51,8 +73,8 @@ export function meshData(mesh: IndexedMesh): MeshData {
   for (const face of mesh.faces) {
     const normal = faceNormal(mesh, face);
     for (const index of face) {
-      positions.push(...mesh.positions[index]);
-      normals.push(...normal);
+      positions.push(...mesh.positions[index].map(canonicalZero));
+      normals.push(...normal.map(canonicalZero));
       indices.push(indices.length);
     }
   }
@@ -65,6 +87,8 @@ export function meshData(mesh: IndexedMesh): MeshData {
     sourceTopology: { positions: mesh.positions.flat(), indices: mesh.faces.flat() },
   };
 }
+
+function canonicalZero(value: number): number { return value === 0 ? 0 : value; }
 
 export function cloneIndexed(mesh: IndexedMesh): IndexedMesh {
   return { positions: mesh.positions.map((point) => [...point]), faces: mesh.faces.map((face) => [...face]) };
@@ -199,30 +223,65 @@ export function validateGeometryResult(mesh: IndexedMesh, options: { allowEmpty?
   if (topology.nonManifoldEdges.length) throw new Error(`Geometry operation produced ${topology.nonManifoldEdges.length} non-manifold edge${topology.nonManifoldEdges.length === 1 ? '' : 's'}.`);
   if (!options.allowBoundaries && topology.boundaryEdges.length) throw new Error(`Geometry operation produced ${topology.boundaryEdges.length} open boundary edge${topology.boundaryEdges.length === 1 ? '' : 's'}.`);
   if (!options.allowDisconnected && topology.shells.length > 1) throw new Error(`Geometry operation produced ${topology.shells.length} disconnected components.`);
-  const intersections = detectSelfIntersections(mesh);
-  if (intersections.length) throw new Error(`Geometry operation produced ${intersections.length} self-intersecting triangle pair${intersections.length === 1 ? '' : 's'}.`);
+  const intersections = analyzeSelfIntersections(mesh);
+  if (intersections.length) {
+    const first = intersections[0];
+    throw new Error(`Geometry operation produced ${intersections.length} self-intersecting triangle pair${intersections.length === 1 ? '' : 's'}; first ${first.classification} at triangles ${first.triangleIds.join('/')} near ${JSON.stringify(first.points)} (${first.explanation})`);
+  }
   return inspectGeometry(mesh);
 }
 
 export function detectSelfIntersections(mesh: IndexedMesh): Array<[number, number]> {
+  return analyzeSelfIntersections(mesh).map(({ triangleIds }) => triangleIds);
+}
+
+export function analyzeSelfIntersections(mesh: IndexedMesh, objectId: string | null = null): TriangleIntersectionRecord[] {
   if (mesh.faces.length < 2) return [];
   const boxes = mesh.faces.map((face) => triangleBounds(mesh, face));
   const order = mesh.faces.map((_, id) => id).sort((a, b) => boxes[a].min[0] - boxes[b].min[0] || a - b);
-  const results: Array<[number, number]> = [];
+  const results: TriangleIntersectionRecord[] = [];
   for (let left = 0; left < order.length; left += 1) {
     const firstId = order[left];
-    const first = mesh.faces[firstId];
-    const firstVertices = new Set(first);
     for (let right = left + 1; right < order.length; right += 1) {
       const secondId = order[right];
       if (boxes[secondId].min[0] > boxes[firstId].max[0] + EPSILON) break;
-      const second = mesh.faces[secondId];
-      if (second.some((vertex) => firstVertices.has(vertex))) continue;
       if (!boxesOverlap(boxes[firstId], boxes[secondId])) continue;
-      if (trianglesIntersect(first.map((id) => mesh.positions[id]) as [Vec3, Vec3, Vec3], second.map((id) => mesh.positions[id]) as [Vec3, Vec3, Vec3])) results.push([firstId, secondId]);
+      const result = classifyTrianglePairIntersection(mesh, firstId, secondId, objectId);
+      if (result?.invalid) results.push(result);
     }
   }
-  return results;
+  results.push(...detectBowTieTopology(mesh, objectId, new Set(results.map(({ triangleIds }) => triangleIds.join(':')))));
+  return results.sort((first, second) => first.triangleIds[0] - second.triangleIds[0] || first.triangleIds[1] - second.triangleIds[1] || first.classification.localeCompare(second.classification));
+}
+
+export function classifyTrianglePairIntersection(mesh: IndexedMesh, firstId: number, secondId: number, objectId: string | null = null): TriangleIntersectionRecord | null {
+  if (firstId === secondId || !mesh.faces[firstId] || !mesh.faces[secondId]) throw new Error('Triangle-pair classification requires two distinct valid triangle identifiers.');
+  const ids: [number, number] = firstId < secondId ? [firstId, secondId] : [secondId, firstId];
+  const firstFace = mesh.faces[ids[0]], secondFace = mesh.faces[ids[1]];
+  const first = firstFace.map((id) => mesh.positions[id]) as [Vec3, Vec3, Vec3];
+  const second = secondFace.map((id) => mesh.positions[id]) as [Vec3, Vec3, Vec3];
+  if (first.some((point) => !point) || second.some((point) => !point)) throw new Error('Triangle-pair classification encountered an invalid vertex reference.');
+  const shared = firstFace.filter((vertex) => secondFace.includes(vertex));
+  const topology = shared.length >= 3 ? 'duplicate' : shared.length === 2 ? 'shared-edge' : shared.length === 1 ? 'shared-vertex' : 'independent';
+  const contact = triangleContact(first, second);
+  if (!contact) return null;
+  const sharedPoints = shared.map((vertex) => mesh.positions[vertex]);
+  const confinedToShared = contact.points.every((point) => sharedPoints.some((sharedPoint) => distance3(point, sharedPoint) <= contact.tolerance));
+
+  if (topology === 'shared-vertex' && contact.geometry === 'point' && confinedToShared) {
+    return intersectionRecord(ids, 'legitimate-shared-vertex', topology, contact.geometry, contact.points, false, objectId, 'The triangles meet only at their shared topology vertex.');
+  }
+  if (topology === 'shared-edge') {
+    const onlySharedEdge = contact.geometry === 'segment' && contact.points.length >= 2 && contact.points.every((point) => pointOnSegment3(point, sharedPoints[0], sharedPoints[1], contact.tolerance));
+    const oppositeTraversal = directedEdgeSign(firstFace, shared[0], shared[1]) === -directedEdgeSign(secondFace, shared[0], shared[1]);
+    if (onlySharedEdge) return intersectionRecord(ids, 'legitimate-shared-edge', topology, contact.geometry, contact.points, false, objectId, oppositeTraversal ? 'The triangles meet only along a consistently oriented shared topology edge.' : 'The triangles meet only along their shared topology edge; winding consistency is reported by the separate topology check.');
+    return intersectionRecord(ids, 'shared-edge-fold-through', topology, contact.geometry, contact.points, true, objectId, 'The triangles overlap beyond their shared topology edge.');
+  }
+  if (topology === 'shared-vertex') return intersectionRecord(ids, 'shared-vertex-crossing', topology, contact.geometry, contact.points, true, objectId, 'The triangles intersect beyond their single shared topology vertex.');
+  if (topology === 'duplicate' || contact.geometry === 'area') return intersectionRecord(ids, 'coplanar-overlap', topology, contact.geometry, contact.points, true, objectId, 'The triangles overlap across a positive-area coplanar region.');
+  if (contact.geometry === 'point') return intersectionRecord(ids, 'degenerate-point-contact', topology, contact.geometry, contact.points, true, objectId, 'Independent triangles make an isolated point contact that is not represented by shared topology.');
+  if (contact.coplanar) return intersectionRecord(ids, 'degenerate-edge-contact', topology, contact.geometry, contact.points, true, objectId, 'Independent coplanar triangles contact along an edge without shared topology.');
+  return intersectionRecord(ids, 'non-coplanar-crossing', topology, contact.geometry, contact.points, true, objectId, 'Independent non-coplanar triangles cross in model space.');
 }
 
 export function compactMesh(mesh: IndexedMesh): { mesh: IndexedMesh; vertexMap: Record<number, number> } {
@@ -311,61 +370,205 @@ function boxesOverlap(first: { min: Vec3; max: Vec3 }, second: { min: Vec3; max:
   return [0, 1, 2].every((axis) => first.min[axis] <= second.max[axis] + EPSILON && second.min[axis] <= first.max[axis] + EPSILON);
 }
 
-function trianglesIntersect(first: [Vec3, Vec3, Vec3], second: [Vec3, Vec3, Vec3]): boolean {
+interface TriangleContact {
+  geometry: 'point' | 'segment' | 'area';
+  points: Vec3[];
+  coplanar: boolean;
+  tolerance: number;
+}
+
+interface ProjectedVertex { uv: [number, number]; point: Vec3; }
+
+function triangleContact(first: [Vec3, Vec3, Vec3], second: [Vec3, Vec3, Vec3]): TriangleContact | null {
+  const all = [...first, ...second];
+  const bounds = boundsOfPoints(all)!;
+  const tolerance = Math.max(EPSILON, length3(subtract3(bounds.max, bounds.min)) * 1e-9);
   const firstNormal = cross3(subtract3(first[1], first[0]), subtract3(first[2], first[0]));
   const secondNormal = cross3(subtract3(second[1], second[0]), subtract3(second[2], second[0]));
-  const normalsCross = length3(cross3(firstNormal, secondNormal));
-  const scale = Math.max(length3(firstNormal) * length3(secondNormal), EPSILON);
-  if (normalsCross <= EPSILON * scale) {
-    const unit = normalize3(firstNormal);
-    if (!unit.some(Math.abs) || second.some((point) => Math.abs(dot3(subtract3(point, first[0]), unit)) > EPSILON)) return false;
-    return coplanarTrianglesIntersect(first, second, unit);
+  const firstLength = length3(firstNormal), secondLength = length3(secondNormal);
+  if (firstLength <= tolerance * tolerance || secondLength <= tolerance * tolerance) return null;
+  const parallel = length3(cross3(firstNormal, secondNormal)) <= firstLength * secondLength * 1e-9;
+  if (parallel) {
+    const unit = scale3(firstNormal, 1 / firstLength);
+    if (second.some((point) => Math.abs(dot3(subtract3(point, first[0]), unit)) > tolerance)) return null;
+    return coplanarTriangleContact(first, second, unit, tolerance);
   }
-  const firstEdges: Array<[Vec3, Vec3]> = [[first[0], first[1]], [first[1], first[2]], [first[2], first[0]]];
-  const secondEdges: Array<[Vec3, Vec3]> = [[second[0], second[1]], [second[1], second[2]], [second[2], second[0]]];
-  return firstEdges.some(([a, b]) => segmentIntersectsTriangle(a, b, second)) || secondEdges.some(([a, b]) => segmentIntersectsTriangle(a, b, first));
+  const points: Vec3[] = [];
+  collectTrianglePlaneContacts(first, second, secondNormal, tolerance, points);
+  collectTrianglePlaneContacts(second, first, firstNormal, tolerance, points);
+  const unique = deduplicateContactPoints(points, tolerance);
+  if (!unique.length) return null;
+  const pair = farthestPair(unique);
+  return pair && pair.distance > tolerance
+    ? { geometry: 'segment', points: [pair.first, pair.second], coplanar: false, tolerance }
+    : { geometry: 'point', points: [unique[0]], coplanar: false, tolerance };
 }
 
-function coplanarTrianglesIntersect(first: [Vec3, Vec3, Vec3], second: [Vec3, Vec3, Vec3], normal: Vec3): boolean {
-  const drop = Math.abs(normal[0]) >= Math.abs(normal[1]) && Math.abs(normal[0]) >= Math.abs(normal[2]) ? 0 : Math.abs(normal[1]) >= Math.abs(normal[2]) ? 1 : 2;
+function coplanarTriangleContact(first: [Vec3, Vec3, Vec3], second: [Vec3, Vec3, Vec3], normal: Vec3, tolerance: number): TriangleContact | null {
+  const drop = dominantAxis(normal);
   const project = (point: Vec3): [number, number] => drop === 0 ? [point[1], point[2]] : drop === 1 ? [point[0], point[2]] : [point[0], point[1]];
-  const a = first.map(project) as [[number, number], [number, number], [number, number]];
-  const b = second.map(project) as [[number, number], [number, number], [number, number]];
-  const edges = (triangle: typeof a): Array<[[number, number], [number, number]]> => [[triangle[0], triangle[1]], [triangle[1], triangle[2]], [triangle[2], triangle[0]]];
-  if (edges(a).some(([start, end]) => edges(b).some(([otherStart, otherEnd]) => segmentsIntersect2(start, end, otherStart, otherEnd)))) return true;
-  return pointInTriangle2(a[0], b) || pointInTriangle2(b[0], a);
+  const firstProjected = first.map((point) => ({ uv: project(point), point })) as [ProjectedVertex, ProjectedVertex, ProjectedVertex];
+  const secondProjected = second.map((point) => ({ uv: project(point), point })) as [ProjectedVertex, ProjectedVertex, ProjectedVertex];
+  const clipped = clipProjectedTriangle(firstProjected, secondProjected, tolerance);
+  const area = Math.abs(projectedPolygonArea(clipped.map(({ uv }) => uv)));
+  const characteristicLength = Math.max(...[...first, ...second].flatMap((point, index, values) => values.slice(index + 1).map((other) => distance3(point, other))), tolerance);
+  if (area > tolerance * characteristicLength * 4) return { geometry: 'area', points: deduplicateContactPoints(clipped.map(({ point }) => point), tolerance), coplanar: true, tolerance };
+
+  const contacts: Vec3[] = [];
+  for (const vertex of firstProjected) if (pointInTriangle2(vertex.uv, secondProjected.map(({ uv }) => uv) as [[number, number], [number, number], [number, number]], tolerance)) contacts.push(vertex.point);
+  for (const vertex of secondProjected) if (pointInTriangle2(vertex.uv, firstProjected.map(({ uv }) => uv) as [[number, number], [number, number], [number, number]], tolerance)) contacts.push(vertex.point);
+  for (let firstEdge = 0; firstEdge < 3; firstEdge += 1) for (let secondEdge = 0; secondEdge < 3; secondEdge += 1) {
+    const a = firstProjected[firstEdge], b = firstProjected[(firstEdge + 1) % 3], c = secondProjected[secondEdge], d = secondProjected[(secondEdge + 1) % 3];
+    for (const amount of segmentContactParameters2(a.uv, b.uv, c.uv, d.uv, tolerance)) contacts.push(add3(a.point, scale3(subtract3(b.point, a.point), amount)));
+  }
+  const unique = deduplicateContactPoints(contacts, tolerance);
+  if (!unique.length) return null;
+  const pair = farthestPair(unique);
+  return pair && pair.distance > tolerance
+    ? { geometry: 'segment', points: [pair.first, pair.second], coplanar: true, tolerance }
+    : { geometry: 'point', points: [unique[0]], coplanar: true, tolerance };
 }
 
-function segmentsIntersect2(a: [number, number], b: [number, number], c: [number, number], d: [number, number]): boolean {
-  const orientation = (first: [number, number], second: [number, number], third: [number, number]) => (second[0] - first[0]) * (third[1] - first[1]) - (second[1] - first[1]) * (third[0] - first[0]);
-  const values = [orientation(a, b, c), orientation(a, b, d), orientation(c, d, a), orientation(c, d, b)];
-  if (values[0] * values[1] < -EPSILON && values[2] * values[3] < -EPSILON) return true;
-  const onSegment = (point: [number, number], start: [number, number], end: [number, number]) => Math.abs(orientation(start, end, point)) <= EPSILON && point[0] >= Math.min(start[0], end[0]) - EPSILON && point[0] <= Math.max(start[0], end[0]) + EPSILON && point[1] >= Math.min(start[1], end[1]) - EPSILON && point[1] <= Math.max(start[1], end[1]) + EPSILON;
-  return Math.abs(values[0]) <= EPSILON && onSegment(c, a, b) || Math.abs(values[1]) <= EPSILON && onSegment(d, a, b) || Math.abs(values[2]) <= EPSILON && onSegment(a, c, d) || Math.abs(values[3]) <= EPSILON && onSegment(b, c, d);
+function clipProjectedTriangle(subject: [ProjectedVertex, ProjectedVertex, ProjectedVertex], clip: [ProjectedVertex, ProjectedVertex, ProjectedVertex], tolerance: number): ProjectedVertex[] {
+  let output: ProjectedVertex[] = subject.map(({ uv, point }) => ({ uv: [...uv], point: [...point] }));
+  const orientation = Math.sign(projectedPolygonArea(clip.map(({ uv }) => uv))) || 1;
+  for (let edge = 0; edge < 3 && output.length; edge += 1) {
+    const start = clip[edge].uv, end = clip[(edge + 1) % 3].uv;
+    const input = output; output = [];
+    for (let index = 0; index < input.length; index += 1) {
+      const current = input[index], next = input[(index + 1) % input.length];
+      const currentDistance = cross2(start, end, current.uv) * orientation;
+      const nextDistance = cross2(start, end, next.uv) * orientation;
+      const currentInside = currentDistance >= -tolerance, nextInside = nextDistance >= -tolerance;
+      if (currentInside) output.push(current);
+      if (currentInside !== nextInside) {
+        const amount = currentDistance / (currentDistance - nextDistance);
+        output.push({ uv: [current.uv[0] + (next.uv[0] - current.uv[0]) * amount, current.uv[1] + (next.uv[1] - current.uv[1]) * amount], point: add3(current.point, scale3(subtract3(next.point, current.point), amount)) });
+      }
+    }
+  }
+  return output;
 }
 
-function pointInTriangle2(point: [number, number], triangle: [[number, number], [number, number], [number, number]]): boolean {
-  const sign = (value: [number, number], first: [number, number], second: [number, number]) => (value[0] - second[0]) * (first[1] - second[1]) - (first[0] - second[0]) * (value[1] - second[1]);
-  const values = [sign(point, triangle[0], triangle[1]), sign(point, triangle[1], triangle[2]), sign(point, triangle[2], triangle[0])];
-  return !(values.some((value) => value < -EPSILON) && values.some((value) => value > EPSILON));
+function collectTrianglePlaneContacts(source: [Vec3, Vec3, Vec3], target: [Vec3, Vec3, Vec3], targetNormal: Vec3, tolerance: number, output: Vec3[]): void {
+  const unit = normalize3(targetNormal);
+  const distances = source.map((point) => dot3(subtract3(point, target[0]), unit));
+  for (let index = 0; index < 3; index += 1) {
+    const next = (index + 1) % 3, firstDistance = distances[index], secondDistance = distances[next];
+    if (Math.abs(firstDistance) <= tolerance && pointInTriangle3(source[index], target, tolerance)) output.push(source[index]);
+    if (firstDistance * secondDistance < -tolerance * tolerance) {
+      const amount = firstDistance / (firstDistance - secondDistance);
+      const point = add3(source[index], scale3(subtract3(source[next], source[index]), amount));
+      if (pointInTriangle3(point, target, tolerance)) output.push(point);
+    } else if (Math.abs(firstDistance) <= tolerance && Math.abs(secondDistance) <= tolerance) {
+      if (pointInTriangle3(source[next], target, tolerance)) output.push(source[next]);
+    }
+  }
 }
 
-function segmentIntersectsTriangle(start: Vec3, end: Vec3, triangle: [Vec3, Vec3, Vec3]): boolean {
-  const direction = subtract3(end, start);
-  const edge1 = subtract3(triangle[1], triangle[0]);
-  const edge2 = subtract3(triangle[2], triangle[0]);
-  const p = cross3(direction, edge2);
-  const determinant = dot3(edge1, p);
-  if (Math.abs(determinant) <= EPSILON) return false;
-  const inverse = 1 / determinant;
-  const t = subtract3(start, triangle[0]);
-  const u = dot3(t, p) * inverse;
-  if (u < -EPSILON || u > 1 + EPSILON) return false;
-  const q = cross3(t, edge1);
-  const v = dot3(direction, q) * inverse;
-  if (v < -EPSILON || u + v > 1 + EPSILON) return false;
-  const amount = dot3(edge2, q) * inverse;
-  return amount >= -EPSILON && amount <= 1 + EPSILON;
+function pointInTriangle3(point: Vec3, triangle: [Vec3, Vec3, Vec3], tolerance: number): boolean {
+  const first = subtract3(triangle[1], triangle[0]), second = subtract3(triangle[2], triangle[0]), relative = subtract3(point, triangle[0]);
+  const aa = dot3(first, first), ab = dot3(first, second), bb = dot3(second, second), ar = dot3(first, relative), br = dot3(second, relative);
+  const denominator = aa * bb - ab * ab;
+  if (Math.abs(denominator) <= tolerance * tolerance) return false;
+  const u = (bb * ar - ab * br) / denominator, v = (aa * br - ab * ar) / denominator;
+  const barycentricTolerance = tolerance / Math.max(Math.sqrt(aa), Math.sqrt(bb), tolerance);
+  return u >= -barycentricTolerance && v >= -barycentricTolerance && u + v <= 1 + barycentricTolerance;
+}
+
+function segmentContactParameters2(a: [number, number], b: [number, number], c: [number, number], d: [number, number], tolerance: number): number[] {
+  const direction = [b[0] - a[0], b[1] - a[1]] as [number, number], other = [d[0] - c[0], d[1] - c[1]] as [number, number];
+  const denominator = direction[0] * other[1] - direction[1] * other[0];
+  const offset = [c[0] - a[0], c[1] - a[1]] as [number, number];
+  if (Math.abs(denominator) > tolerance) {
+    const amount = (offset[0] * other[1] - offset[1] * other[0]) / denominator;
+    const otherAmount = (offset[0] * direction[1] - offset[1] * direction[0]) / denominator;
+    return amount >= -tolerance && amount <= 1 + tolerance && otherAmount >= -tolerance && otherAmount <= 1 + tolerance ? [Math.max(0, Math.min(1, amount))] : [];
+  }
+  if (Math.abs(offset[0] * direction[1] - offset[1] * direction[0]) > tolerance) return [];
+  const lengthSquared = direction[0] ** 2 + direction[1] ** 2;
+  if (lengthSquared <= tolerance * tolerance) return [];
+  const first = (offset[0] * direction[0] + offset[1] * direction[1]) / lengthSquared;
+  const second = first + (other[0] * direction[0] + other[1] * direction[1]) / lengthSquared;
+  const low = Math.max(0, Math.min(first, second)), high = Math.min(1, Math.max(first, second));
+  if (low > high + tolerance) return [];
+  return Math.abs(high - low) <= tolerance ? [(low + high) / 2] : [low, high];
+}
+
+function pointInTriangle2(point: [number, number], triangle: [[number, number], [number, number], [number, number]], tolerance: number): boolean {
+  const values = [cross2(triangle[0], triangle[1], point), cross2(triangle[1], triangle[2], point), cross2(triangle[2], triangle[0], point)];
+  return !(values.some((value) => value < -tolerance) && values.some((value) => value > tolerance));
+}
+
+function projectedPolygonArea(points: Array<[number, number]>): number {
+  return points.reduce((sum, point, index) => { const next = points[(index + 1) % points.length]; return sum + point[0] * next[1] - next[0] * point[1]; }, 0) * 0.5;
+}
+
+function dominantAxis(normal: Vec3): number {
+  return Math.abs(normal[0]) >= Math.abs(normal[1]) && Math.abs(normal[0]) >= Math.abs(normal[2]) ? 0 : Math.abs(normal[1]) >= Math.abs(normal[2]) ? 1 : 2;
+}
+
+function deduplicateContactPoints(points: Vec3[], tolerance: number): Vec3[] {
+  const values: Vec3[] = [];
+  for (const point of points) if (!values.some((existing) => distance3(existing, point) <= tolerance)) values.push([...point]);
+  return values;
+}
+
+function farthestPair(points: Vec3[]): { first: Vec3; second: Vec3; distance: number } | null {
+  let result: { first: Vec3; second: Vec3; distance: number } | null = null;
+  for (let first = 0; first < points.length; first += 1) for (let second = first + 1; second < points.length; second += 1) {
+    const distance = distance3(points[first], points[second]);
+    if (!result || distance > result.distance) result = { first: points[first], second: points[second], distance };
+  }
+  return result;
+}
+
+function pointOnSegment3(point: Vec3, start: Vec3, end: Vec3, tolerance: number): boolean {
+  const segment = subtract3(end, start), lengthSquared = dot3(segment, segment);
+  if (lengthSquared <= tolerance * tolerance) return distance3(point, start) <= tolerance;
+  const amount = dot3(subtract3(point, start), segment) / lengthSquared;
+  if (amount < -tolerance || amount > 1 + tolerance) return false;
+  return distance3(point, add3(start, scale3(segment, amount))) <= tolerance;
+}
+
+function directedEdgeSign(face: Face, first: number, second: number): number {
+  for (let index = 0; index < 3; index += 1) {
+    const next = (index + 1) % 3;
+    if (face[index] === first && face[next] === second) return 1;
+    if (face[index] === second && face[next] === first) return -1;
+  }
+  return 0;
+}
+
+function intersectionRecord(triangleIds: [number, number], classification: TriangleIntersectionClassification, topology: TriangleIntersectionRecord['topology'], geometry: TriangleIntersectionRecord['geometry'], points: Vec3[], invalid: boolean, objectId: string | null, explanation: string): TriangleIntersectionRecord {
+  return { triangleIds, classification, topology, geometry, points: points.map((point) => [...point]), invalid, objectId, explanation };
+}
+
+function detectBowTieTopology(mesh: IndexedMesh, objectId: string | null, existingPairs: Set<string>): TriangleIntersectionRecord[] {
+  const topology = buildTopology(mesh);
+  const results: TriangleIntersectionRecord[] = [];
+  for (let vertex = 0; vertex < topology.vertexFaces.length; vertex += 1) {
+    const incident = topology.vertexFaces[vertex];
+    if (incident.length < 2) continue;
+    const incidentSet = new Set(incident);
+    const neighbors = new Map<number, number[]>();
+    for (const faceId of incident) {
+      const connected = topology.faceNeighbors[faceId].filter((neighbor) => incidentSet.has(neighbor) && mesh.faces[faceId].filter((id) => mesh.faces[neighbor].includes(id)).includes(vertex));
+      neighbors.set(faceId, connected);
+    }
+    const unvisited = new Set(incident); const components: number[][] = [];
+    while (unvisited.size) {
+      const seed = Math.min(...unvisited); const component: number[] = []; const stack = [seed]; unvisited.delete(seed);
+      while (stack.length) { const current = stack.pop()!; component.push(current); for (const neighbor of neighbors.get(current) ?? []) if (unvisited.delete(neighbor)) stack.push(neighbor); }
+      components.push(component.sort((a, b) => a - b));
+    }
+    for (let index = 1; index < components.length; index += 1) {
+      const triangleIds = [components[0][0], components[index][0]].sort((a, b) => a - b) as [number, number];
+      const key = triangleIds.join(':'); if (existingPairs.has(key)) continue; existingPairs.add(key);
+      results.push(intersectionRecord(triangleIds, 'bow-tie-topology', 'shared-vertex', 'topology', [mesh.positions[vertex]], true, objectId, `Vertex ${vertex} joins disconnected triangle fans and forms bow-tie topology.`));
+    }
+  }
+  return results;
 }
 
 export function averageEdgeLength(mesh: IndexedMesh): number {

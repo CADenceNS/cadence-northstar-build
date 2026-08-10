@@ -86,7 +86,7 @@ export const PRODUCTION_TOOL_DEFINITIONS = [
 
   tool('cut.plane', 'Plane cut', 'cut', 'object', 'Signed-distance triangle clipping against a model-space plane', [...planeParameters(), selectParameter('keep', 'Keep side', 'both', ['positive', 'negative', 'both']), booleanParameter('cap', 'Cap boundaries', true)], true, true),
   tool('cut.curve', 'Curve-based cut', 'cut', 'curve', 'Piecewise ruled cutting surface from every curve segment and extrusion direction', [...directionParameters('extrusion', 'Extrusion'), selectParameter('keep', 'Keep side', 'both', ['positive', 'negative', 'both']), booleanParameter('cap', 'Cap boundaries', true)], true, true),
-  tool('cut.trim-curve', 'Trim by closed curve', 'cut', 'curve', 'Best-fit-plane polygon containment over actual face centroids', [booleanParameter('inside', 'Keep inside', true)], true, true),
+  tool('cut.trim-curve', 'Trim by closed curve', 'cut', 'curve', 'Surface-constrained polygon splitting with model-space boundary insertion', [booleanParameter('inside', 'Keep inside', true)], true, true),
   tool('cut.split', 'Split mesh', 'cut', 'object', 'Two-sided signed-distance triangle clipping', [...planeParameters(), booleanParameter('cap', 'Cap boundaries', false)], true, true),
   tool('boolean.union', 'Boolean union', 'boolean', 'objects:2', 'Binary space partitioning constructive solid geometry union', [], true, true),
   tool('boolean.difference', 'Boolean difference', 'boolean', 'objects:2', 'Binary space partitioning constructive solid geometry subtraction', [], true, true),

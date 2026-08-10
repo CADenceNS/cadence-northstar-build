@@ -36,6 +36,7 @@ export interface EditingOperationRequest {
   secondarySelectionIds?: number[];
   parameters: Record<string, number | string | boolean>;
   curvePoints?: Vec3[];
+  curveClosed?: boolean;
   transform?: Transform;
 }
 
@@ -92,7 +93,7 @@ function dispatch(request: EditingOperationRequest, meshes: IndexedMesh[]): { pr
     case 'mesh.remove-islands': return one(removeIsolatedComponents(source, num(p, 'minimumArea', 1)));
     case 'cut.plane': { const value = planeCut(source, { origin: vector(p, 'origin'), normal: vector(p, 'normal', [0, 0, 1]) }, { keep: keep(p), cap: bool(p, 'cap', true) }); return { primary: value.primary, additional: value.secondary ? [value.secondary] : [], warnings: value.intersectionLoops.length ? [] : ['The cut produced no closed intersection loop.'] }; }
     case 'cut.curve': { const value = curveBasedCut(source, requiredCurve(request.curvePoints), vector(p, 'extrusion', [0, 0, 1]), keep(p), bool(p, 'cap', true)); return { primary: value.primary, additional: value.secondary ? [value.secondary] : [], warnings: [] }; }
-    case 'cut.trim-curve': return one(trimByClosedCurve(source, requiredCurve(request.curvePoints), bool(p, 'inside', true)), ['Trim boundaries remain open unless subsequently filled.']);
+    case 'cut.trim-curve': return one(trimByClosedCurve(source, requiredCurve(request.curvePoints), bool(p, 'inside', true), request.curveClosed === true), ['Trim boundaries remain open unless subsequently filled.']);
     case 'cut.split': { const value = splitMesh(source, { origin: vector(p, 'origin'), normal: vector(p, 'normal', [0, 0, 1]) }, bool(p, 'cap', false)); return { primary: value.primary, additional: value.secondary ? [value.secondary] : [], warnings: [] }; }
     case 'boolean.union': return one(booleanMesh(source, requiredMesh(meshes, 1), 'union'));
     case 'boolean.difference': return one(booleanMesh(source, requiredMesh(meshes, 1), 'difference'));

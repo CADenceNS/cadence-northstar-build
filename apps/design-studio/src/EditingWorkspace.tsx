@@ -359,7 +359,7 @@ function geometryExecutor(definition: ToolDefinition, worker: EditingWorkerClien
       const request: EditingOperationRequest = {
         requestId: crypto.randomUUID(), toolId: definition.id,
         meshes, selectionIds, secondarySelectionIds, parameters,
-        ...(curve && context.selectedObjects[0] ? { curvePoints: curvePointsForObject(curve, context, context.selectedObjects[0]) } : {}), ...(context.selectedObjects[0] ? { transform: context.selectedObjects[0].transform } : {}),
+        ...(curve && context.selectedObjects[0] ? { curvePoints: curvePointsForObject(curve, context, context.selectedObjects[0]), curveClosed: curve.closed } : {}), ...(context.selectedObjects[0] ? { transform: context.selectedObjects[0].transform } : {}),
       };
       return (await worker.execute(request, { signal, progress })).output;
     },

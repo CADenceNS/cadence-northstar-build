@@ -7,7 +7,7 @@ import { bridgableTube, cube, grid, openTetra, tetra, twoShells } from './golden
 import { subdivide } from '../src/topology-tools';
 import { PRODUCTION_TOOL_DEFINITIONS } from '../src/tool-registry';
 
-interface Case { id: string; meshes: MeshData[]; selection?: number[]; secondary?: number[]; parameters?: Record<string, number | string | boolean>; curve?: Vec3[]; transform?: Transform; }
+interface Case { id: string; meshes: MeshData[]; selection?: number[]; secondary?: number[]; parameters?: Record<string, number | string | boolean>; curve?: Vec3[]; curveClosed?: boolean; transform?: Transform; }
 
 const lowerTube = bridgableTube(); const upperTube = bridgableTube(); upperTube.positions = upperTube.positions.map(([x, y, z]) => [x, y, z + 10]);
 const bridgeSource = mergeIndexed([lowerTube, upperTube]);
@@ -41,7 +41,7 @@ const CASES: Case[] = [
   geometry('mesh.remove-islands', islands, [], { minimumArea: 5 }),
   geometry('cut.plane', cube(), [], { 'origin-x': 5, 'normal-x': 1, 'normal-y': 0, 'normal-z': 0, keep: 'both', cap: true }),
   { ...geometry('cut.curve', cube(), [], { keep: 'both', cap: true }), curve: [[5, 0, 0], [5, 10, 0]] },
-  { ...geometry('cut.trim-curve', grid(10), [], { inside: true }), curve: [[2, 2, 0], [8, 2, 0], [8, 8, 0], [2, 8, 0]] },
+  { ...geometry('cut.trim-curve', grid(10), [], { inside: true }), curve: [[2, 2], [8, 2], [8, 8], [2, 8]].map(([x, y]) => [x, y, Math.sin(x * 0.1) * Math.cos(y * 0.1)] as Vec3), curveClosed: true },
   geometry('cut.split', cube(), [], { 'origin-x': 5, 'normal-x': 1, 'normal-y': 0, 'normal-z': 0, cap: true }),
   { id: 'boolean.union', meshes: [meshData(cube()), meshData(cube([5, 0, 0]))], selection: [], parameters: {} },
   { id: 'boolean.difference', meshes: [meshData(cube()), meshData(cube([5, 0, 0]))], selection: [], parameters: {} },
@@ -70,7 +70,7 @@ describe('golden editing operation dispatcher corpus', () => {
 });
 
 function geometry(id: string, mesh: ReturnType<typeof cube>, selection: number[] = [], parameters: Record<string, number | string | boolean> = {}, secondary?: number[]): Case { return { id, meshes: [meshData(mesh)], selection, parameters, ...(secondary ? { secondary } : {}) }; }
-function request(fixture: Case): EditingOperationRequest { return { requestId: crypto.randomUUID(), toolId: fixture.id, meshes: structuredClone(fixture.meshes), selectionIds: fixture.selection ?? [], ...(fixture.secondary ? { secondarySelectionIds: fixture.secondary } : {}), parameters: structuredClone(fixture.parameters ?? {}), ...(fixture.curve ? { curvePoints: structuredClone(fixture.curve) } : {}), ...(fixture.transform ? { transform: structuredClone(fixture.transform) } : {}) }; }
+function request(fixture: Case): EditingOperationRequest { return { requestId: crypto.randomUUID(), toolId: fixture.id, meshes: structuredClone(fixture.meshes), selectionIds: fixture.selection ?? [], ...(fixture.secondary ? { secondarySelectionIds: fixture.secondary } : {}), parameters: structuredClone(fixture.parameters ?? {}), ...(fixture.curve ? { curvePoints: structuredClone(fixture.curve), curveClosed: fixture.curveClosed ?? false } : {}), ...(fixture.transform ? { transform: structuredClone(fixture.transform) } : {}) }; }
 
 function buildBridgeSelection(mesh: ReturnType<typeof cube>): [number, number] {
   const topology = buildTopology(mesh); const loops = boundaryLoops(mesh, topology); const byKey = new Map(topology.edges.map((edge, id) => [[...edge].sort((a, b) => a - b).join(':'), id]));

@@ -24,7 +24,7 @@ describe('measured mesh validation performance', () => {
       const geometryPayloadBytes = (artifact.mesh.positions.length + artifact.mesh.normals.length + artifact.mesh.indices.length + (artifact.mesh.sourceTopology?.positions.length ?? 0) + (artifact.mesh.sourceTopology?.indices.length ?? 0)) * 8;
       const measurement = { case: fixture.name, triangles: artifact.mesh.indices.length / 3, vertices: (artifact.mesh.sourceTopology?.positions.length ?? 0) / 3, validationDurationMs, overlayDurationMs, geometryPayloadBytes, heapDeltaBytes: afterHeap - beforeHeap, overlayCount: overlays.length };
       console.info(`PERFORMANCE ${JSON.stringify(measurement)}`);
-      expect(validationDurationMs).toBeGreaterThanOrEqual(0); expect(overlayDurationMs).toBeGreaterThanOrEqual(0); expect(Number.isFinite(afterHeap)).toBe(true); expect(result.checks).toHaveLength(20);
+      expect(validationDurationMs).toBeGreaterThanOrEqual(0); expect(overlayDurationMs).toBeGreaterThanOrEqual(0); expect(Number.isFinite(afterHeap)).toBe(true); expect(result.checks).toHaveLength(21); expect(result.checks.some(({ id }) => id === 'self-intersections')).toBe(true);
     });
   }
 
