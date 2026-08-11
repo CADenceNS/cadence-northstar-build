@@ -1,7 +1,8 @@
 import type { ArtifactRecord, StoredValidationCheck, ValidationCheckStatus, Vec3 } from './core';
+import { analyzeSelfIntersections, type TriangleIntersectionRecord } from './editing-geometry';
 import { cross3, dot3, length3, subtract3 } from './geometry';
 
-export const VALIDATION_ENGINE_VERSION = '1.0.0';
+export const VALIDATION_ENGINE_VERSION = '1.1.0';
 
 export interface ValidationOptions {
   vertexToleranceMm: number;
@@ -30,6 +31,7 @@ export interface MeshValidationResult {
   warningCount: number;
   failureCount: number;
   resultFingerprint: string;
+  selfIntersections: TriangleIntersectionRecord[];
   topology: ValidationTopologySnapshot;
 }
 
@@ -42,7 +44,7 @@ const DEFAULT_OPTIONS: ValidationOptions = {
 
 interface EdgeOccurrence { triangle: number; from: number; to: number; }
 
-export function validateMeshArtifact(artifact: ArtifactRecord, overrides: Partial<ValidationOptions> = {}): MeshValidationResult {
+export function validateMeshArtifact(artifact: ArtifactRecord, overrides: Partial<ValidationOptions> = {}, objectId: string | null = null): MeshValidationResult {
   const started = performance.now(); const startedAt = new Date().toISOString();
   const options = { ...DEFAULT_OPTIONS, ...overrides };
   const source = artifact.mesh.sourceTopology ?? { positions: artifact.mesh.positions, indices: artifact.mesh.indices };
@@ -119,8 +121,13 @@ export function validateMeshArtifact(artifact: ArtifactRecord, overrides: Partia
   const smallThreshold = Math.max(options.smallComponentAbsoluteAreaMm2, totalArea * options.smallComponentRelativeArea);
   const smallTriangleIds = validShells.flatMap((shell, index) => validShells.length > 1 && shellAreas[index] < smallThreshold ? shell.map((id) => `triangle:${id}`) : []).sort(numericElementSort);
 
+  const selfIntersectionExecutable = !empty && !invalidReferenceIds.length && !invalidCoordinateIds.length && !zeroAreaIds.length && !degenerateIds.length;
+  const selfIntersections = selfIntersectionExecutable
+    ? analyzeSelfIntersections({ positions: canonicalPositions, faces: triangles.map(({ canonical }) => [...canonical]) }, objectId)
+    : [];
+  const selfIntersectionIds = selfIntersections.map(({ triangleIds }) => `intersection:${triangleIds[0]}-${triangleIds[1]}`);
   const signedVolume = triangles.reduce((sum, triangle) => triangle.points ? sum + dot3(triangle.points[0], cross3(triangle.points[1], triangle.points[2])) / 6 : sum, 0);
-  const closed = !empty && !invalidReferenceIds.length && !zeroAreaIds.length && !degenerateIds.length && !boundaryEdgeIds.length && !nonManifoldEdgeIds.length;
+  const closed = !empty && !invalidReferenceIds.length && !zeroAreaIds.length && !degenerateIds.length && !boundaryEdgeIds.length && !nonManifoldEdgeIds.length && !selfIntersections.length;
   const invertedNormalIds = detectInvertedNormals(artifact);
   if (closed && signedVolume < -options.zeroAreaThresholdMm2 && !invertedNormalIds.length) invertedNormalIds.push(...triangles.map((triangle) => `triangle:${triangle.id}`));
   const bounds = finiteBounds(sourcePoints.filter((point): point is Vec3 => Boolean(point)));
@@ -136,6 +143,7 @@ export function validateMeshArtifact(artifact: ArtifactRecord, overrides: Partia
     check('boundary-edges', boundaryEdgeIds.length ? 'fail' : 'pass', boundaryEdgeIds.length, '0 single-use edges', boundaryEdgeIds, boundaryEdgeIds.length ? 'Edges used by only one triangle expose a mesh boundary.' : 'No boundary edges were detected.'),
     check('open-boundaries', boundaryEdgeIds.length ? 'fail' : 'pass', boundaryComponentCount, '0 open boundary components', boundaryEdgeIds, boundaryEdgeIds.length ? 'One or more connected open boundary components were detected.' : 'No open boundaries were detected.'),
     check('non-manifold-edges', nonManifoldEdgeIds.length ? 'fail' : 'pass', nonManifoldEdgeIds.length, 'at most 2 incident triangles per edge', nonManifoldEdgeIds, nonManifoldEdgeIds.length ? 'Edges shared by more than two triangles were detected.' : 'All populated edges have at most two incident triangles.'),
+    check('self-intersections', !selfIntersectionExecutable ? 'not-run' : selfIntersections.length ? 'fail' : 'pass', selfIntersectionExecutable ? selfIntersections.length : null, '0 invalid triangle intersections', selfIntersectionIds, !selfIntersectionExecutable ? 'Self-intersection analysis cannot execute until invalid or degenerate triangle input is resolved.' : selfIntersections.length ? 'Invalid triangle crossings, overlaps, contacts, or bow-tie topology were detected.' : 'No invalid triangle intersections or bow-tie topology were detected.'),
     check('disconnected-shells', validShells.length > 1 ? 'warning' : 'pass', validShells.length, '1 connected shell', disconnectedTriangleIds, validShells.length > 1 ? 'Multiple disconnected triangle shells were detected.' : 'Geometry forms one connected shell.'),
     check('inconsistent-triangle-winding', inconsistentIds.length ? 'fail' : 'pass', inconsistentIds.length, 'opposite traversal across shared edges', inconsistentIds, inconsistentIds.length ? 'Adjacent triangles traverse shared edges in the same direction.' : 'Shared-edge triangle winding is consistent.'),
     check('inverted-normal-candidates', invertedNormalIds.length ? 'warning' : 'pass', invertedNormalIds.length, '0 opposed normals or negative closed volume', invertedNormalIds, invertedNormalIds.length ? 'Triangle normals oppose geometric winding or the closed shell has negative signed volume.' : 'No inverted normal candidates were detected.'),
@@ -145,13 +153,13 @@ export function validateMeshArtifact(artifact: ArtifactRecord, overrides: Partia
     check('vertex-count', 'pass', sourceVertexCount, 'reported value', [], 'Vertex count was measured from source topology.'),
     check('surface-area', invalidCoordinateIds.length ? 'not-run' : 'pass', invalidCoordinateIds.length ? null : totalArea, `area threshold ${options.zeroAreaThresholdMm2} mm²`, zeroAreaIds, invalidCoordinateIds.length ? 'Surface area cannot execute with non-finite coordinates.' : 'Triangle surface area was summed in square millimeters.'),
     check('signed-volume', closed ? 'pass' : 'not-run', closed ? signedVolume : null, 'closed manifold mesh required', [], closed ? 'Signed volume was calculated from the oriented closed triangle shell.' : 'Signed volume was not executed because the mesh is not a closed manifold shell.'),
-    check('watertight-status', closed ? 'pass' : 'fail', closed, 'true', unique([...boundaryEdgeIds, ...nonManifoldEdgeIds, ...degenerateIds, ...invalidReferenceIds]), closed ? 'The mesh is a closed two-manifold shell under the configured tolerance.' : 'The mesh is not watertight under the configured tolerance.'),
+    check('watertight-status', closed ? 'pass' : 'fail', closed, 'true', unique([...boundaryEdgeIds, ...nonManifoldEdgeIds, ...degenerateIds, ...invalidReferenceIds, ...selfIntersectionIds]), closed ? 'The mesh is a closed, non-self-intersecting two-manifold shell under the configured tolerance.' : 'The mesh is not watertight under the configured tolerance.'),
   ];
 
   const failureCount = checks.filter((item) => item.status === 'fail').length;
   const warningCount = checks.filter((item) => item.status === 'warning').length;
   const overall = failureCount ? 'fail' : warningCount ? 'warning' : 'pass';
-  const fingerprint = stableFingerprint(checks.map(({ id, status, measuredValue, threshold, affectedCount, affectedElementIds }) => ({ id, status, measuredValue, threshold, affectedCount, affectedElementIds })));
+  const fingerprint = stableFingerprint({ checks: checks.map(({ id, status, measuredValue, threshold, affectedCount, affectedElementIds }) => ({ id, status, measuredValue, threshold, affectedCount, affectedElementIds })), selfIntersections });
   return {
     artifactId: artifact.id,
     engineVersion: VALIDATION_ENGINE_VERSION,
@@ -164,6 +172,7 @@ export function validateMeshArtifact(artifact: ArtifactRecord, overrides: Partia
     warningCount,
     failureCount,
     resultFingerprint: fingerprint,
+    selfIntersections,
     topology: {
       canonicalPositions: canonicalPositions.flat(),
       triangleCanonicalIndices: triangles.map((triangle) => [...triangle.canonical]),

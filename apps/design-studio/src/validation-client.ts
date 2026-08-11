@@ -24,7 +24,7 @@ export class ValidationWorkerClient {
     return worker;
   }
 
-  validate(artifact: ArtifactRecord): Promise<MeshValidationResult> {
+  validate(artifact: ArtifactRecord, objectId: string | null = null): Promise<MeshValidationResult> {
     const id = crypto.randomUUID();
     const worker = this.ensureWorker();
     return new Promise((resolve, reject) => {
@@ -35,7 +35,7 @@ export class ValidationWorkerClient {
         if (this.worker === worker) this.worker = undefined;
       }, 120_000);
       this.pending.set(id, { resolve, reject, timeout });
-      try { worker.postMessage({ id, artifact }); }
+      try { worker.postMessage({ id, artifact, objectId }); }
       catch (error) {
         clearTimeout(timeout); this.pending.delete(id);
         reject(error instanceof Error ? error : new Error('Unable to start mesh validation'));

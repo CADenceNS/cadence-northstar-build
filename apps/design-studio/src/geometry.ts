@@ -26,6 +26,15 @@ export function transformPoint(point: Vec3, object: SceneObject): Vec3 {
   return add3(rotated, object.transform.position);
 }
 
+export function inverseTransformPoint(point: Vec3, object: SceneObject): Vec3 {
+  if (object.transform.scale.some((value) => !Number.isFinite(value) || Math.abs(value) < 1e-12)) throw new Error(`Object ${object.name} has a non-invertible transform.`);
+  const translated = subtract3(point, object.transform.position);
+  const [x, y, z, w] = object.transform.rotation;
+  const axis: Vec3 = [-x, -y, -z];
+  const rotated = add3(add3(scale3(axis, 2 * dot3(axis, translated)), scale3(translated, w * w - dot3(axis, axis))), scale3(cross3(axis, translated), 2 * w));
+  return [rotated[0] / object.transform.scale[0], rotated[1] / object.transform.scale[1], rotated[2] / object.transform.scale[2]];
+}
+
 export function meshTriangles(artifact: ArtifactRecord, object?: SceneObject): Triangle3[] {
   const topology = artifact.mesh.sourceTopology ?? { positions: artifact.mesh.positions, indices: artifact.mesh.indices };
   const triangles: Triangle3[] = [];
