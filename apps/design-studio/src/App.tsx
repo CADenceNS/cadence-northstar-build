@@ -60,6 +60,8 @@ import { SCAN_ROLES, type CaseScanRecord, type CaseScanSet, type PairwiseRegistr
 import { validateScanForRegistration } from './scan-validation';
 import { EditingStateManager } from './editing-state';
 import { EditingWorkspace, type EditingWorkspaceHandle } from './EditingWorkspace';
+import { PreparationStateManager } from './preparation-state';
+import { PreparationWorkspace, type PreparationWorkspaceHandle } from './PreparationWorkspace';
 import './styles.css';
 
 const projectStore = new ProjectStore();
@@ -87,6 +89,7 @@ export function App() {
   const [registrationReportManager] = useState(() => new RegistrationReportManager(project.registrationReports));
   const [projectHistory] = useState(() => new ProjectHistoryManager(project.history));
   const [editingManager] = useState(() => new EditingStateManager(project.editing));
+  const [preparationManager] = useState(() => new PreparationStateManager(project.preparation));
   const [validationClient] = useState(() => new ValidationWorkerClient());
   const [registrationClient] = useState(() => new RegistrationWorkerClient());
 
@@ -102,7 +105,7 @@ export function App() {
   const [historyVersion, setHistoryVersion] = useState(0);
   const [metricsVersion, setMetricsVersion] = useState(0);
   const [recoveryAvailable, setRecoveryAvailable] = useState(() => Boolean(projectStore.recover()));
-  const [inspectorTab, setInspectorTab] = useState<'scene' | 'measure' | 'validate' | 'register' | 'edit'>('scene');
+  const [inspectorTab, setInspectorTab] = useState<'scene' | 'measure' | 'validate' | 'register' | 'edit' | 'prepare'>('scene');
   const [opacityDraft, setOpacityDraft] = useState(100);
   const [placement, setPlacement] = useState<MeasurementPlacement | null>(null);
   const [pendingAnchors, setPendingAnchors] = useState<MeasurementAnchor[]>([]);
@@ -113,6 +116,7 @@ export function App() {
   const [validating, setValidating] = useState(false);
   const [overlays, setOverlays] = useState<ViewerOverlay[]>([]);
   const [editingOverlays, setEditingOverlays] = useState<ViewerOverlay[]>([]);
+  const [preparationOverlays, setPreparationOverlays] = useState<ViewerOverlay[]>([]);
   const [selectedCheckId, setSelectedCheckId] = useState<string | null>(null);
   const [registrationSourceId, setRegistrationSourceId] = useState('');
   const [registrationTargetId, setRegistrationTargetId] = useState('');
@@ -133,6 +137,7 @@ export function App() {
   const viewerRef = useRef<IRenderer | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
   const editingRef = useRef<EditingWorkspaceHandle>(null);
+  const preparationRef = useRef<PreparationWorkspaceHandle>(null);
 
   useEffect(() => sceneManager.subscribe(() => {
     runtimeMetrics.measure('scene.update', () => setScene(sceneManager.list()), { objects: sceneManager.list().length });
@@ -145,6 +150,7 @@ export function App() {
   useEffect(() => registrationReportManager.subscribe(() => { setRegistrationReports(registrationReportManager.list()); setDirty(true); }), [registrationReportManager]);
   useEffect(() => projectHistory.subscribe(() => setDirty(true)), [projectHistory]);
   useEffect(() => editingManager.subscribe(() => setDirty(true)), [editingManager]);
+  useEffect(() => preparationManager.subscribe(() => setDirty(true)), [preparationManager]);
   useEffect(() => commandBus.subscribe(() => setHistoryVersion((value) => value + 1)), [commandBus]);
   useEffect(() => runtimeMetrics.subscribe(() => setMetricsVersion((value) => value + 1)), []);
   useEffect(() => () => validationClient.dispose(), [validationClient]);
@@ -163,7 +169,7 @@ export function App() {
 
   useEffect(() => { viewerRef.current?.setScene(scene, artifactManager.list()); }, [scene, artifactManager]);
   useEffect(() => { viewerRef.current?.setCamera(project.camera); }, [project.camera]);
-  useEffect(() => { viewerRef.current?.setValidationOverlays([...overlays, ...editingOverlays]); }, [editingOverlays, overlays]);
+  useEffect(() => { viewerRef.current?.setValidationOverlays([...overlays, ...editingOverlays, ...preparationOverlays]); }, [editingOverlays, overlays, preparationOverlays]);
   useEffect(() => {
     const next = synchronizeCaseScanSet(caseScanManager.get(), scene, artifactManager.list());
     const current = caseScanManager.get();
@@ -189,13 +195,13 @@ export function App() {
   useEffect(() => {
     if (!dirty) return;
     const timer = window.setTimeout(() => {
-      const snapshot = snapshotProject(project, scene, artifactManager, savedViews, measurements, reports, caseScanSet, registrationReports, projectHistory.list(), editingManager);
+      const snapshot = snapshotProject(project, scene, artifactManager, savedViews, measurements, reports, caseScanSet, registrationReports, projectHistory.list(), editingManager, preparationManager);
       projectStore.autoSave(snapshot);
       setRecoveryAvailable(true);
       setStatus(`Auto-saved ${new Date().toLocaleTimeString()}`);
     }, 750);
     return () => window.clearTimeout(timer);
-  }, [artifactManager, caseScanSet, dirty, editingManager, historyVersion, measurements, project, projectHistory, registrationReports, reports, savedViews, scene]);
+  }, [artifactManager, caseScanSet, dirty, editingManager, historyVersion, measurements, preparationManager, project, projectHistory, registrationReports, reports, savedViews, scene]);
 
   const selectedObjects = useMemo(() => scene.filter((object) => object.selected), [scene]);
   const selected = selectedObjects[0];
@@ -259,9 +265,9 @@ export function App() {
     sceneManager.replace(next.scene); artifactManager.replace(next.artifacts);
     measurementManager.replace(next.measurements); savedViewManager.replace(next.savedViews);
     reportManager.replace(next.validationReports); projectHistory.replace(next.history);
-    caseScanManager.replace(synchronizeCaseScanSet(next.caseScanSet, next.scene, next.artifacts)); registrationReportManager.replace(next.registrationReports); editingManager.replace(next.editing);
+    caseScanManager.replace(synchronizeCaseScanSet(next.caseScanSet, next.scene, next.artifacts)); registrationReportManager.replace(next.registrationReports); editingManager.replace(next.editing); preparationManager.replace(next.preparation);
     selectionEngine.restore({ activeSet: 'Default', sets: { Default: next.scene.filter((item) => item.selected).map((item) => ({ kind: 'object', objectId: item.id })) } });
-    setProject(next); setOverlays([]); setEditingOverlays([]); setValidationHistory({}); setPlacement(null); setPendingAnchors([]); setPreviewHit(null); setRegistrationResult(null); setRegistrationProgress(null); setActiveRegistrationId(null); setManualPlacement(null);
+    setProject(next); setOverlays([]); setEditingOverlays([]); setPreparationOverlays([]); setValidationHistory({}); setPlacement(null); setPendingAnchors([]); setPreviewHit(null); setRegistrationResult(null); setRegistrationProgress(null); setActiveRegistrationId(null); setManualPlacement(null);
   };
 
   const newProject = () => {
@@ -277,14 +283,14 @@ export function App() {
   };
 
   const saveProject = () => {
-    const snapshot = snapshotProject(project, scene, artifactManager, savedViews, measurements, reports, caseScanSet, registrationReports, projectHistory.list(), editingManager);
+    const snapshot = snapshotProject(project, scene, artifactManager, savedViews, measurements, reports, caseScanSet, registrationReports, projectHistory.list(), editingManager, preparationManager);
     const saved = runtimeMetrics.measure('project.save', () => projectStore.save(snapshot), { objects: scene.length, measurements: measurements.length, reports: reports.length });
     setProject(saved); setDirty(false); setRecoveryAvailable(false); setStatus(`Saved ${saved.name}`);
   };
 
   const saveAs = () => {
     const name = window.prompt('Project name', `${project.name} Copy`)?.trim(); if (!name) return;
-    const snapshot = snapshotProject(project, scene, artifactManager, savedViews, measurements, reports, caseScanSet, registrationReports, projectHistory.list(), editingManager);
+    const snapshot = snapshotProject(project, scene, artifactManager, savedViews, measurements, reports, caseScanSet, registrationReports, projectHistory.list(), editingManager, preparationManager);
     const saved = runtimeMetrics.measure('project.save', () => projectStore.saveAs(snapshot, name), { objects: scene.length, measurements: measurements.length, reports: reports.length });
     setProject(saved); setDirty(false); setRecoveryAvailable(false); setStatus(`Saved as ${saved.name}`);
   };
@@ -373,6 +379,10 @@ export function App() {
   };
 
   const handleCanvasClick = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (inspectorTab === 'prepare' && viewerRef.current) {
+      const hit = viewerRef.current.pick(event.clientX, event.clientY);
+      if (hit && preparationRef.current?.handleCanvasClick(hit)) return;
+    }
     if (inspectorTab === 'edit' && viewerRef.current) {
       const hit = viewerRef.current.pick(event.clientX, event.clientY);
       if (!hit) { setStatus('No mesh surface was found under the pointer.'); return; }
@@ -394,6 +404,7 @@ export function App() {
   };
 
   const handleCanvasMove = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (inspectorTab === 'prepare' && preparationRef.current?.handlePointerMove(event.clientX, event.clientY)) return;
     if (inspectorTab === 'edit' && editingRef.current?.handlePointerMove(event.clientX, event.clientY)) return;
     if ((!placement && !manualPlacement) || !viewerRef.current) return;
     setPreviewHit(viewerRef.current.pick(event.clientX, event.clientY));
@@ -416,7 +427,7 @@ export function App() {
   const generateReport = async () => {
     if (!currentValidation || !validationArtifact) { setStatus('Run validation before generating a report.'); return; }
     try {
-      const snapshot = snapshotProject(project, scene, artifactManager, savedViews, measurements, reports, caseScanSet, registrationReports, projectHistory.list(), editingManager);
+      const snapshot = snapshotProject(project, scene, artifactManager, savedViews, measurements, reports, caseScanSet, registrationReports, projectHistory.list(), editingManager, preparationManager);
       const { report, historyEntry } = await createValidationReport(snapshot, validationArtifact, currentValidation, availableUserIdentity());
       reportManager.add(report); projectHistory.add(historyEntry); setStatus(`Stored immutable validation report ${report.id}`);
     } catch (error) { setStatus(error instanceof Error ? error.message : 'Report generation failed'); }
@@ -588,7 +599,7 @@ export function App() {
   const resetCoordinates = async () => { const next = { ...structuredClone(caseScanSet), dentalCoordinates: null, updatedAt: new Date().toISOString() }; await run(applyRegistrationState(next, 'Reset dental coordinates', 'registration.coordinates.reset'), 'Returned to imported coordinate frame'); setOverlays([]); };
 
   const generateRegistrationReport = async () => {
-    try { const snapshot = snapshotProject(project, scene, artifactManager, savedViews, measurements, reports, caseScanSet, registrationReports, projectHistory.list(), editingManager); const { report, historyEntry } = await createRegistrationReport(snapshot, caseScanSet, artifactManager.list(), availableUserIdentity()); registrationReportManager.add(report); projectHistory.add(historyEntry); setStatus(`Stored immutable registration report ${report.id}`); }
+    try { const snapshot = snapshotProject(project, scene, artifactManager, savedViews, measurements, reports, caseScanSet, registrationReports, projectHistory.list(), editingManager, preparationManager); const { report, historyEntry } = await createRegistrationReport(snapshot, caseScanSet, artifactManager.list(), availableUserIdentity()); registrationReportManager.add(report); projectHistory.add(historyEntry); setStatus(`Stored immutable registration report ${report.id}`); }
     catch (error) { setStatus(error instanceof Error ? error.message : 'Registration report generation failed'); }
   };
 
@@ -609,7 +620,7 @@ export function App() {
 
   return <div className="studio-shell">
     <header className="topbar">
-      <div className="product"><span className="product-mark">DS</span><div><strong>CADence Design Studio</strong><span>Inspection &amp; Mesh Validation</span></div></div>
+      <div className="product"><span className="product-mark">DS</span><div><strong>CADence Design Studio</strong><span>Registration · Editing · Preparation &amp; Margin</span></div></div>
       <div className="project-title"><input aria-label="Project name" value={project.name} onChange={(event) => { setProject({ ...project, name: event.target.value }); setDirty(true); }}/><span>{dirty ? 'Unsaved changes' : 'Saved'} · Schema v{project.schemaVersion}</span></div>
       <div className="top-actions">
         <button onClick={newProject}>New</button><button onClick={() => setRecentOpen(!recentOpen)}>Open</button><button onClick={closeProject}>Close</button>
@@ -666,9 +677,11 @@ export function App() {
       </main>
 
       <aside className="properties-panel">
-        <div className="inspector-tabs" role="tablist"><button className={inspectorTab === 'scene' ? 'active' : ''} onClick={() => setInspectorTab('scene')}>Scene</button><button className={inspectorTab === 'register' ? 'active' : ''} onClick={() => setInspectorTab('register')}>Register</button><button className={inspectorTab === 'edit' ? 'active' : ''} onClick={() => setInspectorTab('edit')}>Edit</button><button className={inspectorTab === 'measure' ? 'active' : ''} onClick={() => setInspectorTab('measure')}>Measure</button><button className={inspectorTab === 'validate' ? 'active' : ''} onClick={() => setInspectorTab('validate')}>Validate</button></div>
+        <div className="inspector-tabs" role="tablist"><button className={inspectorTab === 'scene' ? 'active' : ''} onClick={() => setInspectorTab('scene')}>Scene</button><button className={inspectorTab === 'register' ? 'active' : ''} onClick={() => setInspectorTab('register')}>Register</button><button className={inspectorTab === 'edit' ? 'active' : ''} onClick={() => setInspectorTab('edit')}>Edit</button><button className={inspectorTab === 'prepare' ? 'active' : ''} onClick={() => setInspectorTab('prepare')}>Prepare</button><button className={inspectorTab === 'measure' ? 'active' : ''} onClick={() => setInspectorTab('measure')}>Measure</button><button className={inspectorTab === 'validate' ? 'active' : ''} onClick={() => setInspectorTab('validate')}>Validate</button></div>
 
         {inspectorTab === 'edit' && <EditingWorkspace ref={editingRef} scene={scene} artifacts={artifacts} sceneManager={sceneManager} artifactManager={artifactManager} selectionEngine={selectionEngine} editingManager={editingManager} commandBus={commandBus} renderer={viewerRef.current} onStatus={setStatus} onOverlays={setEditingOverlays}/>}
+
+        {inspectorTab === 'prepare' && <PreparationWorkspace ref={preparationRef} scene={scene} artifacts={artifacts} sceneManager={sceneManager} artifactManager={artifactManager} editingManager={editingManager} preparationManager={preparationManager} commandBus={commandBus} renderer={viewerRef.current} dentalAxis={caseScanSet.dentalCoordinates?.occlusalGingivalAxis ?? [0, 0, 1]} userIdentity={availableUserIdentity()} onStatus={setStatus} onOverlays={setPreparationOverlays}/>}
 
         {inspectorTab === 'scene' && <section aria-label="Scene object inspector">
           <div className="panel-heading"><div><p className="eyebrow">INSPECTOR</p><h2>Object Properties</h2></div></div>
@@ -797,8 +810,8 @@ export function App() {
   </div>;
 }
 
-function snapshotProject(project: DesignProject, scene: SceneObject[], artifacts: ArtifactManager, savedViews: SavedView[], measurements: MeasurementRecord[], reports: StoredValidationReport[], caseScanSet: CaseScanSet, registrationReports: StoredRegistrationReport[], history: DesignProject['history'], editing: EditingStateManager): DesignProject {
-  return { ...structuredClone(project), schemaVersion: 4, scene: structuredClone(scene), artifacts: artifacts.list(), savedViews: structuredClone(savedViews), measurements: structuredClone(measurements), validationReports: structuredClone(reports), caseScanSet: structuredClone(caseScanSet), registrationReports: structuredClone(registrationReports), history: structuredClone(history), editing: editing.get(), updatedAt: new Date().toISOString() };
+function snapshotProject(project: DesignProject, scene: SceneObject[], artifacts: ArtifactManager, savedViews: SavedView[], measurements: MeasurementRecord[], reports: StoredValidationReport[], caseScanSet: CaseScanSet, registrationReports: StoredRegistrationReport[], history: DesignProject['history'], editing: EditingStateManager, preparation: PreparationStateManager): DesignProject {
+  return { ...structuredClone(project), schemaVersion: 5, scene: structuredClone(scene), artifacts: artifacts.list(), savedViews: structuredClone(savedViews), measurements: structuredClone(measurements), validationReports: structuredClone(reports), caseScanSet: structuredClone(caseScanSet), registrationReports: structuredClone(registrationReports), history: structuredClone(history), editing: editing.get(), preparation: preparation.get(), updatedAt: new Date().toISOString() };
 }
 
 function formatMetric(value?: number): string { return value === undefined ? '—' : `${value.toFixed(1)} ms`; }
