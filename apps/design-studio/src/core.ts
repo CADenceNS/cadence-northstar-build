@@ -1,5 +1,7 @@
 import type { CaseScanSet, StoredRegistrationReport } from './registration-types';
 import { createEditingProjectState, type EditingProjectState, type GeometryInspection } from './editing-types';
+import { createPreparationProjectState, type PreparationProjectState } from './preparation-types';
+import { normalizePreparationState } from './preparation-state';
 
 export type Vec3 = [number, number, number];
 export type Quat = [number, number, number, number];
@@ -137,11 +139,12 @@ export interface ProjectHistoryEntry {
   createdAt: string;
 }
 export interface DesignProject {
-  schemaVersion: 4; id: string; name: string; createdAt: string; updatedAt: string;
+  schemaVersion: 5; id: string; name: string; createdAt: string; updatedAt: string;
   camera: CameraState; settings: ProjectSettings; scene: SceneObject[]; artifacts: ArtifactRecord[];
   savedViews: SavedView[]; measurements: MeasurementRecord[]; validationReports: StoredValidationReport[];
   registrationReports: StoredRegistrationReport[]; caseScanSet: CaseScanSet; history: ProjectHistoryEntry[];
   editing: EditingProjectState;
+  preparation: PreparationProjectState;
 }
 
 export const DEFAULT_CAMERA: CameraState = { projection: 'perspective', target: [0, 0, 0], distance: 140, yaw: 0.45, pitch: 0.3, orthographicScale: 90 };
@@ -153,7 +156,7 @@ export function createProject(name = 'Untitled Project'): DesignProject {
   const now = new Date().toISOString();
   const id = crypto.randomUUID();
   return {
-    schemaVersion: 4,
+    schemaVersion: 5,
     id,
     name,
     createdAt: now,
@@ -169,6 +172,7 @@ export function createProject(name = 'Untitled Project'): DesignProject {
     caseScanSet: emptyCaseScanSet(id, now),
     history: [],
     editing: createEditingProjectState(),
+    preparation: createPreparationProjectState(),
   };
 }
 
@@ -232,12 +236,12 @@ export class ProjectStore {
 export function migrateProject(input: unknown): DesignProject {
   if (!input || typeof input !== 'object') throw new Error('Invalid project document');
   const candidate = input as Partial<DesignProject> & { schemaVersion?: number };
-  if (![1, 2, 3, 4].includes(candidate.schemaVersion ?? 0) || !candidate.id || !candidate.name) throw new Error('Unsupported project schema');
+  if (![1, 2, 3, 4, 5].includes(candidate.schemaVersion ?? 0) || !candidate.id || !candidate.name) throw new Error('Unsupported project schema');
   const scene = Array.isArray(candidate.scene)
     ? candidate.scene.map((object) => ({ ...structuredClone(object), locked: object.locked ?? false }))
     : [];
   return {
-    schemaVersion: 4,
+    schemaVersion: 5,
     id: candidate.id,
     name: candidate.name,
     createdAt: candidate.createdAt ?? new Date().toISOString(),
@@ -255,6 +259,7 @@ export function migrateProject(input: unknown): DesignProject {
     editing: candidate.editing && typeof candidate.editing === 'object'
       ? { ...createEditingProjectState(), ...structuredClone(candidate.editing) }
       : createEditingProjectState(),
+    preparation: normalizePreparationState(candidate.preparation),
   };
 }
 

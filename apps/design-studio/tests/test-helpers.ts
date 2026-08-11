@@ -15,6 +15,8 @@ export function expect(actual: unknown, message?: string) {
     toHaveLength(expected: number) { const length = (actual as { length?: number })?.length; negated ? assert.notStrictEqual(length, expected, message) : assert.strictEqual(length, expected, message); },
     toBeGreaterThan(expected: number) { negated ? assert.ok(!(Number(actual) > expected), message) : assert.ok(Number(actual) > expected, message); },
     toBeGreaterThanOrEqual(expected: number) { negated ? assert.ok(!(Number(actual) >= expected), message) : assert.ok(Number(actual) >= expected, message); },
+    toBeLessThan(expected: number) { negated ? assert.ok(!(Number(actual) < expected), message) : assert.ok(Number(actual) < expected, message); },
+    toBeLessThanOrEqual(expected: number) { negated ? assert.ok(!(Number(actual) <= expected), message) : assert.ok(Number(actual) <= expected, message); },
     toBeCloseTo(expected: number, precision = 2) { const close = Math.abs(Number(actual) - expected) <= 10 ** -precision / 2; negated ? assert.ok(!close, message) : assert.ok(close, `${message ?? ''} expected ${actual} to be close to ${expected}`); },
     toMatch(expected: Matcher) { const matched = typeof expected === 'string' ? String(actual).includes(expected) : expected.test(String(actual)); negated ? assert.ok(!matched, message) : assert.ok(matched, message); },
     toThrow(expected?: Matcher) {
