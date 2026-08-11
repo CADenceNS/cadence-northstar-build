@@ -125,8 +125,9 @@ export function detectPreparationCandidates(mesh: IndexedMesh, artifactId: strin
 }
 
 export function detectMarginsForPreparation(mesh: IndexedMesh, preparation: PreparationRecord, segmentation: PreparationSegmentation, axisInput: Vec3): MarginCandidate[] {
-  const axis = normalizedAxis(axisInput); const features = featureEdges(mesh, axis, 4); const paths = orderFeaturePaths(features).filter((path) => path.vertexIds.length >= 3); const selectedFaces = new Set(segmentation.faceIds); const topology = buildTopology(mesh);
+  const axis = normalizedAxis(axisInput); const features = featureEdges(mesh, axis, 4); const paths = orderFeaturePaths(features).filter((path) => path.vertexIds.length >= 3); const selectedFaces = new Set(segmentation.faceIds); const topology = buildTopology(mesh); const selectedVertexIds = new Set(segmentation.faceIds.flatMap((faceId) => mesh.faces[faceId] ?? [])); const selectedHeights = [...selectedVertexIds].map((vertexId) => dot3(mesh.positions[vertexId], axis)); const lowestSelectedHeight = Math.min(...selectedHeights); const selectedHeightRange = Math.max(...selectedHeights) - lowestSelectedHeight; const marginBandCeiling = lowestSelectedHeight + Math.max(0.5, selectedHeightRange * 0.25);
   const margins = paths.flatMap((path) => {
+    const pathHeight = median(path.vertexIds.flatMap((vertexId) => mesh.positions[vertexId] ? [dot3(mesh.positions[vertexId], axis)] : [])); if (pathHeight > marginBandCeiling + 1e-6) return [];
     const supportedFaces = path.edgeIds.flatMap((edgeId) => topology.edgeFaces[edgeId] ?? []); if (!supportedFaces.some((faceId) => selectedFaces.has(faceId))) return [];
     const candidate = buildMarginCandidate(preparation.candidateId ?? preparation.id, meshDataView(mesh), path, features, axis); const center = meanPoint(candidate.points);
     const prepCentroids = segmentation.faceIds.flatMap((faceId) => mesh.faces[faceId] ? [faceCentroid(mesh, mesh.faces[faceId])] : []); const prepCenter = meanPoint(prepCentroids);

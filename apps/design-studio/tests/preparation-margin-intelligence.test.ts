@@ -145,6 +145,11 @@ describe('automatic margin evidence, quality, editing, lineage, and command inte
     expect(margins.length).toBeGreaterThan(0); expect(margins.every((candidate, index) => candidate.rank === index + 1)).toBe(true); expect(margins.every((candidate) => candidate.segments.length > 0 && candidate.segments.every((segment) => segment.explanation.includes('Measured')))).toBe(true); expect(margins.some((candidate) => candidate.globalFinishLine === 'shoulder')).toBe(true);
   });
 
+  it('constrains post-segmentation margin detection to the gingival preparation band', () => {
+    const fixture = goldenPreparation('chamfer-crown', 64); const detected = detectPreparationCandidates(indexedMesh(fixture.artifact.mesh), fixture.artifact.id, fixture.object.id, [0, 0, 1]); const candidate = detected.find((value) => value.marginCandidates.length); if (!candidate) throw new Error('Chamfer fixture did not produce a preparation candidate'); const preparation = createPreparationRecord(candidate); const segmentation = { ...automaticSegmentation(candidate, fixture.artifact), preparationId: preparation.id }; const margins = detectMarginsForPreparation(indexedMesh(fixture.artifact.mesh), preparation, segmentation, [0, 0, 1]);
+    expect(margins.length).toBeGreaterThan(0); expect(margins[0].globalFinishLine).toBe('chamfer'); expect(Math.max(...margins.flatMap((margin) => margin.points.map((point) => point[2])))).toBeLessThan(1);
+  });
+
   it('validates every required margin-quality condition and rejects invalid approval', () => {
     const { fixture, preparation, segmentation, margin } = setupPreparation('chamfer-crown'); const version = marginVersionFromCandidate(margin, preparation.id, segmentation.id, fixture.object); const quality = evaluateMarginQuality(version, fixture.artifact, segmentation.faceIds, [0, 0, 1]);
     const ids = quality.checks.map((check) => check.id); for (const id of ['margin.closed-loop', 'margin.self-intersection', 'margin.duplicate-segments', 'margin.sharp-spikes', 'margin.curvature-discontinuity', 'margin.surface-detachment', 'margin.missing-geometry', 'margin.implausible-jump', 'margin.loop-orientation', 'margin.multiple-loops', 'margin.preparation-enclosure', 'margin.local-boundary-ambiguity']) expect(ids).toContain(id);
