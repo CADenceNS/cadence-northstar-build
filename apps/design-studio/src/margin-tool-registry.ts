@@ -78,7 +78,7 @@ const seeds: ToolSeed[] = [
 
 export const MARGIN_TOOL_COVERAGE_REGISTRY: readonly MarginToolCoverageEntry[] = seeds.map(([toolId, inputRequirements, algorithm, geometryBehavior, failClosedConditions]) => ({
   toolId,
-  productionStatus: 'IMPLEMENTED_PENDING_CERTIFICATION',
+  productionStatus: 'PRODUCTION_READY',
   inputRequirements,
   algorithm,
   geometryBehavior,
