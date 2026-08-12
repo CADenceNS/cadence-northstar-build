@@ -1,5 +1,6 @@
 import type { ToolCoverageEntry, ToolDefinition, ToolParameterDefinition, ToolSelectionRequirement } from './editing-types';
 import { MARGIN_TOOL_COVERAGE_REGISTRY } from './margin-tool-registry';
+import { CROWN_TOOL_COVERAGE_REGISTRY } from './crown-tool-registry';
 
 const numberParameter = (id: string, label: string, defaultValue: number, units: 'mm' | 'degrees' | 'percent' | 'triangles', min?: number, max?: number, step = 0.1): ToolParameterDefinition => ({ id, label, type: 'number', defaultValue, units, ...(min === undefined ? {} : { min }), ...(max === undefined ? {} : { max }), step });
 const booleanParameter = (id: string, label: string, defaultValue: boolean): ToolParameterDefinition => ({ id, label, type: 'boolean', defaultValue });
@@ -114,7 +115,7 @@ export const TOOL_COVERAGE_REGISTRY: readonly ToolCoverageEntry[] = PRODUCTION_T
   implemented: true,
 }));
 
-export const UNIVERSAL_TOOL_COVERAGE_REGISTRY = [...TOOL_COVERAGE_REGISTRY, ...MARGIN_TOOL_COVERAGE_REGISTRY] as const;
+export const UNIVERSAL_TOOL_COVERAGE_REGISTRY = [...TOOL_COVERAGE_REGISTRY, ...MARGIN_TOOL_COVERAGE_REGISTRY, ...CROWN_TOOL_COVERAGE_REGISTRY] as const;
 
 export function toolDefinition(id: string): ToolDefinition { const definition = PRODUCTION_TOOL_DEFINITIONS.find((candidate) => candidate.id === id); if (!definition) throw new Error(`Production tool ${id} is not registered.`); return structuredClone(definition); }
 

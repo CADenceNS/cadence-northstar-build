@@ -120,7 +120,7 @@ describe('registration reports and project persistence', () => {
     const scan = project.caseScanSet.scans.find((item) => item.assignedRole === 'lower-arch')!; scan.userAdjustments.push(userAdjustment(scan, 'nudge', nudgeTransform(scan.registrationTransform, 'x', 0.1), 'Test correction'));
     const { report, historyEntry } = await createRegistrationReport(project, project.caseScanSet, setup.artifacts); project.registrationReports = [report]; project.history.push(historyEntry);
     const store = new ProjectStore(); const saved = store.save(project); const opened = store.open(saved.id);
-    expect(opened.schemaVersion).toBe(5); expect(opened.caseScanSet).toEqual(project.caseScanSet); expect(opened.registrationReports).toEqual([report]); expect(opened.history.at(-1)).toEqual(historyEntry);
+    expect(opened.schemaVersion).toBe(6); expect(opened.caseScanSet).toEqual(project.caseScanSet); expect(opened.registrationReports).toEqual([report]); expect(opened.history.at(-1)).toEqual(historyEntry);
     store.autoSave(project); const recovered = store.recover(); expect(recovered?.caseScanSet).toEqual(project.caseScanSet); expect(recovered?.registrationReports).toEqual([report]);
   });
 });

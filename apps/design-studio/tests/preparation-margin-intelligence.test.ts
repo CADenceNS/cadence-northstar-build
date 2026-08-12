@@ -50,6 +50,7 @@ import {
 } from '../src/margin-editor';
 import { runPreparationQc } from '../src/preparation-qc';
 import { MARGIN_TOOL_COVERAGE_REGISTRY } from '../src/margin-tool-registry';
+import { CROWN_TOOL_COVERAGE_REGISTRY } from '../src/crown-tool-registry';
 import { TOOL_COVERAGE_REGISTRY, UNIVERSAL_TOOL_COVERAGE_REGISTRY } from '../src/tool-registry';
 import { goldenPreparation, type PreparationFixtureFamily } from './golden-preparations';
 import type { MarginCandidate, MarginVersion, PreparationRecord, PreparationSegmentation } from '../src/preparation-types';
@@ -187,7 +188,7 @@ describe('preparation persistence, recovery, and coverage registry', () => {
   });
 
   it('registers every preparation and margin capability with implementation, command, persistence, recovery, test, browser, performance, support, and fail-closed evidence', () => {
-    expect(MARGIN_TOOL_COVERAGE_REGISTRY.length).toBe(54); expect(UNIVERSAL_TOOL_COVERAGE_REGISTRY.length).toBe(TOOL_COVERAGE_REGISTRY.length + MARGIN_TOOL_COVERAGE_REGISTRY.length); expect(new Set(MARGIN_TOOL_COVERAGE_REGISTRY.map((entry) => entry.toolId)).size).toBe(MARGIN_TOOL_COVERAGE_REGISTRY.length);
+    expect(MARGIN_TOOL_COVERAGE_REGISTRY.length).toBe(54); expect(UNIVERSAL_TOOL_COVERAGE_REGISTRY.length).toBe(TOOL_COVERAGE_REGISTRY.length + MARGIN_TOOL_COVERAGE_REGISTRY.length + CROWN_TOOL_COVERAGE_REGISTRY.length); expect(new Set(MARGIN_TOOL_COVERAGE_REGISTRY.map((entry) => entry.toolId)).size).toBe(MARGIN_TOOL_COVERAGE_REGISTRY.length);
     for (const entry of MARGIN_TOOL_COVERAGE_REGISTRY) { expect(entry.productionStatus).toBe('PRODUCTION_READY'); expect(entry.inputRequirements.length).toBeGreaterThan(0); expect(entry.algorithm.length).toBeGreaterThan(0); expect(entry.geometryBehavior.length).toBeGreaterThan(0); expect(entry.commandCoverage.length).toBeGreaterThan(0); expect(entry.undoRedo).toBe(true); expect(entry.persistence).toBe(true); expect(entry.recovery).toBe(true); expect(entry.deterministicTests).toMatch(/preparation-margin-intelligence/); expect(entry.browserTests).toMatch(/design-studio-preparation/); expect(entry.performanceTest).toMatch(/preparation-performance/); expect(entry.knownSupportedConditions.length).toBeGreaterThan(0); expect(entry.failClosedConditions.length).toBeGreaterThan(0); }
   });
 });
