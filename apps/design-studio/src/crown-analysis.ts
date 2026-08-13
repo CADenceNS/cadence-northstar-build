@@ -324,9 +324,18 @@ export function optimizeCrownConstraints(
   const beforeAnalyses = optimizationAnalyses(current, map, input); const before = optimizationMeasurements(beforeAnalyses);
   for (let iteration = 0; iteration < maximumIterations; iteration += 1) {
     iterationCount = iteration + 1;
-    if (!locks.mesialContact) current = optimizeProximalContact(current, map, mesial.mesh, 'mesial', input.parameters.targetMesialContactMm, false);
-    if (!locks.distalContact) current = optimizeProximalContact(current, map, distal.mesh, 'distal', input.parameters.targetDistalContactMm, false);
-    if (!locks.occlusion) current = optimizeStaticOcclusion(current, map, input.antagonist.mesh, input.parameters.targetOcclusalClearanceMm, false);
+    let currentAnalyses = optimizationAnalyses(current, map, input);
+    if (!locks.mesialContact && contactOutsideGovernedRange(currentAnalyses.mesialContact, input)) {
+      current = optimizeProximalContact(current, map, mesial.mesh, 'mesial', input.parameters.targetMesialContactMm, false);
+      currentAnalyses = optimizationAnalyses(current, map, input);
+    }
+    if (!locks.distalContact && contactOutsideGovernedRange(currentAnalyses.distalContact, input)) {
+      current = optimizeProximalContact(current, map, distal.mesh, 'distal', input.parameters.targetDistalContactMm, false);
+      currentAnalyses = optimizationAnalyses(current, map, input);
+    }
+    if (!locks.occlusion && occlusionOutsideGovernedRange(currentAnalyses.occlusion, input)) {
+      current = optimizeStaticOcclusion(current, map, input.antagonist.mesh, input.parameters.targetOcclusalClearanceMm, false);
+    }
     const thickness = calculateThickness(current, map, input.materialProfileId);
     if (thickness.failingVertexIds.length) current = autoThickenCrown(current, map, input.materialProfileId, locks, lockedVertexIds);
     validateGeometryResult(indexedMesh(current));
@@ -372,11 +381,21 @@ function optimizationTerms(value: ReturnType<typeof optimizationAnalyses>, basel
 
 function objectiveValue(value: CrownOptimizationEvidence['objectiveTerms']): number { return (value.mesialContactErrorMm ?? 1) + (value.distalContactErrorMm ?? 1) + (value.occlusalClearanceErrorMm ?? 1) + value.thicknessDeficitMm * 2 + value.morphologyDisplacementRmsMm * 0.1; }
 
+function contactOutsideGovernedRange(value: ProximalContactAnalysis, input: CrownGenerationInput): boolean {
+  const range = CROWN_MATERIAL_PROFILES[input.materialProfileId].contactDistanceMm;
+  return value.minimumDistanceMm === null || value.minimumDistanceMm < range.minimum || value.minimumDistanceMm > range.maximum;
+}
+
+function occlusionOutsideGovernedRange(value: OcclusionAnalysis, input: CrownGenerationInput): boolean {
+  const range = CROWN_MATERIAL_PROFILES[input.materialProfileId].occlusalClearanceMm;
+  return value.minimumDistanceMm === null || value.minimumDistanceMm < range.minimum || value.minimumDistanceMm > range.maximum;
+}
+
 function constraintViolations(value: ReturnType<typeof optimizationAnalyses>, input: CrownGenerationInput): string[] {
-  const violations: string[] = []; const profile = CROWN_MATERIAL_PROFILES[input.materialProfileId];
-  if (value.mesialContact.minimumDistanceMm === null || value.mesialContact.minimumDistanceMm < profile.contactDistanceMm.minimum || value.mesialContact.minimumDistanceMm > profile.contactDistanceMm.maximum) violations.push('mesial contact target is outside the governed range');
-  if (value.distalContact.minimumDistanceMm === null || value.distalContact.minimumDistanceMm < profile.contactDistanceMm.minimum || value.distalContact.minimumDistanceMm > profile.contactDistanceMm.maximum) violations.push('distal contact target is outside the governed range');
-  if (value.occlusion.minimumDistanceMm === null || value.occlusion.minimumDistanceMm < profile.occlusalClearanceMm.minimum || value.occlusion.minimumDistanceMm > profile.occlusalClearanceMm.maximum) violations.push('occlusal clearance target is outside the governed range');
+  const violations: string[] = [];
+  if (contactOutsideGovernedRange(value.mesialContact, input)) violations.push('mesial contact target is outside the governed range');
+  if (contactOutsideGovernedRange(value.distalContact, input)) violations.push('distal contact target is outside the governed range');
+  if (occlusionOutsideGovernedRange(value.occlusion, input)) violations.push('occlusal clearance target is outside the governed range');
   if (value.thickness.failingVertexIds.length) violations.push(`${value.thickness.failingVertexIds.length} minimum-thickness vertices remain`);
   return violations;
 }

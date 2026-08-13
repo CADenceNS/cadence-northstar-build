@@ -36,6 +36,13 @@ describe('single-crown fit, material and QC engines', () => {
     expect(result.evidence.iterationCount).toBeGreaterThan(0); expect(result.evidence.status).toBe('converged'); expect(result.evidence.constraintViolations).toHaveLength(0); expect(result.evidence.objectiveTerms.morphologyDisplacementRmsMm).toBeGreaterThanOrEqual(0); expect(result.analyses.thickness.failingVertexIds).toHaveLength(0); expect(indexedMesh(result.mesh).faces).toEqual(indexedMesh(fixture.result.mesh).faces);
   });
 
+  it('does not reapply contact or occlusal displacement after individual tools satisfy governed ranges', () => {
+    const fixture = goldenCrown('maxillary-first-molar'); const mesial = fixture.input.adjacentMeshes.find((value) => value.side === 'mesial')!; const distal = fixture.input.adjacentMeshes.find((value) => value.side === 'distal')!;
+    let mesh = optimizeProximalContact(fixture.result.mesh, fixture.result.topologyMap, mesial.mesh, 'mesial', fixture.input.parameters.targetMesialContactMm, false); mesh = optimizeProximalContact(mesh, fixture.result.topologyMap, distal.mesh, 'distal', fixture.input.parameters.targetDistalContactMm, false); mesh = optimizeStaticOcclusion(mesh, fixture.result.topologyMap, fixture.input.antagonist!.mesh, fixture.input.parameters.targetOcclusalClearanceMm, false);
+    const before = indexedMesh(mesh); const result = optimizeCrownConstraints(mesh, fixture.result.topologyMap, fixture.input, { margin: true, intaglio: false, mesialContact: false, distalContact: false, occlusion: false, facialContour: false, lingualContour: false, selectedAnatomy: false, anatomy: false }); const after = indexedMesh(result.mesh);
+    expect(result.evidence.status).toBe('converged'); expect(result.evidence.constraintViolations).toHaveLength(0); expect(after.positions).toEqual(before.positions); expect(after.faces).toEqual(before.faces);
+  });
+
   it('reports a lock conflict instead of fabricating joint optimization success', () => {
     const fixture = goldenCrown('maxillary-first-molar'); const antagonist = indexedMesh(fixture.input.antagonist!.mesh); const penetrating = meshData({ positions: antagonist.positions.map(([x, y, z]) => [x, y, z - 0.4]), faces: antagonist.faces }); const input = { ...fixture.input, antagonist: { objectId: 'locked-antagonist', mesh: penetrating } };
     const result = optimizeCrownConstraints(fixture.result.mesh, fixture.result.topologyMap, input, { margin: true, intaglio: false, mesialContact: true, distalContact: true, occlusion: true, facialContour: false, lingualContour: false, selectedAnatomy: false, anatomy: false }); expect(result.evidence.status).toBe('constraint-conflict'); expect(result.evidence.constraintViolations.length).toBeGreaterThan(0);
