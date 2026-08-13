@@ -275,7 +275,8 @@ function constrainedSurfaceAdjustment(mesh: MeshData, map: CrownTopologyMap, tar
 export function optimizeProximalContact(mesh: MeshData, map: CrownTopologyMap, target: MeshData, side: 'mesial' | 'distal', targetDistance: number, locked: boolean): MeshData {
   if (locked) throw new Error(`${side === 'mesial' ? 'Mesial' : 'Distal'} contact lock prevents automatic contact optimization.`);
   const indexed = indexedMesh(mesh); const samples = distanceSamples(indexed, map.outerVertexIds.filter((id) => !['margin'].includes(map.regions[id])), target).sort((a, b) => a.distanceMm - b.distanceMm);
-  const count = Math.max(3, Math.ceil(samples.length * 0.08)); return constrainedSurfaceAdjustment(mesh, map, target, samples.slice(0, count).map((sample) => sample.vertexId), targetDistance, 0.25);
+  // A broad proximal support region prevents a narrow displacement boundary from folding the crown surface.
+  const count = Math.max(3, Math.ceil(samples.length * 0.2)); return constrainedSurfaceAdjustment(mesh, map, target, samples.slice(0, count).map((sample) => sample.vertexId), targetDistance, 0.25);
 }
 
 export function optimizeStaticOcclusion(mesh: MeshData, map: CrownTopologyMap, antagonist: MeshData, targetDistance: number, locked: boolean): MeshData {

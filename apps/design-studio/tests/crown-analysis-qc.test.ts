@@ -2,10 +2,10 @@ import { describe, it } from 'node:test';
 import { analyzeOcclusion, analyzeProximalContact, autoThickenCrown, optimizeCrownConstraints, optimizeProximalContact, optimizeStaticOcclusion } from '../src/crown-analysis';
 import { runCrownQc } from '../src/crown-qc';
 import { validateAllCrownExports } from '../src/crown-export';
-import { indexedMesh, meshData } from '../src/editing-geometry';
+import { indexedMesh, inspectGeometry, meshData } from '../src/editing-geometry';
 import type { RestorationRecord } from '../src/restoration-types';
 import { CROWN_MATERIAL_PROFILES } from '../src/morphology-core';
-import { goldenCrown } from './golden-crowns';
+import { boxMesh, goldenCrown } from './golden-crowns';
 import { expect } from './test-helpers';
 
 describe('single-crown fit, material and QC engines', () => {
@@ -41,6 +41,12 @@ describe('single-crown fit, material and QC engines', () => {
     let mesh = optimizeProximalContact(fixture.result.mesh, fixture.result.topologyMap, mesial.mesh, 'mesial', fixture.input.parameters.targetMesialContactMm, false); mesh = optimizeProximalContact(mesh, fixture.result.topologyMap, distal.mesh, 'distal', fixture.input.parameters.targetDistalContactMm, false); mesh = optimizeStaticOcclusion(mesh, fixture.result.topologyMap, fixture.input.antagonist!.mesh, fixture.input.parameters.targetOcclusalClearanceMm, false);
     const before = indexedMesh(mesh); const result = optimizeCrownConstraints(mesh, fixture.result.topologyMap, fixture.input, { margin: true, intaglio: false, mesialContact: false, distalContact: false, occlusion: false, facialContour: false, lingualContour: false, selectedAnatomy: false, anatomy: false }); const after = indexedMesh(result.mesh);
     expect(result.evidence.status).toBe('converged'); expect(result.evidence.constraintViolations).toHaveLength(0); expect(after.positions).toEqual(before.positions); expect(after.faces).toEqual(before.faces);
+  });
+
+  it('distributes a large proximal correction across valid surface support without foldover', () => {
+    const fixture = goldenCrown('maxillary-first-molar'); const bounds = fixture.result.mesh.bounds; const distalMesh = boxMesh([bounds.max[0] + 0.6, bounds.min[1] - 1, bounds.min[2] - 2], [bounds.max[0] + 4.6, bounds.max[1] + 1, bounds.max[2] + 2]); const input = { ...fixture.input, adjacentMeshes: fixture.input.adjacentMeshes.map((value) => value.side === 'distal' ? { ...value, mesh: distalMesh } : value) }; const mesial = input.adjacentMeshes.find((value) => value.side === 'mesial')!; const distal = input.adjacentMeshes.find((value) => value.side === 'distal')!;
+    let mesh = optimizeProximalContact(fixture.result.mesh, fixture.result.topologyMap, mesial.mesh, 'mesial', input.parameters.targetMesialContactMm, false); mesh = optimizeProximalContact(mesh, fixture.result.topologyMap, distal.mesh, 'distal', input.parameters.targetDistalContactMm, false); mesh = optimizeStaticOcclusion(mesh, fixture.result.topologyMap, input.antagonist!.mesh, input.parameters.targetOcclusalClearanceMm, false); const result = optimizeCrownConstraints(mesh, fixture.result.topologyMap, input, { margin: true, intaglio: false, mesialContact: false, distalContact: false, occlusion: false, facialContour: false, lingualContour: false, selectedAnatomy: false, anatomy: false });
+    expect(result.evidence.status).toBe('converged'); expect(result.evidence.constraintViolations).toHaveLength(0); expect(result.analyses.distalContact.minimumDistanceMm).toBeGreaterThanOrEqual(-0.05); expect(result.analyses.distalContact.minimumDistanceMm).toBeLessThanOrEqual(0.15); expect(inspectGeometry(indexedMesh(result.mesh)).selfIntersectionCount).toBe(0);
   });
 
   it('reports a lock conflict instead of fabricating joint optimization success', () => {
