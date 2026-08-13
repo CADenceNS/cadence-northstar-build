@@ -8,11 +8,15 @@ export const CROWN_QC_RULESET_VERSION = 'CADENCE-CROWN-QC-1.0.0';
 export type ToothMorphologyClass =
   | 'maxillary-central-incisor'
   | 'maxillary-lateral-incisor'
+  | 'mandibular-central-incisor'
+  | 'mandibular-lateral-incisor'
   | 'mandibular-incisor'
   | 'maxillary-canine'
   | 'mandibular-canine'
   | 'maxillary-first-premolar'
   | 'maxillary-second-premolar'
+  | 'mandibular-first-premolar'
+  | 'mandibular-second-premolar'
   | 'mandibular-premolar'
   | 'maxillary-first-molar'
   | 'maxillary-posterior-molar'
@@ -67,9 +71,31 @@ export interface MorphologyDefinition {
   roundness: number;
   angularity: number;
   anatomyIntensity: number;
+  generatorVersion: string;
+  provenance: 'CADence proprietary procedural asset';
+  approvalStatus: 'approved';
+  compatibility: {
+    minimumEngineVersion: string;
+    restorationTypes: ['single-unit-tooth-supported-crown'];
+    materialProfileIds: CrownMaterialId[];
+  };
 }
 
-export type CrownMaterialId = 'zirconia-monolithic' | 'lithium-disilicate' | 'hybrid-ceramic';
+export type CrownMaterialId =
+  | 'zirconia-monolithic'
+  | 'zirconia-high-translucency'
+  | 'lithium-disilicate'
+  | 'pmma-provisional'
+  | 'full-cast-metal'
+  | 'pfm-coping'
+  | 'hybrid-ceramic';
+
+export interface CrownMaterialValidationRule {
+  id: string;
+  property: 'axial-thickness' | 'occlusal-thickness' | 'marginal-thickness' | 'internal-radius' | 'tool-access' | 'cement-space';
+  severity: 'hard' | 'warning';
+  explanation: string;
+}
 
 export interface CrownMaterialProfile {
   id: CrownMaterialId;
@@ -81,7 +107,21 @@ export interface CrownMaterialProfile {
   contactDistanceMm: { minimum: number; maximum: number; target: number };
   occlusalClearanceMm: { minimum: number; maximum: number; target: number };
   manufacturingCompensationPercent: { minimum: number; maximum: number; default: number };
+  minimumInternalRadiusMm: number;
+  manufacturingAllowanceMm: number;
+  toolAccessAllowanceMm: number;
+  minimumMillingToolDiameterMm: number | null;
   maximumSharpProjectionDegrees: number;
+  compatibility: {
+    restorationTypes: ['single-unit-tooth-supported-crown'];
+    manufacturingModes: Array<'milled' | 'printed-pattern' | 'cast' | 'pressed' | 'layered'>;
+  };
+  validationRules: CrownMaterialValidationRule[];
+  governance: {
+    status: 'repository-governed';
+    source: 'CADence Design Studio material configuration';
+    clinicalApprovalClaimed: false;
+  };
 }
 
 export interface CrownParameters {
@@ -114,11 +154,36 @@ export interface CrownParameters {
   axialSpacerMm: number;
   occlusalSpacerMm: number;
   localReliefMm: number;
+  localSpacerOverrideMm: number;
+  localSpacerCenterX: number;
+  localSpacerCenterY: number;
+  localSpacerRadius: number;
+  sharpFeatureReliefMm: number;
   internalRadiusMm: number;
+  millingToolDiameterMm: number;
+  toolAccessAllowanceMm: number;
   manufacturingCompensationPercent: number;
   targetMesialContactMm: number;
   targetDistalContactMm: number;
   targetOcclusalClearanceMm: number;
+  emergenceAngleDegrees: number;
+  emergenceConvexity: number;
+  emergenceConcavity: number;
+  facialEmergence: number;
+  lingualEmergence: number;
+  mesialEmergence: number;
+  distalEmergence: number;
+  localEmergenceX: number;
+  localEmergenceY: number;
+  localEmergenceRadius: number;
+  localEmergenceStrength: number;
+  facialFullness: number;
+  lingualFullness: number;
+  cervicalFullness: number;
+  contactProminence: number;
+  attrition: number;
+  flattening: number;
+  incisalTranslucencySpaceMm: number;
   radialSegments: number;
   surfaceRings: number;
 }
@@ -129,10 +194,16 @@ export interface CrownLocks {
   mesialContact: boolean;
   distalContact: boolean;
   occlusion: boolean;
+  facialContour: boolean;
+  lingualContour: boolean;
+  selectedAnatomy: boolean;
   anatomy: boolean;
 }
 
 export type RestorationApprovalState =
+  | 'DESIGNING'
+  | 'QC_REQUIRED'
+  | 'REVIEW_REQUIRED'
   | 'DRAFT'
   | 'PROPOSAL_GENERATED'
   | 'TECHNICIAN_EDITED'
@@ -243,7 +314,43 @@ export interface ContourAnalysis {
   maximumOverContourMm: number;
   maximumUnderContourMm: number;
   referenceObjectId: string | null;
+  references: Array<{
+    kind: ContourReferenceKind;
+    objectId: string;
+    maximumOverContourMm: number;
+    maximumUnderContourMm: number;
+    overContouredVertexIds: number[];
+    underContouredVertexIds: number[];
+  }>;
+  regions: Record<ContourRegion, { maximumOverContourMm: number; maximumUnderContourMm: number; affectedVertexIds: number[] }>;
   status: 'pass' | 'warning' | 'not-run';
+}
+
+export type ContourReferenceKind = 'preparation' | 'adjacent' | 'pre-op' | 'contralateral' | 'arch';
+export type ContourRegion = 'facial' | 'lingual' | 'cervical' | 'proximal';
+
+export interface CrownReferenceAdaptation {
+  mode: 'none' | 'copy' | 'partial-copy' | 'preserve-facial' | 'preserve-incisal' | 'preserve-occlusal-table' | 'preserve-selected-region' | 'blend';
+  influence: number;
+  selectedRegion: { centerX: number; centerY: number; radius: number } | null;
+}
+
+export interface CrownOptimizationEvidence {
+  id: string;
+  status: 'converged' | 'best-effort' | 'constraint-conflict';
+  objectiveTerms: {
+    mesialContactErrorMm: number | null;
+    distalContactErrorMm: number | null;
+    occlusalClearanceErrorMm: number | null;
+    thicknessDeficitMm: number;
+    morphologyDisplacementRmsMm: number;
+  };
+  constraintViolations: string[];
+  iterationCount: number;
+  convergenceTolerance: number;
+  before: { mesialDistanceMm: number | null; distalDistanceMm: number | null; occlusalDistanceMm: number | null; minimumThicknessMm: number };
+  after: { mesialDistanceMm: number | null; distalDistanceMm: number | null; occlusalDistanceMm: number | null; minimumThicknessMm: number };
+  executedAt: string;
 }
 
 export interface CrownQcCheck {
@@ -277,6 +384,12 @@ export interface RestorationVersion {
   artifactId: string;
   operation: string;
   commandId: string;
+  branchId: string;
+  checkpointName: string | null;
+  morphologyVersion: string;
+  materialProfileId: CrownMaterialId;
+  materialProfileVersion: string;
+  marginVersionId: string;
   parameters: Record<string, number | string | boolean | null>;
   inspection: GeometryInspection;
   createdAt: string;
@@ -310,10 +423,55 @@ export interface CrownExportRecord {
   fileName: string;
   createdAt: string;
   roundTrip: CrownRoundTripResult;
+  metadata: {
+    caseId: string;
+    restorationId: string;
+    toothNumber: string;
+    numberingSystem: ToothNumberingSystem;
+    materialProfileId: CrownMaterialId;
+    units: 'mm';
+    geometryHash: string;
+    designVersion: number;
+    marginVersion: string;
+    morphologyVersion: string;
+    materialProfileVersion: string;
+    qcResultId: string;
+    exportedAt: string;
+  };
+}
+
+export type ToothNumberingSystem = 'UNIVERSAL' | 'FDI' | 'PALMER';
+export type DentalArch = 'MAXILLARY' | 'MANDIBULAR';
+export type RestorationType = 'SINGLE_UNIT_TOOTH_SUPPORTED_CROWN';
+export type ManufacturingState = 'NOT_READY' | 'QC_REQUIRED' | 'READY_FOR_EXPORT' | 'EXPORTED' | 'LOCKED';
+
+export interface RestorationHistoryEvent {
+  id: string;
+  restorationId: string;
+  versionId: string | null;
+  type: 'created' | 'geometry-command' | 'qc' | 'approval' | 'override' | 'export' | 'checkpoint' | 'restore' | 'duplicate' | 'branch';
+  commandId: string | null;
+  actor: string | null;
+  reason: string | null;
+  details: Record<string, number | string | boolean | null>;
+  createdAt: string;
+}
+
+export interface RestorationCheckpoint {
+  id: string;
+  restorationId: string;
+  versionId: string;
+  name: string;
+  branchId: string;
+  createdAt: string;
 }
 
 export interface RestorationRecord {
   id: string;
+  caseId: string;
+  numberingSystem: ToothNumberingSystem;
+  arch: DentalArch;
+  restorationType: RestorationType;
   preparationId: string;
   preparationVersionId: string;
   approvedMarginVersionId: string;
@@ -322,6 +480,17 @@ export interface RestorationRecord {
   morphologyId: ToothMorphologyClass;
   morphologyVersion: string;
   materialProfileId: CrownMaterialId;
+  materialProfileVersion: string;
+  materialProfileSnapshot: CrownMaterialProfile;
+  adjacentObjectIds: { mesial: string | null; distal: string | null };
+  opposingObjectId: string | null;
+  preOpObjectId: string | null;
+  contourReferenceObjectIds?: Partial<Record<ContourReferenceKind, string[]>>;
+  referenceAdaptation: CrownReferenceAdaptation;
+  designVersion: number;
+  manufacturingState: ManufacturingState;
+  geometryLineageRootArtifactId: string;
+  activeBranchId: string;
   artifactId: string | null;
   sceneObjectId: string | null;
   parameters: CrownParameters;
@@ -334,11 +503,16 @@ export interface RestorationRecord {
   distalContact: ProximalContactAnalysis | null;
   occlusion: OcclusionAnalysis | null;
   contour: ContourAnalysis | null;
+  optimization: CrownOptimizationEvidence | null;
+  sculptMaskVertexIds: number[];
+  lockedAnatomyVertexIds: number[];
   qcResultIds: string[];
   activeQcResultId: string | null;
   versionIds: string[];
   activeVersionId: string | null;
   exportRecordIds: string[];
+  historyEventIds: string[];
+  checkpointIds: string[];
   approvalState: RestorationApprovalState;
   approvedAt: string | null;
   approvedBy: string | null;
@@ -347,19 +521,25 @@ export interface RestorationRecord {
 }
 
 export interface RestorationProjectState {
-  schemaVersion: 1;
+  schemaVersion: 2;
   engineVersion: string;
   morphologyVersion: string;
   restorations: RestorationRecord[];
   versions: RestorationVersion[];
   qcResults: CrownQcResult[];
   exports: CrownExportRecord[];
+  historyEvents: RestorationHistoryEvent[];
+  checkpoints: RestorationCheckpoint[];
   activeRestorationId: string | null;
   settings: {
     thicknessOverlayVisible: boolean;
     contactOverlayVisible: boolean;
     occlusionOverlayVisible: boolean;
     intaglioVisible: boolean;
+    contourOverlayVisible: boolean;
+    lockOverlayVisible: boolean;
+    maskOverlayVisible: boolean;
+    optimizerOverlayVisible: boolean;
     decimalPrecision: number;
   };
 }
@@ -372,11 +552,17 @@ export interface CrownGenerationInput {
   marginPoints: Vec3[];
   insertionAxis: Vec3;
   toothNumber: string;
+  caseId: string;
+  numberingSystem: ToothNumberingSystem;
+  arch: DentalArch;
+  dentalAxes: { mesial: Vec3; facial: Vec3; occlusal: Vec3 };
   materialProfileId: CrownMaterialId;
   parameters: CrownParameters;
   adjacentMeshes: Array<{ objectId: string; side: 'mesial' | 'distal'; mesh: MeshData }>;
   antagonist?: { objectId: string; mesh: MeshData };
-  referenceMesh?: MeshData;
+  reference?: { objectId: string; kind: 'pre-op' | 'contralateral' | 'wax-up' | 'neighbor-morphology'; mesh: MeshData };
+  referenceAdaptation: CrownReferenceAdaptation;
+  contourReferences: Array<{ objectId: string; kind: ContourReferenceKind; mesh: MeshData }>;
 }
 
 export interface CrownGenerationProgress {
@@ -385,6 +571,20 @@ export interface CrownGenerationProgress {
   completed: number;
   total: number;
   message: string;
+}
+
+export interface CrownGenerationPerformance {
+  totalDurationMs: number;
+  solidConstructionMs: number;
+  morphologyGenerationMs: number;
+  intaglioGenerationMs: number;
+  spacerCalculationMs: number;
+  thicknessAnalysisMs: number;
+  cementSpaceAnalysisMs: number;
+  seatingAnalysisMs: number;
+  contactCalculationMs: number;
+  occlusalCalculationMs: number;
+  contourAnalysisMs: number;
 }
 
 export interface CrownGenerationResult {
@@ -400,19 +600,22 @@ export interface CrownGenerationResult {
   occlusion: OcclusionAnalysis;
   contour: ContourAnalysis;
   durationMs: number;
+  performance: CrownGenerationPerformance;
   warnings: string[];
 }
 
 export function createRestorationProjectState(): RestorationProjectState {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     engineVersion: RESTORATION_ENGINE_VERSION,
     morphologyVersion: MORPHOLOGY_LIBRARY_VERSION,
     restorations: [],
     versions: [],
     qcResults: [],
     exports: [],
+    historyEvents: [],
+    checkpoints: [],
     activeRestorationId: null,
-    settings: { thicknessOverlayVisible: true, contactOverlayVisible: true, occlusionOverlayVisible: true, intaglioVisible: false, decimalPrecision: 3 },
+    settings: { thicknessOverlayVisible: true, contactOverlayVisible: true, occlusionOverlayVisible: true, intaglioVisible: false, contourOverlayVisible: false, lockOverlayVisible: false, maskOverlayVisible: false, optimizerOverlayVisible: false, decimalPrecision: 3 },
   };
 }

@@ -13,14 +13,21 @@ export function generateCrownProposal(
   if (options.cancelled?.()) throw new Error('Crown generation cancelled.');
   emit('analysis', 0, 7, 'Measuring intaglio, seating, contact, occlusion, contour, and thickness behavior.');
   const analyses = runCrownAnalyses(solid, input);
+  const { stageDurationsMs: analysisStageDurationsMs, ...analysisResults } = analyses;
   emit('analysis', 7, 7, 'Completed deterministic crown analysis.');
+  const totalDurationMs = performance.now() - started;
   return {
     requestId: input.requestId,
     mesh: solid.mesh,
     topologyMap: solid.topologyMap,
     inspection: solid.inspection,
-    ...analyses,
-    durationMs: performance.now() - started,
+    ...analysisResults,
+    durationMs: totalDurationMs,
+    performance: {
+      totalDurationMs,
+      ...solid.stageDurationsMs,
+      ...analysisStageDurationsMs,
+    },
     warnings: solid.warnings,
   };
 }

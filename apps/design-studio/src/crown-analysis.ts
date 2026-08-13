@@ -6,7 +6,11 @@ import type {
   CementSpaceAnalysis,
   ContactPatch,
   ContourAnalysis,
+  ContourReferenceKind,
+  ContourRegion,
   CrownGenerationInput,
+  CrownLocks,
+  CrownOptimizationEvidence,
   CrownTopologyMap,
   OcclusionAnalysis,
   ProximalContactAnalysis,
@@ -156,33 +160,116 @@ export function analyzeOcclusion(mesh: MeshData, map: CrownTopologyMap, input: C
   };
 }
 
-export function analyzeContour(mesh: MeshData, map: CrownTopologyMap, referenceMesh?: MeshData): ContourAnalysis {
-  if (!referenceMesh) return { id: crypto.randomUUID(), overContouredVertexIds: [], underContouredVertexIds: [], maximumOverContourMm: 0, maximumUnderContourMm: 0, referenceObjectId: null, status: 'not-run' };
-  const indexed = indexedMesh(mesh); const samples = distanceSamples(indexed, map.outerVertexIds, referenceMesh); const over = samples.filter((sample) => sample.distanceMm > 0.5); const under = samples.filter((sample) => sample.distanceMm < -0.5);
-  return { id: crypto.randomUUID(), overContouredVertexIds: over.map((sample) => sample.vertexId), underContouredVertexIds: under.map((sample) => sample.vertexId), maximumOverContourMm: Math.max(0, ...over.map((sample) => sample.distanceMm)), maximumUnderContourMm: Math.max(0, ...under.map((sample) => -sample.distanceMm)), referenceObjectId: 'reference', status: over.length || under.length ? 'warning' : 'pass' };
+export type CrownContourReference = { objectId: string; kind: ContourReferenceKind; mesh: MeshData };
+
+export function analyzeContour(mesh: MeshData, map: CrownTopologyMap, referenceInput?: MeshData | CrownContourReference[]): ContourAnalysis {
+  const references: CrownContourReference[] = !referenceInput ? [] : Array.isArray(referenceInput) ? referenceInput : [{ objectId: 'reference', kind: 'pre-op', mesh: referenceInput }];
+  const emptyRegions = (): ContourAnalysis['regions'] => ({ facial: summary(), lingual: summary(), cervical: summary(), proximal: summary() });
+  if (!references.length) return { id: crypto.randomUUID(), overContouredVertexIds: [], underContouredVertexIds: [], maximumOverContourMm: 0, maximumUnderContourMm: 0, referenceObjectId: null, references: [], regions: emptyRegions(), status: 'not-run' };
+  const indexed = indexedMesh(mesh); const center: Vec3 = [(mesh.bounds.min[0] + mesh.bounds.max[0]) / 2, (mesh.bounds.min[1] + mesh.bounds.max[1]) / 2, (mesh.bounds.min[2] + mesh.bounds.max[2]) / 2];
+  const byReference: ContourAnalysis['references'] = []; const allOver = new Map<number, number>(); const allUnder = new Map<number, number>();
+  const regions = emptyRegions();
+  for (const reference of references) {
+    const samples = distanceSamples(indexed, map.outerVertexIds, reference.mesh); const over = samples.filter((sample) => sample.distanceMm > 0.5); const under = samples.filter((sample) => sample.distanceMm < -0.5);
+    for (const sample of over) allOver.set(sample.vertexId, Math.max(allOver.get(sample.vertexId) ?? 0, sample.distanceMm));
+    for (const sample of under) allUnder.set(sample.vertexId, Math.max(allUnder.get(sample.vertexId) ?? 0, -sample.distanceMm));
+    for (const sample of [...over, ...under]) {
+      const region = contourRegion(indexed.positions[sample.vertexId], center, map.regions[sample.vertexId]); const value = regions[region]; value.affectedVertexIds.push(sample.vertexId); if (sample.distanceMm > 0) value.maximumOverContourMm = Math.max(value.maximumOverContourMm, sample.distanceMm); else value.maximumUnderContourMm = Math.max(value.maximumUnderContourMm, -sample.distanceMm);
+    }
+    byReference.push({ kind: reference.kind, objectId: reference.objectId, maximumOverContourMm: Math.max(0, ...over.map((sample) => sample.distanceMm)), maximumUnderContourMm: Math.max(0, ...under.map((sample) => -sample.distanceMm)), overContouredVertexIds: over.map((sample) => sample.vertexId), underContouredVertexIds: under.map((sample) => sample.vertexId) });
+  }
+  for (const value of Object.values(regions)) value.affectedVertexIds = [...new Set(value.affectedVertexIds)].sort((a, b) => a - b);
+  const overContouredVertexIds = [...allOver.keys()].sort((a, b) => a - b); const underContouredVertexIds = [...allUnder.keys()].sort((a, b) => a - b);
+  return { id: crypto.randomUUID(), overContouredVertexIds, underContouredVertexIds, maximumOverContourMm: Math.max(0, ...allOver.values()), maximumUnderContourMm: Math.max(0, ...allUnder.values()), referenceObjectId: references[0]?.objectId ?? null, references: byReference, regions, status: overContouredVertexIds.length || underContouredVertexIds.length ? 'warning' : 'pass' };
+}
+
+function summary(): ContourAnalysis['regions'][ContourRegion] { return { maximumOverContourMm: 0, maximumUnderContourMm: 0, affectedVertexIds: [] }; }
+
+function contourRegion(point: Vec3, center: Vec3, crownRegion: CrownTopologyMap['regions'][number]): ContourRegion {
+  if (crownRegion === 'margin' || crownRegion === 'axial') return 'cervical';
+  const x = Math.abs(point[0] - center[0]); const y = Math.abs(point[1] - center[1]);
+  if (x > y) return 'proximal';
+  return point[1] <= center[1] ? 'facial' : 'lingual';
+}
+
+export function correctContour(
+  mesh: MeshData,
+  map: CrownTopologyMap,
+  references: CrownContourReference[],
+  mode: 'over' | 'under' | 'both',
+  maximumStepMm: number,
+  locks: CrownLocks,
+): MeshData {
+  if (!references.length) throw new Error('Contour correction requires at least one assigned model-space reference.');
+  if (!Number.isFinite(maximumStepMm) || maximumStepMm <= 0 || maximumStepMm > 1) throw new Error('Contour correction step must be finite and between 0 and 1 mm.');
+  const indexed = indexedMesh(mesh); const positions = indexed.positions.map((point) => [...point] as Vec3); const margin = new Set(map.marginOuterVertexIds); let changed = 0;
+  for (const reference of references) {
+    for (const sample of distanceSamples(indexed, map.outerVertexIds, reference.mesh)) {
+      if (Math.abs(sample.distanceMm) <= 0.5 || (sample.distanceMm > 0 && mode === 'under') || (sample.distanceMm < 0 && mode === 'over')) continue;
+      const point = indexed.positions[sample.vertexId]; const locked = locks.anatomy || (locks.margin && margin.has(sample.vertexId)) || (locks.facialContour && point[1] <= mesh.bounds.min[1] + (mesh.bounds.max[1] - mesh.bounds.min[1]) / 2) || (locks.lingualContour && point[1] > mesh.bounds.min[1] + (mesh.bounds.max[1] - mesh.bounds.min[1]) / 2);
+      if (locked) continue;
+      const step = Math.min(maximumStepMm, Math.abs(sample.distanceMm) - 0.5); positions[sample.vertexId] = add3(positions[sample.vertexId], scale3(normalize3(subtract3(sample.nearest, sample.position)), step)); changed += 1;
+    }
+  }
+  if (!changed) throw new Error('Contour correction found no editable out-of-tolerance vertices; verify locks and reference coverage.');
+  const result = { positions, faces: indexed.faces }; validateGeometryResult(result); return meshData(result);
 }
 
 export function runCrownAnalyses(solid: CrownSolidResult, input: CrownGenerationInput) {
+  let started = performance.now();
+  const thickness = calculateThickness(solid.mesh, solid.topologyMap, input.materialProfileId);
+  const thicknessAnalysisMs = performance.now() - started;
+  started = performance.now();
+  const cementSpace = calculateCementSpace(solid, input);
+  const cementSpaceAnalysisMs = performance.now() - started;
+  started = performance.now();
+  const seating = simulateSeating(solid, input);
+  const seatingAnalysisMs = performance.now() - started;
+  started = performance.now();
+  const mesialContact = analyzeProximalContact(solid.mesh, solid.topologyMap, input.adjacentMeshes.find((item) => item.side === 'mesial'), 'mesial', input);
+  const distalContact = analyzeProximalContact(solid.mesh, solid.topologyMap, input.adjacentMeshes.find((item) => item.side === 'distal'), 'distal', input);
+  const contactCalculationMs = performance.now() - started;
+  started = performance.now();
+  const occlusion = analyzeOcclusion(solid.mesh, solid.topologyMap, input);
+  const occlusalCalculationMs = performance.now() - started;
+  started = performance.now();
+  const contour = analyzeContour(solid.mesh, solid.topologyMap, input.contourReferences);
+  const contourAnalysisMs = performance.now() - started;
   return {
-    thickness: calculateThickness(solid.mesh, solid.topologyMap, input.materialProfileId),
-    cementSpace: calculateCementSpace(solid, input),
-    seating: simulateSeating(solid, input),
-    mesialContact: analyzeProximalContact(solid.mesh, solid.topologyMap, input.adjacentMeshes.find((item) => item.side === 'mesial'), 'mesial', input),
-    distalContact: analyzeProximalContact(solid.mesh, solid.topologyMap, input.adjacentMeshes.find((item) => item.side === 'distal'), 'distal', input),
-    occlusion: analyzeOcclusion(solid.mesh, solid.topologyMap, input),
-    contour: analyzeContour(solid.mesh, solid.topologyMap, input.referenceMesh),
+    thickness,
+    cementSpace,
+    seating,
+    mesialContact,
+    distalContact,
+    occlusion,
+    contour,
+    stageDurationsMs: {
+      thicknessAnalysisMs,
+      cementSpaceAnalysisMs,
+      seatingAnalysisMs,
+      contactCalculationMs,
+      occlusalCalculationMs,
+      contourAnalysisMs,
+    },
   };
 }
 
 function constrainedSurfaceAdjustment(mesh: MeshData, map: CrownTopologyMap, target: MeshData, vertexIds: number[], targetDistance: number, maximumStepMm: number): MeshData {
-  const indexed = indexedMesh(mesh); const samples = distanceSamples(indexed, vertexIds, target); const positions = indexed.positions.map((point) => [...point] as Vec3);
+  const indexed = indexedMesh(mesh); const samples = distanceSamples(indexed, vertexIds, target); const displacements = new Map<number, Vec3>();
   for (const sample of samples) {
     const error = sample.inside ? targetDistance - sample.distanceMm : sample.distanceMm - targetDistance; if (Math.abs(error) < 0.005) continue;
     const direction = normalize3(subtract3(sample.nearest, sample.position));
     const step = Math.max(-maximumStepMm, Math.min(maximumStepMm, error));
-    positions[sample.vertexId] = add3(sample.position, scale3(direction, step));
+    displacements.set(sample.vertexId, scale3(direction, step));
   }
-  const result = { positions, faces: indexed.faces }; validateGeometryResult(result); return meshData(result);
+  if (!displacements.size) return structuredClone(mesh);
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const scale = 2 ** -attempt; const positions = indexed.positions.map((point, id) => add3(point, scale3(displacements.get(id) ?? [0, 0, 0], scale))); const result = { positions, faces: indexed.faces };
+    try { validateGeometryResult(result); return meshData(result); }
+    catch (error) { lastError = error; }
+  }
+  throw new Error(`Contact or occlusal adjustment could not produce valid crown geometry after bounded backtracking: ${lastError instanceof Error ? lastError.message : String(lastError)}`);
 }
 
 export function optimizeProximalContact(mesh: MeshData, map: CrownTopologyMap, target: MeshData, side: 'mesial' | 'distal', targetDistance: number, locked: boolean): MeshData {
@@ -196,16 +283,102 @@ export function optimizeStaticOcclusion(mesh: MeshData, map: CrownTopologyMap, a
   const candidates = map.outerVertexIds.filter((id) => !['margin', 'axial'].includes(map.regions[id])); return constrainedSurfaceAdjustment(mesh, map, antagonist, candidates, targetDistance, 0.2);
 }
 
-export function autoThickenCrown(mesh: MeshData, map: CrownTopologyMap, materialId: CrownGenerationInput['materialProfileId'], locks: { margin: boolean; intaglio: boolean; anatomy: boolean }): MeshData {
+export function autoThickenCrown(mesh: MeshData, map: CrownTopologyMap, materialId: CrownGenerationInput['materialProfileId'], locks: CrownLocks, lockedVertexIds: number[] = []): MeshData {
   if (locks.intaglio && locks.anatomy) throw new Error('Minimum-thickness conflict is unsatisfiable while both intaglio and anatomy are locked.');
-  const indexed = indexedMesh(mesh); const profile = CROWN_MATERIAL_PROFILES[materialId]; const positions = indexed.positions.map((point) => [...point] as Vec3); let changed = 0;
+  const indexed = indexedMesh(mesh); const profile = CROWN_MATERIAL_PROFILES[materialId]; const positions = indexed.positions.map((point) => [...point] as Vec3); const selectedLocks = new Set(lockedVertexIds); const center: Vec3 = [(mesh.bounds.min[0] + mesh.bounds.max[0]) / 2, (mesh.bounds.min[1] + mesh.bounds.max[1]) / 2, (mesh.bounds.min[2] + mesh.bounds.max[2]) / 2]; let changed = 0;
   for (const outerId of map.outerVertexIds) {
     const innerId = map.outerToInner[outerId]; if (innerId === undefined) continue; const region = map.regions[outerId] ?? 'axial'; if (locks.margin && region === 'margin') continue;
     const vector = subtract3(indexed.positions[outerId], indexed.positions[innerId]); const current = Math.hypot(...vector); const required = Math.max(profile.minimumThicknessMm.global, profile.minimumThicknessMm[region]);
-    if (current + 1e-6 >= required) continue; if (locks.anatomy) throw new Error(`Minimum-thickness conflict at outer vertex ${outerId} cannot be corrected while anatomy is locked.`);
+    if (current + 1e-6 >= required) continue;
+    const point = indexed.positions[outerId]; const constrained = locks.anatomy || (locks.selectedAnatomy && selectedLocks.has(outerId)) || (locks.facialContour && point[1] <= center[1]) || (locks.lingualContour && point[1] > center[1]) || (locks.mesialContact && point[0] <= center[0]) || (locks.distalContact && point[0] > center[0]) || (locks.occlusion && ['occlusal', 'incisal', 'cusp', 'fossa'].includes(region));
+    if (constrained) throw new Error(`Minimum-thickness conflict at outer vertex ${outerId} is unsatisfiable under the active restoration locks.`);
     positions[outerId] = add3(indexed.positions[innerId], scale3(normalize3(vector), required + 0.02)); changed += 1;
   }
   if (!changed) return structuredClone(mesh); const result = { positions, faces: indexed.faces }; validateGeometryResult(result); return meshData(result);
+}
+
+export interface CrownJointOptimizationResult {
+  mesh: MeshData;
+  evidence: CrownOptimizationEvidence;
+  analyses: {
+    thickness: ThicknessAnalysis;
+    mesialContact: ProximalContactAnalysis;
+    distalContact: ProximalContactAnalysis;
+    occlusion: OcclusionAnalysis;
+  };
+}
+
+/** Joint, deterministic, lock-aware optimization over actual crown vertices. */
+export function optimizeCrownConstraints(
+  mesh: MeshData,
+  map: CrownTopologyMap,
+  input: CrownGenerationInput,
+  locks: CrownLocks,
+  lockedVertexIds: number[] = [],
+  options: { maximumIterations?: number; convergenceTolerance?: number } = {},
+): CrownJointOptimizationResult {
+  const mesial = input.adjacentMeshes.find((value) => value.side === 'mesial'); const distal = input.adjacentMeshes.find((value) => value.side === 'distal');
+  if (!mesial || !distal || !input.antagonist) throw new Error('Joint crown optimization requires mesial, distal, and antagonist geometry.');
+  const maximumIterations = Math.max(1, Math.min(25, Math.floor(options.maximumIterations ?? 10))); const tolerance = Math.max(1e-6, Math.min(0.05, options.convergenceTolerance ?? 0.002));
+  const baseline = indexedMesh(mesh); let current = structuredClone(mesh); let previousObjective = Infinity; let iterationCount = 0; let status: CrownOptimizationEvidence['status'] = 'best-effort';
+  const beforeAnalyses = optimizationAnalyses(current, map, input); const before = optimizationMeasurements(beforeAnalyses);
+  for (let iteration = 0; iteration < maximumIterations; iteration += 1) {
+    iterationCount = iteration + 1;
+    if (!locks.mesialContact) current = optimizeProximalContact(current, map, mesial.mesh, 'mesial', input.parameters.targetMesialContactMm, false);
+    if (!locks.distalContact) current = optimizeProximalContact(current, map, distal.mesh, 'distal', input.parameters.targetDistalContactMm, false);
+    if (!locks.occlusion) current = optimizeStaticOcclusion(current, map, input.antagonist.mesh, input.parameters.targetOcclusalClearanceMm, false);
+    const thickness = calculateThickness(current, map, input.materialProfileId);
+    if (thickness.failingVertexIds.length) current = autoThickenCrown(current, map, input.materialProfileId, locks, lockedVertexIds);
+    validateGeometryResult(indexedMesh(current));
+    const analyses = optimizationAnalyses(current, map, input); const terms = optimizationTerms(analyses, baseline, indexedMesh(current), input); const objective = objectiveValue(terms);
+    if (constraintViolations(analyses, input).length === 0 && Math.abs(previousObjective - objective) <= tolerance) { status = 'converged'; break; }
+    if (objective > previousObjective + tolerance) { status = 'best-effort'; break; }
+    if (Math.abs(previousObjective - objective) <= tolerance) { status = constraintViolations(analyses, input).length ? 'best-effort' : 'converged'; break; }
+    previousObjective = objective;
+  }
+  const analyses = optimizationAnalyses(current, map, input); const violations = constraintViolations(analyses, input);
+  const lockedConflict = violations.some((value) => (value.includes('mesial') && locks.mesialContact) || (value.includes('distal') && locks.distalContact) || (value.includes('occlusal') && locks.occlusion) || (value.includes('thickness') && (locks.anatomy || locks.intaglio)));
+  if (lockedConflict) status = 'constraint-conflict'; else if (!violations.length) status = 'converged';
+  const evidence: CrownOptimizationEvidence = {
+    id: crypto.randomUUID(), status, objectiveTerms: optimizationTerms(analyses, baseline, indexedMesh(current), input), constraintViolations: violations, iterationCount, convergenceTolerance: tolerance, before, after: optimizationMeasurements(analyses), executedAt: new Date().toISOString(),
+  };
+  return { mesh: current, evidence, analyses };
+}
+
+function optimizationAnalyses(mesh: MeshData, map: CrownTopologyMap, input: CrownGenerationInput) {
+  return {
+    thickness: calculateThickness(mesh, map, input.materialProfileId),
+    mesialContact: analyzeProximalContact(mesh, map, input.adjacentMeshes.find((item) => item.side === 'mesial'), 'mesial', input),
+    distalContact: analyzeProximalContact(mesh, map, input.adjacentMeshes.find((item) => item.side === 'distal'), 'distal', input),
+    occlusion: analyzeOcclusion(mesh, map, input),
+  };
+}
+
+function optimizationMeasurements(value: ReturnType<typeof optimizationAnalyses>): CrownOptimizationEvidence['before'] {
+  return { mesialDistanceMm: value.mesialContact.minimumDistanceMm, distalDistanceMm: value.distalContact.minimumDistanceMm, occlusalDistanceMm: value.occlusion.minimumDistanceMm, minimumThicknessMm: value.thickness.globalMinimumMm };
+}
+
+function optimizationTerms(value: ReturnType<typeof optimizationAnalyses>, baseline: IndexedMesh, current: IndexedMesh, input: CrownGenerationInput): CrownOptimizationEvidence['objectiveTerms'] {
+  const displacementSquared = current.positions.reduce((sum, point, index) => sum + distance3(point, baseline.positions[index]) ** 2, 0);
+  const profile = CROWN_MATERIAL_PROFILES[input.materialProfileId];
+  return {
+    mesialContactErrorMm: value.mesialContact.minimumDistanceMm === null ? null : Math.abs(value.mesialContact.minimumDistanceMm - input.parameters.targetMesialContactMm),
+    distalContactErrorMm: value.distalContact.minimumDistanceMm === null ? null : Math.abs(value.distalContact.minimumDistanceMm - input.parameters.targetDistalContactMm),
+    occlusalClearanceErrorMm: value.occlusion.minimumDistanceMm === null ? null : Math.abs(value.occlusion.minimumDistanceMm - input.parameters.targetOcclusalClearanceMm),
+    thicknessDeficitMm: value.thickness.samples.reduce((sum, sample) => sum + Math.max(0, sample.minimumMm - sample.thicknessMm), 0),
+    morphologyDisplacementRmsMm: Math.sqrt(displacementSquared / Math.max(1, current.positions.length)) / Math.max(1, profile.minimumThicknessMm.global),
+  };
+}
+
+function objectiveValue(value: CrownOptimizationEvidence['objectiveTerms']): number { return (value.mesialContactErrorMm ?? 1) + (value.distalContactErrorMm ?? 1) + (value.occlusalClearanceErrorMm ?? 1) + value.thicknessDeficitMm * 2 + value.morphologyDisplacementRmsMm * 0.1; }
+
+function constraintViolations(value: ReturnType<typeof optimizationAnalyses>, input: CrownGenerationInput): string[] {
+  const violations: string[] = []; const profile = CROWN_MATERIAL_PROFILES[input.materialProfileId];
+  if (value.mesialContact.minimumDistanceMm === null || value.mesialContact.minimumDistanceMm < profile.contactDistanceMm.minimum || value.mesialContact.minimumDistanceMm > profile.contactDistanceMm.maximum) violations.push('mesial contact target is outside the governed range');
+  if (value.distalContact.minimumDistanceMm === null || value.distalContact.minimumDistanceMm < profile.contactDistanceMm.minimum || value.distalContact.minimumDistanceMm > profile.contactDistanceMm.maximum) violations.push('distal contact target is outside the governed range');
+  if (value.occlusion.minimumDistanceMm === null || value.occlusion.minimumDistanceMm < profile.occlusalClearanceMm.minimum || value.occlusion.minimumDistanceMm > profile.occlusalClearanceMm.maximum) violations.push('occlusal clearance target is outside the governed range');
+  if (value.thickness.failingVertexIds.length) violations.push(`${value.thickness.failingVertexIds.length} minimum-thickness vertices remain`);
+  return violations;
 }
 
 export function crownIntegrity(mesh: MeshData) { return inspectGeometry(indexedMesh(mesh)); }

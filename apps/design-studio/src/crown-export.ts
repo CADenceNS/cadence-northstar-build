@@ -1,7 +1,7 @@
 import { parseMesh, type MeshData, type Vec3 } from './core';
 import { analyzeSelfIntersections, buildTopology, faceNormal, indexedMesh, inspectGeometry, meshData, type IndexedMesh } from './editing-geometry';
 import { closestPointOnMesh, distance3, dot3, cross3, type Triangle3 } from './geometry';
-import type { CrownExportFormat, CrownRoundTripResult } from './restoration-types';
+import type { CrownExportFormat, CrownExportRecord, CrownRoundTripResult, RestorationRecord } from './restoration-types';
 
 export interface CrownExportOutput {
   format: CrownExportFormat;
@@ -10,6 +10,12 @@ export interface CrownExportOutput {
   bytes: Uint8Array;
   roundTrip: CrownRoundTripResult;
   reimportedMesh: MeshData;
+  performance: {
+    totalDurationMs: number;
+    exportSerializationMs: number;
+    reimportDurationMs: number;
+    roundTripValidationMs: number;
+  };
 }
 
 function triangles(mesh: IndexedMesh): Triangle3[] { return mesh.faces.map(([a, b, c], id) => ({ id, a: mesh.positions[a], b: mesh.positions[b], c: mesh.positions[c] })); }
@@ -80,10 +86,16 @@ function formatMetadata(format: CrownExportFormat): { format: 'stl' | 'obj' | 'p
 }
 
 export async function exportAndValidateCrown(meshDataValue: MeshData, format: CrownExportFormat, toleranceMm = 0.001): Promise<CrownExportOutput> {
+  const totalStarted = performance.now();
   const source = indexedMesh(meshDataValue); const sourceInspection = inspectGeometry(source); const sourceTopology = buildTopology(source);
   if (!sourceInspection.watertight || sourceInspection.shellCount !== 1 || sourceTopology.nonManifoldEdges.length || analyzeSelfIntersections(source).length) throw new Error('Manufacturing export rejected corrupt, open, disconnected, non-manifold, or self-intersecting crown geometry.');
+  let stageStarted = performance.now();
   const bytes = format === 'binary-stl' ? binaryStl(source) : format === 'ascii-stl' ? asciiStl(source) : format === 'obj' ? obj(source) : ply(source); const metadata = formatMetadata(format);
+  const exportSerializationMs = performance.now() - stageStarted;
+  stageStarted = performance.now();
   const parsed = parseMesh(bytes, metadata.format); const restored = weld(parsed); const restoredInspection = inspectGeometry(restored); const deviation = surfaceDeviation(source, restored);
+  const reimportDurationMs = performance.now() - stageStarted;
+  stageStarted = performance.now();
   const dimensions = sourceInspection.boundingDimensionsMm; const restoredDimensions = restoredInspection.boundingDimensionsMm; const dimensionDeviation = dimensions.map((value, axis) => Math.abs(value - restoredDimensions[axis])) as Vec3;
   const volumeDeviation = Math.abs((sourceInspection.volumeMm3 ?? 0) - (restoredInspection.volumeMm3 ?? 0)); const areaDeviation = Math.abs(sourceInspection.surfaceAreaMm2 - restoredInspection.surfaceAreaMm2);
   const orientationPreserved = Math.sign(signedVolume(source)) === Math.sign(signedVolume(restored)); const scalePreserved = dimensionDeviation.every((value) => value <= toleranceMm); const intersections = analyzeSelfIntersections(restored).length;
@@ -94,13 +106,29 @@ export async function exportAndValidateCrown(meshDataValue: MeshData, format: Cr
     passed: deviation.maximum <= toleranceMm && dimensionDeviation.every((value) => value <= toleranceMm) && volumeDeviation <= Math.max(0.001, (sourceInspection.volumeMm3 ?? 0) * 0.0001) && areaDeviation <= Math.max(0.001, sourceInspection.surfaceAreaMm2 * 0.0001) && orientationPreserved && scalePreserved && source.faces.length === restored.faces.length && restoredInspection.watertight && restoredInspection.shellCount === 1 && intersections === 0,
     toleranceMm,
   };
-  return { format, mimeType: metadata.mimeType, extension: metadata.extension, bytes, roundTrip, reimportedMesh: meshData(restored) };
+  const roundTripValidationMs = performance.now() - stageStarted;
+  return {
+    format, mimeType: metadata.mimeType, extension: metadata.extension, bytes, roundTrip, reimportedMesh: meshData(restored),
+    performance: { totalDurationMs: performance.now() - totalStarted, exportSerializationMs, reimportDurationMs, roundTripValidationMs },
+  };
 }
 
 export async function validateAllCrownExports(mesh: MeshData, toleranceMm = 0.001): Promise<CrownExportOutput[]> {
   const formats: CrownExportFormat[] = ['binary-stl', 'ascii-stl', 'obj', 'ply']; const outputs: CrownExportOutput[] = [];
   for (const format of formats) outputs.push(await exportAndValidateCrown(mesh, format, toleranceMm));
   return outputs;
+}
+
+export function createCrownExportRecords(restoration: RestorationRecord, outputs: CrownExportOutput[], exportedAt = new Date().toISOString()): CrownExportRecord[] {
+  const activeVersionId = restoration.activeVersionId; const activeQcResultId = restoration.activeQcResultId;
+  if (!activeVersionId) throw new Error('Manufacturing export metadata requires an active design version.');
+  if (!activeQcResultId) throw new Error('Manufacturing export metadata requires an active QC result.');
+  if (!['APPROVED_FOR_EXPORT', 'LOCKED'].includes(restoration.approvalState)) throw new Error('Manufacturing export metadata requires an export-approved restoration.');
+  if (outputs.some((output) => !output.roundTrip.passed)) throw new Error('Manufacturing export metadata rejected a failed geometry round trip.');
+  return outputs.map((output) => ({
+    id: crypto.randomUUID(), restorationId: restoration.id, versionId: activeVersionId, format: output.format, fileName: `CADence-Crown-${restoration.toothNumber}.${output.extension}`, createdAt: exportedAt, roundTrip: structuredClone(output.roundTrip),
+    metadata: { caseId: restoration.caseId, restorationId: restoration.id, toothNumber: restoration.toothNumber, numberingSystem: restoration.numberingSystem, materialProfileId: restoration.materialProfileId, units: 'mm', geometryHash: output.roundTrip.checksum, designVersion: restoration.designVersion, marginVersion: restoration.approvedMarginVersionId, morphologyVersion: restoration.morphologyVersion, materialProfileVersion: restoration.materialProfileVersion, qcResultId: activeQcResultId, exportedAt },
+  }));
 }
 
 export function triggerCrownDownload(output: CrownExportOutput, fileName: string): void {
