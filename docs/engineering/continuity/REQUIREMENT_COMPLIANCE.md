@@ -17,7 +17,7 @@ The original source file itself is not in git; the matrix preserves its identity
 | Audited state | VERIFIED_COMPLETE | PARTIALLY_IMPLEMENTED | MISSING | NOT_APPLICABLE_WITH_JUSTIFICATION | Meaning |
 |---|---:|---:|---:|---:|---|
 | Merged PR #27 / current `main` | 703 | 4 | 2 | 3 | Six lock/margin claims were invalidated by a real-geometry reproduction. |
-| PR #28 corrective product candidate | 709 | 0 | 0 | 3 | Implementation and direct deterministic regression are complete; exact-current-head public certification is required before final acceptance. |
+| PR #28 corrective candidate | 709 | 0 | 0 | 3 | Implementation, direct deterministic/browser regressions, and public product-test-head certification are complete; architectural acceptance remains required. |
 
 The three N/A rows are approval-override subrequirements. Hard corruption and hard QC failures are intentionally non-overridable; fabricating an override path would weaken fail-closed governance.
 
@@ -29,8 +29,8 @@ The three N/A rows are approval-override subrequirements. Hard corruption and ha
 | `S25-P05-R019` — no crown editing command may accidentally move the approved margin | Violated by `crown.contact-optimize`. | Same domain restriction plus registry reconciliation. | VERIFIED_COMPLETE |
 | `S25-P12-R010` — automated optimization preserves locked regions | Joint optimization called the proximal tool with only side-lock state and could move a locked margin. | Proximal support is non-margin by construction, so both direct and joint paths preserve it. | VERIFIED_COMPLETE |
 | `S25-P12-R013` — do not silently violate a lock | The optimizer reported `converged` after silently moving 32/48 margin vertices. | Exact vertex equality is now a required regression assertion. | VERIFIED_COMPLETE |
-| `S25-P16-R006` — margin preservation in joint optimization | Missing in the final merged proximal domain. | Direct and joint contact correction share the non-margin edit domain; convergence, contact/occlusion pass, topology, margin, intaglio, and preparation invariants are checked. | VERIFIED_COMPLETE |
-| `S25-P27-R032` — confirm no approved margin was silently changed | The old test checked intaglio and preparation, not the crown margin. | `crown-analysis-qc.test.ts` now snapshots `marginOuterVertexIds` and performs an exact post-optimization comparison. The assertion fails on the pre-fix algorithm and passes on PR #28. | VERIFIED_COMPLETE |
+| `S25-P16-R006` — margin preservation in joint optimization | Missing in the final merged proximal domain. | Direct and joint contact correction share the non-margin edit domain. A feasible tilted-axis case proves convergence/contact/occlusion pass; the original infeasible geometry proves `best-effort`, explicit constraint violation, hard QC failure, valid topology, and no margin/intaglio/preparation movement. | VERIFIED_COMPLETE |
+| `S25-P27-R032` — confirm no approved margin was silently changed | The old test checked intaglio and preparation, not the crown margin. | Deterministic feasible and infeasible cases snapshot `marginOuterVertexIds` and perform exact post-optimization comparisons. Browser coverage proves the infeasible case becomes `QC_FAILED` with approval/export disabled. The invariant fails on the pre-fix algorithm and passes on PR #28. | VERIFIED_COMPLETE |
 
 ## Phase coverage
 
@@ -62,11 +62,12 @@ The three N/A rows are approval-override subrequirements. Hard corruption and ha
 | 24 | Failure Corpus | 17 | 17 verified | 15-case required corpus plus input/QC rejection tests |
 | 25 | Performance | 21 | 21 verified | measured small/medium/high-density/multi-crown and browser responsiveness |
 | 26 | Tool Coverage Registry | 18 | 18 verified | crown/universal registries and compliance/failure tests |
-| 27 | Exact-head Certification | 93 | implementation complete; exact-current-head gate pending | repository workflows, full deterministic, Playwright, and protected corpus when available |
+| 27 | Exact-head Certification | 93 | public product-test-head gate passed; private corpus unavailable; architecture pending | `05eea8a`: 421/421 deterministic, 47/47 Playwright, CI/Runtime/Sprint green; protected corpus only when available |
 
 ## Evidence boundary
 
-- Supplemental PR #28 audit: 142/142 crown tests, 11 suites; high-density 3,842 vertices / 7,680 triangles; watertight; zero self-intersections; maximum four-format round-trip deviation `4.800035299255723e-7 mm`.
-- Official certification must come from the immutable current PR head under Node 20 / pnpm 9.15 with frozen install, strict TypeScript, all builds, full deterministic tests, complete Playwright, CI, Runtime Validation, and Sprint Validation.
+- Supplemental PR #28 audit verified all 143 crown tests across 11 suites. The aggregate isolated run was 142/143 only because its temporary copy initially omitted repository evidence paths; the three compliance tests passed after those referenced files were restored. High-density evidence: 3,842 vertices / 7,680 triangles; watertight; zero self-intersections; maximum four-format round-trip deviation `4.800035299255723e-7 mm`.
+- Official product-test-head certification on immutable commit `05eea8a` used Node 20 / pnpm 9.15 with frozen install, strict TypeScript, all builds, 421/421 deterministic tests across 41 suites, and 47/47 Playwright tests. CI `31849913854`, Runtime `31849913798`, and Sprint `31849913825` passed.
+- A later continuity-only head must retain those gates. Its non-self-referential exact SHA/tree/run record belongs in PR #28's final certification comment.
 - The protected corpus and `CORPUS_INTEGRITY.json` were not mounted. Historical PR #27 results are not represented as a PR #28 rerun.
 - No STL, OBJ, or PLY source geometry is tracked in git.

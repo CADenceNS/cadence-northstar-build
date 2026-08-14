@@ -13,7 +13,7 @@
 | Sprint 25B | PR #27 commit `234eccebb474f57dad3d71f325ad4c79475533f6` | The specification audit and gap closure were real. The exact commit was not certified because Runtime and Sprint workflows failed. |
 | Sprint 25 stabilization (“25C” forensic label only) | PR #27 commits `0bc4ba1`…`6bbffdb` | Browser fixture/evidence hardening and three optimizer fixes produced green public workflows. No repository artifact explicitly names this Sprint 25C. |
 | Sprint 25 merge | PR #27 merged as `b53cdd86c2e4eb61e1931c816c34703aa8614823` | Merged tree passed public workflows, but post-merge reconciliation found a silent margin-lock violation in the final commit. |
-| Sprint 25 corrective reconciliation | Draft PR #28 | Restores non-margin proximal correction, adds direct lock regression, updates registry/ledgers, recertifies exact head. Sprint 26 remains blocked. |
+| Sprint 25 corrective reconciliation | Draft PR #28; product-test head `05eea8a` | Restores non-margin proximal correction; proves feasible convergence and infeasible fail-closed behavior; updates registry/ledgers. Public gates pass; architectural review remains. Sprint 26 remains blocked. |
 
 ## Six-commit delta from Sprint 25A to PR #27 final head
 
@@ -37,7 +37,11 @@ The original issue was a measurement/edit-domain mismatch on a tilted-axis poste
 
 That mathematical change was too broad. `optimizeProximalContact` accepts only the side contact lock; `CrownWorkspace` and the joint optimizer do not pass `locks.margin` into it. Consequently, all-outer eligibility bypassed the explicit margin workflow. Against exact merged code, the optimizer reported convergence after moving 32 of 48 margin vertices by as much as `0.7500000000000004 mm`.
 
-PR #28 restores the correct command boundary: analysis may still observe full outer-surface proximity, but contact correction can modify only non-margin proximal support. Its realistic tilted-axis regression proves mesial/distal/occlusal pass, convergence, zero self-intersections, unchanged approved margin, unchanged intaglio, and unchanged preparation source. The test fails against the pre-correction all-outer implementation.
+PR #28 restores the correct command boundary: analysis may still observe full outer-surface proximity, but contact correction can modify only non-margin proximal support. A feasible tilted-axis posterior case (`mesial -4.79 mm`, `distal +3.75 mm`) proves mesial/distal/occlusal pass, convergence, zero self-intersections, unchanged approved margin, unchanged intaglio, and unchanged preparation source.
+
+The original symmetric `±4.51 mm` fixture is retained as a separate infeasible regression. Expanding non-margin support far enough to force its target produces real foldover/self-intersection; the merged all-outer implementation reached the target only by moving the approved margin. The corrected implementation therefore reports `best-effort` with an explicit distal constraint violation, produces hard QC `FAIL` / restoration `QC_FAILED`, disables approval and export, preserves valid topology, and leaves margin, intaglio, and preparation exact. This is fail-closed evidence, not a relaxed threshold.
+
+Certification-test head `05eea8a` passed 421/421 deterministic tests across 41 suites and 47/47 Playwright tests in CI `31849913854`, Runtime `31849913798`, and Sprint `31849913825`. The protected corpus was unavailable and was not claimed as rerun.
 
 ## Durable architectural decisions
 
