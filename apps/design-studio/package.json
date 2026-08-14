@@ -8,7 +8,8 @@
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test tests/*.test.ts",
     "test:private-registration": "node --max-old-space-size=4096 --import tsx --test --test-concurrency=1 private-tests/corpus-certification.test.ts",
-    "test:private-preparation": "node --max-old-space-size=4096 --import tsx --test --test-concurrency=1 private-tests/preparation-corpus.test.ts"
+    "test:private-preparation": "node --max-old-space-size=4096 --import tsx --test --test-concurrency=1 private-tests/preparation-corpus.test.ts",
+    "test:private-crown": "node --max-old-space-size=4096 --import tsx --test --test-concurrency=1 private-tests/crown-corpus.test.ts"
   },
   "dependencies": {
     "react": "latest",

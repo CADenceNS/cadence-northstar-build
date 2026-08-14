@@ -1,7 +1,10 @@
 import type { CaseScanSet, StoredRegistrationReport } from './registration-types';
+import { indexedMesh, meshData } from './editing-geometry';
 import { createEditingProjectState, type EditingProjectState, type GeometryInspection } from './editing-types';
 import { createPreparationProjectState, type PreparationProjectState } from './preparation-types';
 import { normalizePreparationState } from './preparation-state';
+import { createRestorationProjectState, type RestorationProjectState } from './restoration-types';
+import { normalizeRestorationState } from './restoration-state';
 
 export type Vec3 = [number, number, number];
 export type Quat = [number, number, number, number];
@@ -139,12 +142,13 @@ export interface ProjectHistoryEntry {
   createdAt: string;
 }
 export interface DesignProject {
-  schemaVersion: 5; id: string; name: string; createdAt: string; updatedAt: string;
+  schemaVersion: 6; id: string; name: string; createdAt: string; updatedAt: string;
   camera: CameraState; settings: ProjectSettings; scene: SceneObject[]; artifacts: ArtifactRecord[];
   savedViews: SavedView[]; measurements: MeasurementRecord[]; validationReports: StoredValidationReport[];
   registrationReports: StoredRegistrationReport[]; caseScanSet: CaseScanSet; history: ProjectHistoryEntry[];
   editing: EditingProjectState;
   preparation: PreparationProjectState;
+  restoration: RestorationProjectState;
 }
 
 export const DEFAULT_CAMERA: CameraState = { projection: 'perspective', target: [0, 0, 0], distance: 140, yaw: 0.45, pitch: 0.3, orthographicScale: 90 };
@@ -156,7 +160,7 @@ export function createProject(name = 'Untitled Project'): DesignProject {
   const now = new Date().toISOString();
   const id = crypto.randomUUID();
   return {
-    schemaVersion: 5,
+    schemaVersion: 6,
     id,
     name,
     createdAt: now,
@@ -173,6 +177,7 @@ export function createProject(name = 'Untitled Project'): DesignProject {
     history: [],
     editing: createEditingProjectState(),
     preparation: createPreparationProjectState(),
+    restoration: createRestorationProjectState(),
   };
 }
 
@@ -223,25 +228,192 @@ export class ProjectStore {
   private readonly projectPrefix = 'cadence.design-studio.project.';
   private readonly recentKey = 'cadence.design-studio.recent';
   private readonly recoveryKey = 'cadence.design-studio.recovery';
-  save(project: DesignProject): DesignProject { const next = { ...structuredClone(project), updatedAt: new Date().toISOString() }; localStorage.setItem(`${this.projectPrefix}${next.id}`, JSON.stringify(next)); this.touchRecent(next); localStorage.removeItem(this.recoveryKey); return next; }
+  save(project: DesignProject): DesignProject { const next = { ...structuredClone(project), updatedAt: new Date().toISOString() }; localStorage.setItem(`${this.projectPrefix}${next.id}`, serializeProject(next)); this.touchRecent(next); localStorage.removeItem(this.recoveryKey); return next; }
   saveAs(project: DesignProject, name: string): DesignProject { const now = new Date().toISOString(); const id = crypto.randomUUID(); return this.save({ ...structuredClone(project), id, name, createdAt: now, updatedAt: now, caseScanSet: { ...structuredClone(project.caseScanSet), projectId: id, updatedAt: now } }); }
-  open(id: string): DesignProject { const raw = localStorage.getItem(`${this.projectPrefix}${id}`); if (!raw) throw new Error('Project not found'); return migrateProject(JSON.parse(raw) as unknown); }
+  open(id: string): DesignProject { const raw = localStorage.getItem(`${this.projectPrefix}${id}`); if (!raw) throw new Error('Project not found'); return deserializeProject(raw); }
   listRecent(): Array<Pick<DesignProject, 'id' | 'name' | 'updatedAt'>> { try { return JSON.parse(localStorage.getItem(this.recentKey) ?? '[]') as Array<Pick<DesignProject, 'id' | 'name' | 'updatedAt'>>; } catch { return []; } }
-  autoSave(project: DesignProject): void { localStorage.setItem(this.recoveryKey, JSON.stringify({ ...structuredClone(project), updatedAt: new Date().toISOString() })); }
-  recover(): DesignProject | null { const raw = localStorage.getItem(this.recoveryKey); if (!raw) return null; try { return migrateProject(JSON.parse(raw) as unknown); } catch { return null; } }
+  autoSave(project: DesignProject): void { localStorage.setItem(this.recoveryKey, serializeProject({ ...structuredClone(project), updatedAt: new Date().toISOString() })); }
+  recover(): DesignProject | null { const raw = localStorage.getItem(this.recoveryKey); if (!raw) return null; try { return deserializeProject(raw); } catch { return null; } }
   clearRecovery(): void { localStorage.removeItem(this.recoveryKey); }
   private touchRecent(project: DesignProject): void { const next = [{ id: project.id, name: project.name, updatedAt: project.updatedAt }, ...this.listRecent().filter((item) => item.id !== project.id)].slice(0, 12); localStorage.setItem(this.recentKey, JSON.stringify(next)); }
+}
+
+const PROJECT_STORAGE_FORMAT = 'cadence-design-project-indexed-mesh-v1';
+const MESH_STORAGE_FORMAT = 'cadence-indexed-mesh-v1';
+
+interface PackedNumberArray { count: number; base64: string; }
+interface PackedMesh {
+  storageFormat: typeof MESH_STORAGE_FORMAT;
+  sourceTopologyPresent: boolean;
+  sourcePositions: PackedNumberArray;
+  sourceIndices: PackedNumberArray;
+  render?: {
+    positions: PackedNumberArray;
+    normals: PackedNumberArray;
+    indices: PackedNumberArray;
+    bounds: MeshData['bounds'];
+  };
+}
+
+interface PackedProject {
+  storageFormat: typeof PROJECT_STORAGE_FORMAT;
+  project: Omit<DesignProject, 'artifacts'> & { artifacts: Array<Omit<ArtifactRecord, 'mesh'> & { mesh: PackedMesh }> };
+}
+
+function serializeProject(project: DesignProject): string {
+  const snapshot = structuredClone(project);
+  const packed: PackedProject = {
+    storageFormat: PROJECT_STORAGE_FORMAT,
+    project: {
+      ...snapshot,
+      artifacts: snapshot.artifacts.map((artifact) => ({ ...artifact, mesh: packMesh(artifact.mesh) })),
+    },
+  };
+  return JSON.stringify(packed);
+}
+
+function deserializeProject(raw: string): DesignProject {
+  const parsed = JSON.parse(raw) as unknown;
+  if (!isPackedProject(parsed)) return migrateProject(parsed);
+  const project = parsed.project;
+  return migrateProject({
+    ...project,
+    artifacts: project.artifacts.map((artifact) => ({ ...artifact, mesh: unpackMesh(artifact.mesh) })),
+  });
+}
+
+function isPackedProject(value: unknown): value is PackedProject {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as Partial<PackedProject>;
+  return candidate.storageFormat === PROJECT_STORAGE_FORMAT && Boolean(candidate.project) && Array.isArray(candidate.project?.artifacts);
+}
+
+function packMesh(mesh: MeshData): PackedMesh {
+  const sourceTopologyPresent = Boolean(mesh.sourceTopology);
+  const indexed = indexedMesh(mesh);
+  const canonical = meshData(indexed);
+  if (!sourceTopologyPresent) delete canonical.sourceTopology;
+  const renderIsDerivable = meshesEqual(mesh, canonical);
+  return {
+    storageFormat: MESH_STORAGE_FORMAT,
+    sourceTopologyPresent,
+    sourcePositions: packFloat64(indexed.positions.flat()),
+    sourceIndices: packUint32(indexed.faces.flat()),
+    ...(!renderIsDerivable ? {
+      render: {
+        positions: packFloat64(mesh.positions),
+        normals: packFloat64(mesh.normals),
+        indices: packUint32(mesh.indices),
+        bounds: structuredClone(mesh.bounds),
+      },
+    } : {}),
+  };
+}
+
+function unpackMesh(packed: PackedMesh): MeshData {
+  if (packed.storageFormat !== MESH_STORAGE_FORMAT) throw new Error('Unsupported stored mesh format.');
+  const sourcePositions = unpackFloat64(packed.sourcePositions);
+  const sourceIndices = unpackUint32(packed.sourceIndices);
+  const indexed = {
+    positions: tuples(sourcePositions),
+    faces: indexTriples(sourceIndices),
+  };
+  const canonical = meshData(indexed);
+  if (!packed.sourceTopologyPresent) delete canonical.sourceTopology;
+  if (!packed.render) return canonical;
+  return {
+    positions: unpackFloat64(packed.render.positions),
+    normals: unpackFloat64(packed.render.normals),
+    indices: unpackUint32(packed.render.indices),
+    bounds: structuredClone(packed.render.bounds),
+    ...(packed.sourceTopologyPresent ? { sourceTopology: { positions: sourcePositions, indices: sourceIndices } } : {}),
+  };
+}
+
+function meshesEqual(left: MeshData, right: MeshData): boolean {
+  return arraysEqual(left.positions, right.positions)
+    && arraysEqual(left.normals, right.normals)
+    && arraysEqual(left.indices, right.indices)
+    && arraysEqual(left.bounds.min, right.bounds.min)
+    && arraysEqual(left.bounds.max, right.bounds.max)
+    && Boolean(left.sourceTopology) === Boolean(right.sourceTopology)
+    && (!left.sourceTopology || !right.sourceTopology || (arraysEqual(left.sourceTopology.positions, right.sourceTopology.positions) && arraysEqual(left.sourceTopology.indices, right.sourceTopology.indices)));
+}
+
+function arraysEqual(left: readonly number[], right: readonly number[]): boolean {
+  return left.length === right.length && left.every((value, index) => Object.is(value, right[index]));
+}
+
+function packFloat64(values: readonly number[]): PackedNumberArray {
+  const buffer = new ArrayBuffer(values.length * 8);
+  const view = new DataView(buffer);
+  values.forEach((value, index) => {
+    if (!Number.isFinite(value)) throw new Error(`Cannot persist non-finite mesh coordinate at index ${index}.`);
+    view.setFloat64(index * 8, value, true);
+  });
+  return { count: values.length, base64: encodeBase64(new Uint8Array(buffer)) };
+}
+
+function unpackFloat64(packed: PackedNumberArray): number[] {
+  const bytes = decodeBase64(packed.base64);
+  if (bytes.byteLength !== packed.count * 8) throw new Error('Stored mesh coordinate payload length is invalid.');
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  return Array.from({ length: packed.count }, (_, index) => view.getFloat64(index * 8, true));
+}
+
+function packUint32(values: readonly number[]): PackedNumberArray {
+  const buffer = new ArrayBuffer(values.length * 4);
+  const view = new DataView(buffer);
+  values.forEach((value, index) => {
+    if (!Number.isInteger(value) || value < 0 || value > 0xffffffff) throw new Error(`Cannot persist invalid mesh index at index ${index}.`);
+    view.setUint32(index * 4, value, true);
+  });
+  return { count: values.length, base64: encodeBase64(new Uint8Array(buffer)) };
+}
+
+function unpackUint32(packed: PackedNumberArray): number[] {
+  const bytes = decodeBase64(packed.base64);
+  if (bytes.byteLength !== packed.count * 4) throw new Error('Stored mesh index payload length is invalid.');
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  return Array.from({ length: packed.count }, (_, index) => view.getUint32(index * 4, true));
+}
+
+function encodeBase64(bytes: Uint8Array): string {
+  const chunks: string[] = [];
+  for (let offset = 0; offset < bytes.length; offset += 0x8000) chunks.push(String.fromCharCode(...bytes.subarray(offset, offset + 0x8000)));
+  return btoa(chunks.join(''));
+}
+
+function decodeBase64(value: string): Uint8Array {
+  const binary = atob(value);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+  return bytes;
+}
+
+function tuples(values: number[]): Vec3[] {
+  if (values.length % 3 !== 0) throw new Error('Stored mesh coordinates are not complete XYZ tuples.');
+  const output: Vec3[] = [];
+  for (let index = 0; index < values.length; index += 3) output.push([values[index], values[index + 1], values[index + 2]]);
+  return output;
+}
+
+function indexTriples(values: number[]): Array<[number, number, number]> {
+  if (values.length % 3 !== 0) throw new Error('Stored mesh indices are not complete triangles.');
+  const output: Array<[number, number, number]> = [];
+  for (let index = 0; index < values.length; index += 3) output.push([values[index], values[index + 1], values[index + 2]]);
+  return output;
 }
 
 export function migrateProject(input: unknown): DesignProject {
   if (!input || typeof input !== 'object') throw new Error('Invalid project document');
   const candidate = input as Partial<DesignProject> & { schemaVersion?: number };
-  if (![1, 2, 3, 4, 5].includes(candidate.schemaVersion ?? 0) || !candidate.id || !candidate.name) throw new Error('Unsupported project schema');
+  if (![1, 2, 3, 4, 5, 6].includes(candidate.schemaVersion ?? 0) || !candidate.id || !candidate.name) throw new Error('Unsupported project schema');
   const scene = Array.isArray(candidate.scene)
     ? candidate.scene.map((object) => ({ ...structuredClone(object), locked: object.locked ?? false }))
     : [];
   return {
-    schemaVersion: 5,
+    schemaVersion: 6,
     id: candidate.id,
     name: candidate.name,
     createdAt: candidate.createdAt ?? new Date().toISOString(),
@@ -260,6 +432,7 @@ export function migrateProject(input: unknown): DesignProject {
       ? { ...createEditingProjectState(), ...structuredClone(candidate.editing) }
       : createEditingProjectState(),
     preparation: normalizePreparationState(candidate.preparation),
+    restoration: normalizeRestorationState(candidate.restoration),
   };
 }
 

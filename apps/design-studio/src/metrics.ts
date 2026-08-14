@@ -20,6 +20,11 @@ export type MetricName =
   | 'registration.heatmap'
   | 'registration.save'
   | 'registration.reopen'
+  | 'crown.proposal'
+  | 'crown.analysis'
+  | 'crown.export-preflight'
+  | 'crown.save'
+  | 'crown.reopen'
   | 'memory.estimate';
 
 export class RuntimeMetrics {

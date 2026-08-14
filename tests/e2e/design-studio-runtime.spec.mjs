@@ -92,7 +92,7 @@ test('persists project scene, artifacts, camera and selection across reload', as
   await page.getByLabel('Project name').fill('Persistence Validation');
   await page.getByRole('button', { name: 'Orthographic' }).click();
   await page.getByRole('button', { name: 'Save', exact: true }).click();
-  await expect(page.getByText('Saved · Schema v5')).toBeVisible();
+  await expect(page.getByText('Saved · Schema v6')).toBeVisible();
 
   await page.reload();
   await page.getByRole('button', { name: 'Open' }).click();

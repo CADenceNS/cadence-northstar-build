@@ -42,7 +42,9 @@ const ownerAttestation = await loader.verifyOwnerAttestation();
 const caseOne = await loader.loadCase('CASE-001');
 const caseTwo = await loader.loadCase('CASE-002');
 const caseThree = await loader.loadCase('CASE-003');
-const repositoryCommit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repositoryRoot, encoding: 'utf8' }).trim();
+const repositoryCommit = (process.env.GIT_COMMIT_SHA
+  ?? execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repositoryRoot, encoding: 'utf8' })).trim();
+if (!/^[0-9a-f]{40}$/.test(repositoryCommit)) throw new Error('Private certification requires an exact 40-character repository commit SHA.');
 
 interface TestEvidence {
   caseId: string;

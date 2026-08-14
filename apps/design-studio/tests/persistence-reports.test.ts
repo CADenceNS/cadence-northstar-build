@@ -22,7 +22,7 @@ describe('validation reports and project persistence', () => {
     const result = validateMeshArtifact(artifact); const { report, historyEntry } = await createValidationReport(project, artifact, result);
     project.validationReports = [report]; project.history = [historyEntry]; project.measurements = [measurement()];
     const store = new ProjectStore(); const saved = store.save(project); const opened = store.open(saved.id);
-    expect(opened.validationReports).toEqual([report]); expect(opened.measurements).toEqual(project.measurements); expect(opened.history).toEqual([historyEntry]); expect(opened.schemaVersion).toBe(5);
+    expect(opened.validationReports).toEqual([report]); expect(opened.measurements).toEqual(project.measurements); expect(opened.history).toEqual([historyEntry]); expect(opened.schemaVersion).toBe(6);
   });
 
   it('preserves reports and measurements through crash recovery', async () => {
