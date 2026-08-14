@@ -274,8 +274,8 @@ function constrainedSurfaceAdjustment(mesh: MeshData, map: CrownTopologyMap, tar
 
 export function optimizeProximalContact(mesh: MeshData, map: CrownTopologyMap, target: MeshData, side: 'mesial' | 'distal', targetDistance: number, locked: boolean): MeshData {
   if (locked) throw new Error(`${side === 'mesial' ? 'Mesial' : 'Distal'} contact lock prevents automatic contact optimization.`);
-  // The complete outer surface is eligible so tilted-axis boundary samples cannot strand the measured contact outside the governed range; the intaglio remains unchanged.
-  const indexed = indexedMesh(mesh); const samples = distanceSamples(indexed, map.outerVertexIds, target).sort((a, b) => a.distanceMm - b.distanceMm);
+  // Contact correction may reshape proximal support, but the approved margin belongs to its explicit margin workflow and is never eligible here.
+  const indexed = indexedMesh(mesh); const samples = distanceSamples(indexed, map.outerVertexIds.filter((id) => map.regions[id] !== 'margin'), target).sort((a, b) => a.distanceMm - b.distanceMm);
   const count = Math.max(3, Math.ceil(samples.length * 0.2)); return constrainedSurfaceAdjustment(mesh, map, target, samples.slice(0, count).map((sample) => sample.vertexId), targetDistance, 0.25);
 }
 
