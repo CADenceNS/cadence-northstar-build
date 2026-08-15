@@ -8,7 +8,11 @@ test.describe('production single-unit crown technician workflows', () => {
   });
 
   test('completes a posterior crown from registered case through export, recovery, and identical reopen', async ({ page }) => {
-    await completeCrown(page, { tooth: 3, label: 'Posterior Crown Case', preparationKind: 'shoulder', antagonistZ: 8.73, adjacentX: 4.51, material: 'zirconia-monolithic', recovery: true });
+    await completeCrown(page, { tooth: 3, label: 'Posterior Crown Case', preparationKind: 'shoulder', antagonistZ: 8.73, mesialX: 4.79, distalX: 3.75, material: 'zirconia-monolithic', recovery: true });
+  });
+
+  test('fails closed on an infeasible posterior contact without treating the approved margin as editable support', async ({ page }) => {
+    await completeCrown(page, { tooth: 3, label: 'Infeasible Posterior Crown Case', preparationKind: 'shoulder', antagonistZ: 8.73, adjacentX: 4.51, material: 'zirconia-monolithic', expectedProximalFailure: true });
   });
 });
 
@@ -19,8 +23,8 @@ async function completeCrown(page, value) {
   const files = [
     { name: 'upper-arch-mm.ply', content: ply(registrationTarget, 'registration-target') }, { name: 'full-bite-mm.ply', content: ply(registrationSource, 'registration-source') },
     { name: 'crown-preparation-mm.ply', content: ply(prep, `crown-preparation-${value.tooth}`) },
-    { name: 'mesial-reference-mm.ply', content: ply(box([-9, -7, -2], [-value.adjacentX, 7, 12]), 'mesial-adjacent') },
-    { name: 'distal-reference-mm.ply', content: ply(box([value.adjacentX, -7, -2], [9, 7, 12]), 'distal-adjacent') },
+    { name: 'mesial-reference-mm.ply', content: ply(box([-9, -7, -2], [-(value.mesialX ?? value.adjacentX), 7, 12]), 'mesial-adjacent') },
+    { name: 'distal-reference-mm.ply', content: ply(box([value.distalX ?? value.adjacentX, -7, -2], [9, 7, 12]), 'distal-adjacent') },
     { name: 'antagonist-mm.ply', content: ply(box([-7, -7, value.antagonistZ], [7, 7, value.antagonistZ + 3]), 'static-antagonist') },
     { name: 'preop-reference-mm.ply', content: ply(referenceCrown(44, value.tooth <= 16 ? 8.1 : 7.6), 'preop-reference') },
   ];
@@ -40,7 +44,9 @@ async function completeCrown(page, value) {
   await expect(page.getByText('Actual intaglio surface', { exact: false })).toHaveCount(0); await page.getByLabel('Intaglio surface').check();
   await page.getByText('Restoration parameters and anatomy controls').click(); await page.getByLabel('Anatomy intensity').fill('0.78'); await page.getByRole('button', { name: 'REGENERATE CROWN FROM PARAMETERS' }).click(); await expect(page.getByRole('status')).toContainText('Generated actual crown solid', { timeout: 60_000 }); await page.getByRole('button', { name: 'Undo' }).click(); await page.getByRole('button', { name: 'Redo' }).click();
   await page.getByRole('button', { name: 'Optimize mesial contact' }).click(); await expect(page.getByRole('status')).toContainText('Optimized actual mesial contact geometry', { timeout: 30_000 }); await page.getByRole('button', { name: 'Optimize distal contact' }).click(); await expect(page.getByRole('status')).toContainText('Optimized actual distal contact geometry', { timeout: 30_000 }); await page.getByRole('button', { name: 'Optimize static occlusion' }).click(); await expect(page.getByRole('status')).toContainText('Optimized actual static occlusal geometry', { timeout: 30_000 }); await page.getByRole('button', { name: 'Joint contact + occlusion optimizer' }).click(); await expect(page.getByText(/^Optimizer (converged|best-effort|constraint-conflict)$/)).toBeVisible({ timeout: 60_000 }); await page.getByRole('button', { name: 'Auto-thicken' }).click(); await expect(page.getByRole('status')).toContainText('Applied governed actual wall-thickness correction', { timeout: 30_000 }); await page.getByLabel('Crown checkpoint name').fill('Technician review'); await page.getByRole('button', { name: 'Create checkpoint' }).click(); await expect(page.getByRole('status')).toContainText('Created checkpoint');
-  await page.getByRole('button', { name: 'Run complete crown QC + export preflight' }).click(); await expect(page.locator('.roundtrip-list article')).toHaveCount(4, { timeout: 120_000 }); const failingChecks = await page.locator('.crown-qc-list article.fail').evaluateAll((items) => items.map((item) => item.textContent)); expect(failingChecks).toEqual([]); await expect(page.locator('.validation-summary:has(+ .crown-qc-list)')).toContainText(/PASS|WARNING/); await page.getByRole('button', { name: 'Approve for export' }).click(); await expect(page.locator('.crown-state')).toContainText('APPROVED_FOR_EXPORT'); await page.getByRole('button', { name: 'Lock final' }).click(); await expect(page.locator('.crown-state')).toContainText('LOCKED');
+  await page.getByRole('button', { name: 'Run complete crown QC + export preflight' }).click(); await expect(page.locator('.roundtrip-list article')).toHaveCount(4, { timeout: 120_000 }); const failingChecks = await page.locator('.crown-qc-list article.fail').evaluateAll((items) => items.map((item) => item.textContent));
+  if (value.expectedProximalFailure) { expect(failingChecks.some((check) => check?.includes('distal-contact'))).toBe(true); await expect(page.locator('.validation-summary:has(+ .crown-qc-list)')).toContainText('FAIL'); await expect(page.locator('.crown-state')).toContainText('QC_FAILED'); await expect(page.getByRole('button', { name: 'Approve for export' })).toBeDisabled(); await expect(page.getByRole('button', { name: 'Export STL / OBJ / PLY' })).toBeDisabled(); return; }
+  expect(failingChecks).toEqual([]); await expect(page.locator('.validation-summary:has(+ .crown-qc-list)')).toContainText(/PASS|WARNING/); await page.getByRole('button', { name: 'Approve for export' }).click(); await expect(page.locator('.crown-state')).toContainText('APPROVED_FOR_EXPORT'); await page.getByRole('button', { name: 'Lock final' }).click(); await expect(page.locator('.crown-state')).toContainText('LOCKED');
   const downloadedNames = []; page.on('download', (download) => downloadedNames.push(download.suggestedFilename())); await page.getByRole('button', { name: 'Export STL / OBJ / PLY' }).click(); await expect.poll(() => downloadedNames.length, { timeout: 30_000 }).toBe(4); expect(new Set(downloadedNames.map((name) => name.split('.').at(-1)))).toEqual(new Set(['stl', 'obj', 'ply'])); await expect(page.getByRole('status')).toContainText('Released binary STL, ASCII STL, OBJ, and PLY');
   await page.getByLabel('Project name').fill(value.label); await page.getByRole('button', { name: 'Save', exact: true }).click(); expect(errors).toEqual([]); await expect(page.getByText('Saved · Schema v6')).toBeVisible();
   if (value.recovery) {
