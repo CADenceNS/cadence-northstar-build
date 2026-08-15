@@ -17,7 +17,7 @@ The original source file itself is not in git; the matrix preserves its identity
 | Audited state | VERIFIED_COMPLETE | PARTIALLY_IMPLEMENTED | MISSING | NOT_APPLICABLE_WITH_JUSTIFICATION | Meaning |
 |---|---:|---:|---:|---:|---|
 | Merged PR #27 / current `main` | 703 | 4 | 2 | 3 | Six lock/margin claims were invalidated by a real-geometry reproduction. |
-| PR #28 corrective candidate | 709 | 0 | 0 | 3 | Implementation, direct deterministic/browser regressions, and public product-test-head certification are complete; architectural acceptance remains required. |
+| PR #28 corrective candidate | 709 | 0 | 0 | 3 | Implementation, direct deterministic/browser regressions, exact-head public workflows, and the final private-corpus gate are complete; architectural acceptance remains required. |
 
 The three N/A rows are approval-override subrequirements. Hard corruption and hard QC failures are intentionally non-overridable; fabricating an override path would weaken fail-closed governance.
 
@@ -62,12 +62,13 @@ The three N/A rows are approval-override subrequirements. Hard corruption and ha
 | 24 | Failure Corpus | 17 | 17 verified | 15-case required corpus plus input/QC rejection tests |
 | 25 | Performance | 21 | 21 verified | measured small/medium/high-density/multi-crown and browser responsiveness |
 | 26 | Tool Coverage Registry | 18 | 18 verified | crown/universal registries and compliance/failure tests |
-| 27 | Exact-head Certification | 93 | public product-test-head gate passed; private corpus unavailable; architecture pending | `05eea8a`: 421/421 deterministic, 47/47 Playwright, CI/Runtime/Sprint green; protected corpus only when available |
+| 27 | Exact-head Certification | 93 | public and private final gate passed; architecture pending | `2f8e7c4`, tree `03f5b44`: 421/421 deterministic, 47/47 Playwright, CI/Runtime/Sprint green; private integrity 23/23, core 99/99, corrective invariants 3/3 |
 
 ## Evidence boundary
 
 - Supplemental PR #28 audit verified all 143 crown tests across 11 suites. The aggregate isolated run was 142/143 only because its temporary copy initially omitted repository evidence paths; the three compliance tests passed after those referenced files were restored. High-density evidence: 3,842 vertices / 7,680 triangles; watertight; zero self-intersections; maximum four-format round-trip deviation `4.800035299255723e-7 mm`.
-- Official product-test-head certification on immutable commit `05eea8a` used Node 20 / pnpm 9.15 with frozen install, strict TypeScript, all builds, 421/421 deterministic tests across 41 suites, and 47/47 Playwright tests. CI `31849913854`, Runtime `31849913798`, and Sprint `31849913825` passed.
-- A later continuity-only head must retain those gates. Its non-self-referential exact SHA/tree/run record belongs in PR #28's final certification comment.
-- The protected corpus and `CORPUS_INTEGRITY.json` were not mounted. Historical PR #27 results are not represented as a PR #28 rerun.
+- Official product-certified head `2f8e7c4`, tree `03f5b44`, retained frozen install, strict TypeScript, all builds, 421/421 deterministic tests across 41 suites, and 47/47 Playwright tests. CI `31850602483`, Runtime `31850602478`, and Sprint `31850602487` passed.
+- The protected corpus v0.3 was mounted only in a restricted local harness and independently verified against `2f8e7c4`: archive SHA-256 `f3f7ffe54c9644939b103fe3ee0bc99000413c32fc65212ab838d595bde352cb`, integrity 23/23, confirmed owner attestation, registration 91/91, preparation 4/4, crown robustness 4/4, and supplemental corrective invariants 3/3.
+- Private margin evidence checked 24 vertices at `0 mm` maximum displacement; intaglio evidence checked 145 vertices at `0 mm`. Preparation, adjacent, antagonist, and corpus-source geometry remained immutable. Controlled contacts reached governed pass with valid thickness/topology; infeasible geometry remained `constraint-conflict` / `QC_FAILED`, with approval and release blocked.
+- Binary STL, ASCII STL, OBJ, and PLY re-imported successfully at maximum surface deviation `8.738665739279973e-7 mm` under the unchanged `0.001 mm` tolerance. Save/reopen, auto-save, recovery, protected locks, contact/QC state, and lineage passed. The privacy sweep found no source copy in git, reports, or production build output.
 - No STL, OBJ, or PLY source geometry is tracked in git.
