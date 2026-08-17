@@ -12,25 +12,26 @@ Repository: `CADenceNS/cadence-northstar-build`
 6. `docs/engineering/continuity/ENGINEERING_GUARDRAILS.md`
 7. `docs/engineering/continuity/CERTIFICATION_LEDGER.md`
 
-## Exact live state
+## Verified baseline
 
-- `main`: `4cdd57090b031b5b71bc811f666710dd99451cec`
-- Main tree: `482a7707fe4dfd41646d55f6e17932d0b8f6ee69`
 - Product-certified head: `5cc2b4ab2ee0d25d656db7c08b136f7014ff2a4a`, tree `f764f8622f4d62ca6f62833dc62fded7ff2069e4`
-- Documentation-only merge: PR #30, `4cdd57090b031b5b71bc811f666710dd99451cec`
-- PR #29: merged with merge commit `5cc2b4ab`
-- Merged-main workflows: CI `31984965584`, Runtime `31984965612`, Sprint `31984965614`; all PASS
+- Last repository head verified before this continuity update: `eaead9cb54d9878edc2a6c3f5ea0e5b79bbf8846`, tree `526175ee23096762629f3f4d6472bd7283b18568`
+- PR #29: merged; product certification remains bound to `5cc2b4ab2ee0d25d656db7c08b136f7014ff2a4a`
+- PR #30: merged at `4cdd57090b031b5b71bc811f666710dd99451cec`; documentation/continuity only
+- Merged-main workflows for PR #29: CI `31984965584`, Runtime `31984965612`, Sprint `31984965614`; all PASS
 - Merged-main regression: 421/421 deterministic and 47/47 Playwright
-- PR #30: documentation/continuity only; branch head remains separate from product head until merged
+- Expanded commercial roadmap: permanently stored
+- Sprint 25: fully reconciled, certified, and merged
+- Sprint 26: planned after CF-1; not started
 
-## Interpretation
+## Continuity-state rule
 
-The Runtime export-status/autosave race is resolved on merged `main`. The correction observes durable `EXPORTED` manufacturing state rather than a transient status-bar message. No geometry algorithm or clinical/manufacturing threshold changed.
+The last repository head is the commit inspected before a continuity update, not a requirement that `CURRENT_STATE.md` contain its own eventual commit SHA. Documentation commits may advance `main` beyond that checkpoint. Future sessions must compare the delta and may reconcile documentation-only changes when the product-certified head is unchanged. Product certification and later continuity commits must remain explicitly separate.
 
-Sprint 25 is fully reconciled and merged. Private-corpus evidence remains the PR #28 exact geometry evidence; PR #29 did not alter certified CAD geometry paths, so no new protected-corpus run is claimed.
+## Exact next authorized action
 
-The commercial platform is permanently planned, not implemented. Its tenant isolation, licensing, entitlements, seat pools, portals, integrations, communications, KPI, branding, billing, and GVM architecture must be sequenced before deeper single-tenant assumptions are added.
+> **CF-1 — CADence Commercial Multi-Tenant Licensing & Entitlement Foundation**
 
-## Sole authorized next action
+Recommended implementation model: **GPT-5.6 Terra**.
 
-Architecturally define and approve the commercial tenant/licensing foundation and its sequencing relative to Sprint 26. Do not implement Sprint 26 or the commercial platform until that architecture decision is recorded in continuity and explicitly authorizes implementation.
+CF-1 may implement the approved commercial foundation. Do not begin Sprint 26 before the currently authorized sequencing permits it. Do not rerun protected private-corpus certification for this documentation-only repair.

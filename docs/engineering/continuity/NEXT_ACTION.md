@@ -1,43 +1,35 @@
 # Next Action
 
-Last verified: 2026-08-17T00:00:00Z
+Last verified: 2026-08-17
 
 ## Current authority
 
-The only authorized next build task is:
+The exact authorized next product implementation is:
 
-> Architectural sequencing approval for the CADence Commercial Platform tenant/licensing foundation before further NorthStar single-tenant assumptions are embedded.
+> **CF-1 — CADence Commercial Multi-Tenant Licensing & Entitlement Foundation**
 
-This is an architecture/planning gate, not implementation.
+Recommended implementation model: **GPT-5.6 Terra**.
 
-## Verified product baseline
+CF-1 is the commercial prerequisite before deeper NorthStar single-tenant assumptions and before Sprint 26. It must deliver working tenant-aware identity/data scope, licensing, server-side entitlements, seat pools, audit, and platform-administration behavior; it is not architecture-only placeholder work.
+
+## Verified baseline
 
 - Product-certified head: `5cc2b4ab2ee0d25d656db7c08b136f7014ff2a4a`
 - Product tree: `f764f8622f4d62ca6f62833dc62fded7ff2069e4`
-- Current main documentation head: `4cdd57090b031b5b71bc811f666710dd99451cec`
-- Current main tree: `482a7707fe4dfd41646d55f6e17932d0b8f6ee69`
-- Sprint 25: fully reconciled and merged
-- CI: PASS, run `31984965584`
-- Runtime Validation: PASS, run `31984965612`
-- Sprint Validation: PASS, run `31984965614`
-- Deterministic regression: 421/421
-- Playwright regression: 47/47
+- Last repository head verified before this continuity update: `eaead9cb54d9878edc2a6c3f5ea0e5b79bbf8846`
+- Last verified tree: `526175ee23096762629f3f4d6472bd7283b18568`
+- PR #29: merged; CI, Runtime Validation, Sprint Validation, 421/421 deterministic, and 47/47 Playwright all passed
+- PR #30: merged at `4cdd57090b031b5b71bc811f666710dd99451cec`; documentation/continuity only
+- Expanded commercial roadmap: permanently stored
+- Sprint 25: fully reconciled, certified, and merged
+- No active Sprint 25 blocker remains
 
-## Sequencing decision required
+## Continuity-state semantics
 
-The architecture review must decide and record:
+`LAST_REPOSITORY_HEAD_VERIFIED` is the `main` HEAD inspected before the current continuity update. It is not a self-referential invariant. If `main` is later ahead, compare the delta. A verified documentation-only delta may be reconciled without invalidating `PRODUCT_CERTIFIED_HEAD`.
 
-- the minimum tenant, organization, identity, authorization, licensing, entitlement, seat, audit, privacy, and recovery foundation;
-- how that foundation precedes or constrains Sprint 26;
-- how NorthStar Core, Design Studio, GVM, portals, integrations, communications, KPI, branding, and billing remain independently entitled;
-- which work is foundational versus optional;
-- the exact next implementation scope after approval.
+## Explicit sequencing rule
 
-The roadmap does not authorize a sprint by itself.
+Sprint 26 remains planned after the commercial foundation sequencing decision. Do not begin Sprint 26 before the currently authorized sequencing permits it.
 
-## Explicit exclusions
-
-- Do not implement Sprint 26 in this task.
-- Do not implement commercial platform, licensing, multi-tenant, portal, Integration Hub, communications, KPI, branding, billing, or GVM features in this task.
-- Do not rerun the protected private corpus unless certified CAD geometry paths change.
-- Keep product-certified head `5cc2b4ab` distinct from later documentation-only commits.
+This continuity repair does not implement CF-1, Sprint 26, or any product feature. It does not rerun private-corpus certification.

@@ -30,6 +30,15 @@ These rules are permanent program gates.
 - Product source commits and later continuity/documentation commits are reported separately.
 - No next sprint begins until the current sprint gate is satisfied and architecture explicitly authorizes it.
 
+## Continuity-state semantics
+
+- `PRODUCT_CERTIFIED_HEAD` is the immutable product-certification anchor: the exact product commit/tree to which certification evidence is bound.
+- `LAST_REPOSITORY_HEAD_VERIFIED` is the `main` HEAD inspected before the current continuity update. It is a checkpoint, not a self-referential requirement that the continuity file contain its own eventual commit SHA.
+- A future session must **not** stop automatically merely because `main` is ahead of `LAST_REPOSITORY_HEAD_VERIFIED`. It must compare the delta first.
+- If the delta contains only continuity documentation, architecture documentation, roadmap documentation, certification-ledger documentation, or other clearly non-product documentation, and `PRODUCT_CERTIFIED_HEAD` remains unchanged, the session may reconcile the documentation state and continue.
+- STOP is required for any unexpected delta containing product source, runtime behavior, tests affecting certification, database/schema/migrations, security/auth behavior, geometry, workflow behavior, unknown or unclassified changes, or an unexpected PR/merge state.
+- Product certification must remain distinct from later continuity/documentation commits. Documentation state may advance without rewriting certification anchors or creating a self-referential SHA loop.
+
 ## Session continuity protocol
 
 ### Start of every new chat
@@ -40,7 +49,7 @@ Read, in order:
 2. `docs/engineering/continuity/SESSION_HANDOFF.md`
 3. `docs/engineering/continuity/ENGINEERING_GUARDRAILS.md`
 
-Then verify the recorded branch, PR, commit, tree, and workflow state against GitHub before changing anything.
+Then verify the recorded branch, PR, commit, tree, and workflow state against GitHub. If a recorded repository head differs from `main`, classify the delta using the continuity-state semantics above before deciding whether to stop.
 
 ### Checkpoints
 
@@ -50,7 +59,7 @@ Then verify the recorded branch, PR, commit, tree, and workflow state against Gi
 
 ### Session end
 
-Before an intentional stop, update `CURRENT_STATE.md` and `SESSION_HANDOFF.md` with exact state and the sole authorized next action.
+Before an intentional stop, update `CURRENT_STATE.md` and `SESSION_HANDOFF.md` with the exact certified head, the last repository head verified before that continuity update, and the sole authorized next action. Do not attempt to make a continuity file contain its own final commit SHA.
 
 ### Source of truth
 
@@ -58,4 +67,7 @@ Chat history is not authoritative. Git objects, GitHub PR/workflow evidence, the
 
 ## Current explicit freeze
 
-Until Sprint 25 reconciliation receives architectural approval: do not merge the corrective PR, start Sprint 26, add restoration features, broadly refactor crown geometry, modify material/morphology governance, or change registration/preparation/margin systems beyond an independently proven corrective requirement.
+- Sprint 25 is fully reconciled, certified, and merged.
+- CF-1 is the next authorized product implementation.
+- Sprint 26 remains planned and must not begin before the currently authorized sequencing permits it.
+- Documentation-only continuity repairs do not require private-corpus reruns when the certified CAD geometry paths are unchanged.
