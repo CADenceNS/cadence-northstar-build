@@ -12,8 +12,10 @@ This is an architecture/planning gate, not implementation.
 
 ## Verified product baseline
 
-- Main merge commit: `5cc2b4ab2ee0d25d656db7c08b136f7014ff2a4a`
-- Main tree: `f764f8622f4d62ca6f62833dc62fded7ff2069e4`
+- Product-certified head: `5cc2b4ab2ee0d25d656db7c08b136f7014ff2a4a`
+- Product tree: `f764f8622f4d62ca6f62833dc62fded7ff2069e4`
+- Current main documentation head: `4cdd57090b031b5b71bc811f666710dd99451cec`
+- Current main tree: `482a7707fe4dfd41646d55f6e17932d0b8f6ee69`
 - Sprint 25: fully reconciled and merged
 - CI: PASS, run `31984965584`
 - Runtime Validation: PASS, run `31984965612`

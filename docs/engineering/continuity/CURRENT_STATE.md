@@ -8,8 +8,10 @@ Last updated: 2026-08-17T00:00:00Z
 - Current phase: Sprint 25 fully reconciled and merged; commercial architecture sequencing pending
 - Sprint 25: **FULLY RECONCILED**
 - Sprint 26: **BLOCKED / NOT STARTED**
-- Current `main`: `5cc2b4ab2ee0d25d656db7c08b136f7014ff2a4a`
-- Current `main` tree: `f764f8622f4d62ca6f62833dc62fded7ff2069e4`
+- Current `main`: `4cdd57090b031b5b71bc811f666710dd99451cec`
+- Current `main` tree: `482a7707fe4dfd41646d55f6e17932d0b8f6ee69`
+- Product-certified head: `5cc2b4ab2ee0d25d656db7c08b136f7014ff2a4a`; product tree: `f764f8622f4d62ca6f62833dc62fded7ff2069e4`
+- Documentation-only merge: PR #30, `4cdd57090b031b5b71bc811f666710dd99451cec`
 - PR #29 merged the Runtime export-status/autosave synchronization correction.
 - Documentation/continuity PR #30 is the separate documentation-only baseline awaiting merge.
 

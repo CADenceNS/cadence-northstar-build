@@ -14,8 +14,10 @@ Repository: `CADenceNS/cadence-northstar-build`
 
 ## Exact live state
 
-- `main`: `5cc2b4ab2ee0d25d656db7c08b136f7014ff2a4a`
-- Main tree: `f764f8622f4d62ca6f62833dc62fded7ff2069e4`
+- `main`: `4cdd57090b031b5b71bc811f666710dd99451cec`
+- Main tree: `482a7707fe4dfd41646d55f6e17932d0b8f6ee69`
+- Product-certified head: `5cc2b4ab2ee0d25d656db7c08b136f7014ff2a4a`, tree `f764f8622f4d62ca6f62833dc62fded7ff2069e4`
+- Documentation-only merge: PR #30, `4cdd57090b031b5b71bc811f666710dd99451cec`
 - PR #29: merged with merge commit `5cc2b4ab`
 - Merged-main workflows: CI `31984965584`, Runtime `31984965612`, Sprint `31984965614`; all PASS
 - Merged-main regression: 421/421 deterministic and 47/47 Playwright

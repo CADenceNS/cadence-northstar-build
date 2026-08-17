@@ -68,3 +68,12 @@ Additional governed values—global/cusp/fossa thickness, cement and marginal ra
 - Merged-main regression: 421/421 deterministic and 47/47 Playwright.
 - Private evidence: PR #28's exact protected-corpus and geometry evidence remains authoritative; no new private-corpus run is claimed for this UI/test-only correction.
 - Outcome: Sprint 25 is fully reconciled and merged. Later continuity commits remain documentation-only and are not product certification heads.
+
+
+## Documentation-only reconciliation — PR #30
+
+- Documentation merge commit: `4cdd57090b031b5b71bc811f666710dd99451cec`.
+- Documentation tree: `482a7707fe4dfd41646d55f6e17932d0b8f6ee69`.
+- PR #30 changed nine documentation/continuity files and no product or test source.
+- PR #30 workflows on docs head `d0d79034e4e508846f62436dfb3b8d135a229363`: CI `31985580983` PASS; Runtime `31985580942` PASS; Sprint `31985580947` PASS.
+- Product certification remains bound to product head `5cc2b4ab`; this later commit is continuity-only.
