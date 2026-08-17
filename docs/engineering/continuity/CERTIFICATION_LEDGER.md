@@ -54,3 +54,17 @@ All profiles are repository-governed for `single-unit-tooth-supported-crown`, de
 | `hybrid-ceramic` | 2.0.0 | 0.45 / 0.80 / 1.20 / 1.20 | 0.080; 0.045; 0.080 / 0.110 / 0.600 | 0.50; 0.04; 0.12 | 0.80 mm; milled |
 
 Additional governed values—global/cusp/fossa thickness, cement and marginal ranges, proximal/occlusal targets, compensation range/default, sharp-projection limit, and compatibility—remain authoritative in `apps/design-studio/src/morphology-core.ts`.
+
+
+## Current merged baseline — PR #29 Runtime correction
+
+- Product head: PR #29, `1ab7ca80c9f97116744e3929cac935ac77dc1313`.
+- Merge commit: `5cc2b4ab2ee0d25d656db7c08b136f7014ff2a4a`.
+- Product tree: `f764f8622f4d62ca6f62833dc62fded7ff2069e4`.
+- Scope: expose the existing durable `manufacturingState: EXPORTED` and assert it after export and reopen. The stale transient status-bar observation was removed.
+- Changed product/test files: `apps/design-studio/src/CrownWorkspace.tsx` and `tests/e2e/design-studio-single-crown.spec.mjs`.
+- Geometry boundary: no crown geometry, margin, intaglio, material, registration, preparation, threshold, or geometry-algorithm code changed.
+- Merged-main workflows: CI `31984965584` PASS; Runtime Validation `31984965612` PASS; Sprint 13A Validation `31984965614` PASS.
+- Merged-main regression: 421/421 deterministic and 47/47 Playwright.
+- Private evidence: PR #28's exact protected-corpus and geometry evidence remains authoritative; no new private-corpus run is claimed for this UI/test-only correction.
+- Outcome: Sprint 25 is fully reconciled and merged. Later continuity commits remain documentation-only and are not product certification heads.
