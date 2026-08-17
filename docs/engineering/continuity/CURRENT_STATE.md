@@ -1,41 +1,39 @@
 # CADence NorthStar Current State
 
-Last updated: 2026-08-15T00:46:46Z
+Last updated: 2026-08-17T00:00:00Z
 
 ## Authoritative status
 
 - Repository: `CADenceNS/cadence-northstar-build`
-- Phase: Sprint 25 post-merge correction; final private-corpus gate complete; architectural review pending
-- Sprint 26: **PROHIBITED**
-- Current `main`: `b53cdd86c2e4eb61e1931c816c34703aa8614823`
-- Current `main` tree: `e9a8470c70708a411d410cfd1c3d7a4793da5eac`
-- Main production baseline: merged PR #27; no post-merge commits were present when reconciliation began
-- Corrective PR: draft PR #28, `fix/sprint-25-post-merge-compliance`
-- Corrective product commit: `77b631f2b011c6ce8603e5de5aef12202f7f4d22`
-- Corrective product tree: `9f9ef73811a5c04ea30cd017fcb07b57ead75e3c`
-- Corrective certification-test head: `05eea8abe7c071c4476c1984f77b49db85680551`
-- Corrective certification-test tree: `507ba1037eba781f4e37ad07676572e2ea6494d9`
-- Product-certified PR head: `2f8e7c410123386011bf94fbaeb8e147bec92953`
-- Product-certified PR tree: `03f5b445ff2c7f88daae8e247d23ddf01c77ce45`
+- Current phase: Sprint 25 Runtime export-status correction candidate
+- Sprint 26: **BLOCKED / PROHIBITED**
+- Current `main`: `495aef43bf6a632b4f60a7f44363bdfea77ac790`
+- Current `main` tree: `cc0a8897053a52bce501cb4463e4c1839dccdc0d`
+- Current main remains the pre-PR-29 merged baseline; its Runtime export-status/autosave race is not resolved on main.
+- Open corrective PR: #29, branch `fix/runtime-export-status-autosave-race`
+- PR #29 product head: `1ab7ca80c9f97116744e3929cac935ac77dc1313`
+- PR #29 product tree: `f764f8622f4d62ca6f62833dc62fded7ff2069e4`
+- PR #29 remains Draft, open, mergeable, and unmerged.
 
-## Certification state
+## Candidate certification
 
-`main` is **not a valid fully reconciled Sprint 25 certification baseline**. The final PR #27 proximal-contact change can move the approved margin while the margin lock is active.
+PR #29 is green on its exact product head:
 
-PR #28 restores the non-margin correction domain and adds direct feasible and infeasible locked-margin regressions. The original symmetric posterior fixture is proven infeasible under the immutable approved margin: the optimizer reports `best-effort`, hard QC fails, the restoration enters `QC_FAILED`, and approval/export remain disabled. A separately feasible posterior fixture converges without changing the margin, intaglio, or preparation source. No governed threshold was relaxed.
+- CI `31930669970`
+- Runtime Validation `31930670001`
+- Sprint 13A Validation `31930669975`
+- 421/421 deterministic tests
+- 47/47 Playwright tests
 
-The exact product-certified PR head `2f8e7c4` passed 421/421 deterministic tests across 41 suites and 47/47 Playwright tests. CI `31850602483`, Runtime Validation `31850602478`, and Sprint Validation `31850602487` all passed on that head. Supplemental public audit coverage remains 143 crown tests across 11 suites. PR #28 is open, Draft, mergeable, and has no unresolved review thread.
+The fix exposes the already-persisted `manufacturingState: EXPORTED` in the crown state panel and changes the browser workflow to assert that durable state after all four downloads and after reopen. It does not change crown geometry, margin, intaglio, materials, registration, preparation, thresholds, or geometry algorithms.
 
-The protected corpus v0.3 final gate was independently rerun against `2f8e7c4`: archive SHA-256 `f3f7ffe54c9644939b103fe3ee0bc99000413c32fc65212ab838d595bde352cb`, integrity 23/23, owner attestation confirmed, registration 91/91, preparation 4/4, and crown robustness 4/4. A supplemental private PR #28 invariant suite passed 3/3. It checked 24 margin vertices and 145 protected intaglio vertices with `0 mm` maximum displacement, preserved all source geometry byte-for-byte, produced governed-pass controlled proximal contacts, preserved the same protected regions during static-occlusion editing, and kept an infeasible case fail-closed as `constraint-conflict` / `QC_FAILED` with approval and release blocked. Binary STL, ASCII STL, OBJ, and PLY all passed re-import at a maximum surface deviation of `8.738665739279973e-7 mm` under the unchanged `0.001 mm` tolerance; save/reopen, auto-save, crash recovery, locks, measured states, QC state, and lineage were preserved.
-
-The final privacy sweep found no tracked private geometry, no source-hash match in the repository or production build output, no private geometry in reports, and no identifying original filename in reports. Product files were not changed by the private gate.
-
-This file is published in a later continuity-only commit. The final branch-head workflow results cannot be self-recorded inside that same immutable commit; PR #28's final exact-head certification comment is the authoritative pointer for the continuity-only head.
+The exact private-corpus evidence remains the PR #28 evidence recorded in `CERTIFICATION_LEDGER.md`. No new private-corpus run is claimed for PR #29 because its product change is UI-only and its test change is assertion synchronization only.
 
 ## Current blocker and authority
 
-- Blocker: final architectural merge review of the fully public-and-private-certified corrective result.
-- Authorized next action: architectural review of draft PR #28 and a merge/no-merge decision only. No further implementation or sprint work is authorized.
-- Prohibited: merging PR #28 without architectural approval; starting Sprint 26; adding restoration features; refactoring crown geometry; changing morphology, materials, registration, preparation/margin behavior, or certification thresholds outside the proven correction.
+- Blocker: architectural review and merge decision for PR #29, followed by exact merged-main validation.
+- Authorized now: review PR #29; if approved, merge it using the established repository strategy and validate the resulting exact `main`.
+- Prohibited now: Sprint 26, commercial implementation, restoration expansion, geometry refactoring, threshold changes, and unrelated product work.
+- Sprint 26 may be considered only after merged-main CI, Runtime Validation, Sprint Validation, strict TypeScript, production builds, deterministic regression, and Playwright regression are green and architecture authorizes it.
 
-Read `SESSION_HANDOFF.md` and `ENGINEERING_GUARDRAILS.md` before taking any action.
+Read `SESSION_HANDOFF.md`, `NEXT_ACTION.md`, and `ENGINEERING_GUARDRAILS.md` before further work.

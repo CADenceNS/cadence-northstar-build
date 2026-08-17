@@ -54,3 +54,15 @@ All profiles are repository-governed for `single-unit-tooth-supported-crown`, de
 | `hybrid-ceramic` | 2.0.0 | 0.45 / 0.80 / 1.20 / 1.20 | 0.080; 0.045; 0.080 / 0.110 / 0.600 | 0.50; 0.04; 0.12 | 0.80 mm; milled |
 
 Additional governed values—global/cusp/fossa thickness, cement and marginal ranges, proximal/occlusal targets, compensation range/default, sharp-projection limit, and compatibility—remain authoritative in `apps/design-studio/src/morphology-core.ts`.
+
+
+## Current unmerged corrective candidate — PR #29
+
+- Base/main: `495aef43bf6a632b4f60a7f44363bdfea77ac790`, tree `cc0a8897053a52bce501cb4463e4c1839dccdc0d`.
+- Candidate product head: PR #29, `1ab7ca80c9f97116744e3929cac935ac77dc1313`, tree `f764f8622f4d62ca6f62833dc62fded7ff2069e4`.
+- Scope: durable `manufacturingState: EXPORTED` visibility in the crown state panel and a browser assertion that observes that persisted state after export and reopen. The shared transient status bar is no longer used for completion evidence.
+- Changed product/test files: `apps/design-studio/src/CrownWorkspace.tsx` and `tests/e2e/design-studio-single-crown.spec.mjs`.
+- Exact-head workflows: CI `31930669970` PASS; Runtime Validation `31930670001` PASS; Sprint 13A Validation `31930669975` PASS.
+- Deterministic and browser evidence: the unchanged 421/421 deterministic suite and 47/47 Playwright regression are green on the candidate head.
+- Geometry boundary: no crown geometry, margin, intaglio, material, registration, preparation, threshold, or geometry-algorithm code changed. The protected private-corpus evidence from PR #28 is not rerun for this UI/test-only correction and is not re-labeled as a new exact-head corpus run.
+- State: PR #29 remains open, Draft, mergeable, and unmerged. This candidate is green but is not yet the merged-main baseline.
