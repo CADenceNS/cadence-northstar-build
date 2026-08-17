@@ -9,13 +9,13 @@ This matrix describes repository evidence as of 2026-08-17. Commercial vision is
 | Scan registration, bite evidence, dental coordinates, fallback, persistence/recovery | CERTIFIED_PRODUCTION | Sprint 22/22A exact merged evidence |
 | Versioned geometry editing, intersection classification, closed-curve trim, history/recovery | CERTIFIED_PRODUCTION | Sprint 23/23A exact merged evidence |
 | Preparation identification, segmentation, margin analysis/editing, lineage, multi-preparation workflows | CERTIFIED_PRODUCTION | Sprint 24 exact merged evidence; real scans support robustness, not unproven clinical accuracy |
-| Single-unit tooth-supported crown system | IMPLEMENTED_PENDING_CERTIFICATION | PR #28 product evidence passed; PR #29 is the green UI/test correction candidate but remains unmerged |
-| Sprint 25 Runtime export completion observation | IMPLEMENTED_PENDING_CERTIFICATION | PR #29 head is green: CI, Runtime, Sprint, 421 deterministic, 47 Playwright; exact merged-main validation still pending |
-| Fully reconciled Sprint 25 on main | BLOCKED | Main is pre-PR-29; PR #29 remains unmerged |
-| Multi-unit and fixed restoration production system | NOT_STARTED | Authorized only after merged-main Sprint 25 gate and explicit architecture approval |
-| Three-product CADence structure | IN_PROGRESS | Existing NorthStar, Design Studio, and Knowledge Platform direction is established; commercial boundary remains planned |
-| CADence Commercial Platform layer | PLANNED | Architecture documented here; no commercial platform implementation evidence |
-| True tenant isolation | PLANNED | Tenant architecture required; not implemented by current repository evidence |
+| Single-unit tooth-supported crown system | CERTIFIED_PRODUCTION | PR #28 public/private geometry evidence plus PR #29 merged exact-main correction; no certified CAD geometry path changed in PR #29 |
+| Sprint 25 Runtime export completion observation | CERTIFIED_PRODUCTION | PR #29 merged; CI, Runtime, Sprint, 421 deterministic, 47 Playwright all green |
+| Fully reconciled Sprint 25 on main | CERTIFIED_PRODUCTION | Main `5cc2b4ab` / tree `f764f862`; all merged-main gates green |
+| Multi-unit and fixed restoration production system | NOT_STARTED | Previously planned Sprint 26 scope; requires Gate 1 commercial architecture sequencing |
+| Three-product CADence structure | IN_PROGRESS | Existing NorthStar, Design Studio, and Knowledge Platform direction is established; commercial boundary is planned |
+| CADence Commercial Platform layer | PLANNED | Architecture documented; no commercial platform implementation evidence |
+| True tenant isolation | PLANNED | Tenant architecture required; not implemented |
 | Tenant-scoped staff, patients, cases, production, QC, shipping, billing, files, settings | PLANNED | Commercial multi-tenant capability not implemented |
 | Tenant-scoped backups, restore, encryption, break-glass support | PLANNED | Design requirement only |
 | CADence Owner/Super Admin licensing dashboard | PLANNED | No commercial administration evidence |
@@ -35,5 +35,5 @@ This matrix describes repository evidence as of 2026-08-17. Commercial vision is
 | GVM cancellation/hold/communications/audit | PLANNED | Architecture requirement only |
 | Automatic clinical preparation or margin accuracy from unlabeled scans | UNSUPPORTED | Ground truth is required for clinical accuracy claims |
 | Automatic manufacturing approval without human QC | UNSUPPORTED | Human QC and fail-closed rules are mandatory |
-| Private-corpus evidence for PR #29 exact head | UNSUPPORTED | Not rerun; prior PR #28 private evidence remains separately recorded |
+| Exact PR #29 private-corpus rerun | UNSUPPORTED | Not rerun because certified CAD geometry paths did not change; prior PR #28 evidence remains separately recorded |
 | Future Automation/AI and Manufacturing/CAM modules | RESEARCH_ONLY | Future direction only; no implementation claim |

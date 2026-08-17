@@ -5,35 +5,35 @@ Last updated: 2026-08-17T00:00:00Z
 ## Authoritative status
 
 - Repository: `CADenceNS/cadence-northstar-build`
-- Current phase: Sprint 25 Runtime export-status correction candidate
-- Sprint 26: **BLOCKED / PROHIBITED**
-- Current `main`: `495aef43bf6a632b4f60a7f44363bdfea77ac790`
-- Current `main` tree: `cc0a8897053a52bce501cb4463e4c1839dccdc0d`
-- Current main remains the pre-PR-29 merged baseline; its Runtime export-status/autosave race is not resolved on main.
-- Open corrective PR: #29, branch `fix/runtime-export-status-autosave-race`
-- PR #29 product head: `1ab7ca80c9f97116744e3929cac935ac77dc1313`
-- PR #29 product tree: `f764f8622f4d62ca6f62833dc62fded7ff2069e4`
-- PR #29 remains Draft, open, mergeable, and unmerged.
+- Current phase: Sprint 25 fully reconciled and merged; commercial architecture sequencing pending
+- Sprint 25: **FULLY RECONCILED**
+- Sprint 26: **BLOCKED / NOT STARTED**
+- Current `main`: `5cc2b4ab2ee0d25d656db7c08b136f7014ff2a4a`
+- Current `main` tree: `f764f8622f4d62ca6f62833dc62fded7ff2069e4`
+- PR #29 merged the Runtime export-status/autosave synchronization correction.
+- Documentation/continuity PR #30 is the separate documentation-only baseline awaiting merge.
 
-## Candidate certification
+## Merged product certification
 
-PR #29 is green on its exact product head:
+PR #29 corrected stale browser observation of export completion:
 
-- CI `31930669970`
-- Runtime Validation `31930670001`
-- Sprint 13A Validation `31930669975`
-- 421/421 deterministic tests
-- 47/47 Playwright tests
+- Product head: `1ab7ca80c9f97116744e3929cac935ac77dc1313`
+- Merge commit: `5cc2b4ab2ee0d25d656db7c08b136f7014ff2a4a`
+- Product tree: `f764f8622f4d62ca6f62833dc62fded7ff2069e4`
+- CI: `31984965584` PASS
+- Runtime Validation: `31984965612` PASS
+- Sprint 13A Validation: `31984965614` PASS
+- Deterministic regression: 421/421
+- Playwright regression: 47/47
 
-The fix exposes the already-persisted `manufacturingState: EXPORTED` in the crown state panel and changes the browser workflow to assert that durable state after all four downloads and after reopen. It does not change crown geometry, margin, intaglio, materials, registration, preparation, thresholds, or geometry algorithms.
+The fix exposes the already-persisted `manufacturingState: EXPORTED` in the crown state panel and makes the browser workflow assert that durable state after export and reopen. It changed no crown geometry, margin, intaglio, materials, registration, preparation, thresholds, or geometry algorithms.
 
-The exact private-corpus evidence remains the PR #28 evidence recorded in `CERTIFICATION_LEDGER.md`. No new private-corpus run is claimed for PR #29 because its product change is UI-only and its test change is assertion synchronization only.
+The PR #28 protected private-corpus evidence remains the authoritative geometry evidence. No new private-corpus run is claimed for PR #29 because its product change was UI-only and its test change was assertion synchronization only.
 
-## Current blocker and authority
+## Current authority
 
-- Blocker: architectural review and merge decision for PR #29, followed by exact merged-main validation.
-- Authorized now: review PR #29; if approved, merge it using the established repository strategy and validate the resulting exact `main`.
-- Prohibited now: Sprint 26, commercial implementation, restoration expansion, geometry refactoring, threshold changes, and unrelated product work.
-- Sprint 26 may be considered only after merged-main CI, Runtime Validation, Sprint Validation, strict TypeScript, production builds, deterministic regression, and Playwright regression are green and architecture authorizes it.
+Sprint 25 is closed. Sprint 26 is not authorized yet because the commercial tenant/licensing foundation must be architecturally sequenced before further NorthStar single-tenant assumptions become deeply embedded.
+
+The sole authorized next task is architectural sequencing approval for the commercial platform foundation and its placement relative to Sprint 26. Do not implement Sprint 26 or commercial features in this task.
 
 Read `SESSION_HANDOFF.md`, `NEXT_ACTION.md`, and `ENGINEERING_GUARDRAILS.md` before further work.

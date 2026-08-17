@@ -4,40 +4,38 @@ Last verified: 2026-08-17T00:00:00Z
 
 ## Current authority
 
-The only authorized next engineering action is:
+The only authorized next build task is:
 
-> Architectural review of PR #29, followed—only if approved—by merge and exact merged-main validation.
+> Architectural sequencing approval for the CADence Commercial Platform tenant/licensing foundation before further NorthStar single-tenant assumptions are embedded.
 
-## Evidence
+This is an architecture/planning gate, not implementation.
 
-- Current main: `495aef43bf6a632b4f60a7f44363bdfea77ac790`
-- Current main tree: `cc0a8897053a52bce501cb4463e4c1839dccdc0d`
-- PR #29 head: `1ab7ca80c9f97116744e3929cac935ac77dc1313`
-- PR #29 tree: `f764f8622f4d62ca6f62833dc62fded7ff2069e4`
-- PR #29 status: open, Draft, mergeable, unmerged
-- CI: PASS, run `31930669970`
-- Runtime Validation: PASS, run `31930670001`
-- Sprint Validation: PASS, run `31930669975`
-- Candidate deterministic regression: 421/421
-- Candidate Playwright regression: 47/47
+## Verified product baseline
 
-## Required post-merge gate
+- Main merge commit: `5cc2b4ab2ee0d25d656db7c08b136f7014ff2a4a`
+- Main tree: `f764f8622f4d62ca6f62833dc62fded7ff2069e4`
+- Sprint 25: fully reconciled and merged
+- CI: PASS, run `31984965584`
+- Runtime Validation: PASS, run `31984965612`
+- Sprint Validation: PASS, run `31984965614`
+- Deterministic regression: 421/421
+- Playwright regression: 47/47
 
-After merge, validate the exact resulting `main` commit and record:
+## Sequencing decision required
 
-- CI
-- Runtime Validation
-- Sprint Validation
-- strict TypeScript
-- production builds
-- complete deterministic regression
-- complete Playwright regression
+The architecture review must decide and record:
 
-Do not update Sprint 25 to fully reconciled or authorize Sprint 26 until the merged-main gates pass.
+- the minimum tenant, organization, identity, authorization, licensing, entitlement, seat, audit, privacy, and recovery foundation;
+- how that foundation precedes or constrains Sprint 26;
+- how NorthStar Core, Design Studio, GVM, portals, integrations, communications, KPI, branding, and billing remain independently entitled;
+- which work is foundational versus optional;
+- the exact next implementation scope after approval.
+
+The roadmap does not authorize a sprint by itself.
 
 ## Explicit exclusions
 
-- Do not rerun the private corpus for PR #29 unless geometry algorithms or protected source behavior changes.
-- Do not begin Sprint 26.
-- Do not implement commercial platform, multi-tenant, licensing, GVM, portal, integration, communications, or KPI features in this action.
-- Do not change geometry, material thresholds, registration, preparation, margin, intaglio, or QC behavior.
+- Do not implement Sprint 26 in this task.
+- Do not implement commercial platform, licensing, multi-tenant, portal, Integration Hub, communications, KPI, branding, billing, or GVM features in this task.
+- Do not rerun the protected private corpus unless certified CAD geometry paths change.
+- Keep product-certified head `5cc2b4ab` distinct from later documentation-only commits.

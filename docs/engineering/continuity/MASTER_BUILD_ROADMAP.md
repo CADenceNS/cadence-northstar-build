@@ -24,32 +24,40 @@ The commercial layer governs access and commercial relationships; it does not re
 
 ### Gate 0 — Sprint 25 reconciliation
 
-Current state: PR #29 is a green, unmerged Runtime correction candidate. Main remains on the pre-fix baseline.
+Status: **COMPLETE**.
 
-Required sequence:
+PR #29 merged the Runtime export-status/autosave correction. Exact merged `main` passed CI, Runtime Validation, Sprint Validation, strict TypeScript, production builds, 421/421 deterministic tests, and 47/47 Playwright tests. The protected private-corpus evidence remains the PR #28 geometry evidence because PR #29 changed no certified CAD geometry paths.
 
-1. Architectural review of PR #29.
-2. If approved, merge using the established repository strategy.
-3. Validate the exact merged-main commit through all required workflows and complete regressions.
-4. Update continuity records with the resulting immutable evidence.
+### Gate 1 — Commercial architecture sequencing
 
-### Gate 1 — Sprint 26
+Status: **REQUIRED BEFORE NEW PRODUCT IMPLEMENTATION**.
 
-Sprint 26 is **not started** and remains blocked until Gate 0 is fully green and explicitly authorized.
+Before deeper NorthStar single-tenant assumptions are embedded, architecturally define and approve:
 
-Authorized scope after Gate 0 only:
+- tenant and organization isolation;
+- identity, RBAC, support access, privacy, encryption, backups, recovery, and audit;
+- subscriptions, billing, server-side entitlements, module switches, seat pools, and seat assignments;
+- independent NorthStar, Design Studio, GVM, portal, Integration Hub, communications, KPI, branding, and future-module boundaries.
 
-- Production Multi-Unit & Fixed Restoration System
+No implementation sprint number is assigned to this foundation yet.
+
+### Gate 2 — Sprint 26
+
+Sprint 26 is **not started** and remains blocked until Gate 1 is explicitly resolved and its sequencing decision authorizes implementation.
+
+Previously planned scope:
+
+- Production Multi-Unit & Fixed Restoration System;
 - fixed restoration case model and production workflow;
 - bridge and multi-unit planning;
 - unit-specific design, QC, persistence, export, and recovery;
 - human QC and fail-closed behavior.
 
-Do not add commercial platform work to Sprint 26 without a later architectural decision.
+Do not begin Sprint 26 in this task.
 
 ## Future commercial foundation
 
-Exact sprint numbers are intentionally not assigned yet. Architectural sequencing will be decided after the current baseline is green.
+Exact sprint numbers are intentionally not assigned yet. Architectural sequencing will be decided before further single-tenant assumptions are added.
 
 ### Commercial foundation
 
@@ -96,7 +104,7 @@ Exact sprint numbers are intentionally not assigned yet. Architectural sequencin
 
 ## GVM direction
 
-GVM is an optional entitlement, not a required NorthStar Core feature. It will support component-level outsourcing, vendor capabilities and rates, logistics, vendor health, margin analysis, what-if simulation, hold/cancel workflows, tokenized work packages, communications, and immutable audit. See `GLOBAL_VENDOR_MANAGEMENT.md`.
+GVM is an optional entitlement, not a required NorthStar Core feature. It will support component-level outsourcing, vendor capabilities and rates, logistics, vendor health, margin analysis, what-if simulation, hold/cancel workflows, tokenized work packages, communications, and immutable audit. See `docs/engineering/architecture/GLOBAL_VENDOR_MANAGEMENT.md`.
 
 ## Roadmap discipline
 
