@@ -1,6 +1,7 @@
 import type { ClinicalCase, Doctor, Invoice, MonthlyStatement, Patient, Practice, ProductionWorkItem, QCInspection, QCTemplate, Shipment, User } from '@northstar/shared';
-import type { AuditRepository, CaseRepository, DoctorRepository, DurableFinancialRepository, EntityRepository, ListOptions, PatientRepository, PracticeRepository, ProductionRepository, QCRepository, RepositoryContext, ShippingRepository, UserRepository } from './contracts.js';
+import type { AuditRepository, CaseRepository, DoctorRepository, DurableFinancialRepository, EntityRepository, ListOptions, PatientRepository, PracticeRepository, ProductionRepository, QCRepository, RepositoryContext, ShippingRepository, TenantMembershipRepository, TenantRepository, UserRepository } from './contracts.js';
 import { PostgresAuditRepository, type PostgresRepositoryFactory, type SqlExecutor } from './postgres.js';
+import { PostgresTenantMembershipRepository, PostgresTenantRepository } from './tenant-native.js';
 
 type Entity = { id:string };
 type DocumentRow = { payload:unknown };
@@ -85,7 +86,7 @@ export class DefaultPostgresRepositoryFactory implements PostgresRepositoryFacto
   create(db:SqlExecutor){
     const audit:AuditRepository=new PostgresAuditRepository(db);
     return {
-      users:new PostgresUserRepository(db),practices:new PostgresPracticeRepository(db),doctors:new PostgresDoctorRepository(db),patients:new PostgresPatientRepository(db),cases:new PostgresCaseRepository(db),production:new PostgresProductionRepository(db),qc:new PostgresQCRepository(db),shipping:new PostgresShippingRepository(db),financial:new PostgresFinancialRepository(db),audit
+      tenants:new PostgresTenantRepository(db) satisfies TenantRepository,memberships:new PostgresTenantMembershipRepository(db) satisfies TenantMembershipRepository,users:new PostgresUserRepository(db),practices:new PostgresPracticeRepository(db),doctors:new PostgresDoctorRepository(db),patients:new PostgresPatientRepository(db),cases:new PostgresCaseRepository(db),production:new PostgresProductionRepository(db),qc:new PostgresQCRepository(db),shipping:new PostgresShippingRepository(db),financial:new PostgresFinancialRepository(db),audit
     };
   }
 }

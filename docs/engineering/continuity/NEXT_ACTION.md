@@ -4,15 +4,15 @@ Last verified: 2026-08-18
 
 ## Current authority
 
-The exact authorized next product implementation is:
+The exact authorized next action is:
 
-> **Resume CF-1A — Tenant + Entitlement Security Core**
+> **Architectural review / merge decision for certified CF-1A1 Draft PR #33.**
 
-Recommended implementation model: **GPT-5.6 Terra**.
+Recommended review/merge model: **GPT-5.6 Luna**.
 
-CF-1A0 is certified and merged via PR #32. The corrected product head is `e60be1f25cbccbae6770356bf532899a0065033b`, tree `b4b3cdddd1afc45aab1d525a7fcf46f3855d705b`; main merge commit is `1136a8382e1bc9b1bc045b744235f5dd5ae888fe`. Post-merge CI `32110225019`, Runtime `32110225115`, and Sprint `32110225007` are green; deterministic and Playwright 47/47 remain green.
+CF-1A0 is certified and merged via PR #32. CF-1A1 is certified as a prerequisite on Draft PR #33 with product head `fd8d0f55322acd16ccc3fa796a6e674564c899c7`, tree `7d4215f00a87743a0fe5d8c09fa163155b323a2a`; its current PR head `ec020cc8ab8f8f781ffa694f580333834f1820bd` is documentation-only. CI `32156684645`, Sprint `32156684744`, and Runtime `32159092377` are green; Runtime Playwright is 47/47. The prior 46/47 result was an inherited runner responsiveness outlier, not a tenant regression.
 
-Non-legacy commercial tenants intentionally fail closed at the legacy operational runtime until tenant-native operational repositories are implemented in CF-1A.
+CF-1A1 removes the legacy-only runtime block by routing tenant-native operational requests through trusted context and tenant-scoped repositories. It is certified as a prerequisite but remains unmerged pending architectural review.
 
 ## Verified baseline
 
@@ -24,7 +24,8 @@ Non-legacy commercial tenants intentionally fail closed at the legacy operationa
 - Expanded commercial roadmap: permanently stored
 - Sprint 25: fully reconciled, certified, and merged
 - No active Sprint 25 blocker remains
-- CF-1A0: CERTIFIED_PREREQUISITE on Draft PR #32; only architectural review/merge remains before CF-1A may resume.
+- CF-1A0: CERTIFIED AND MERGED via PR #32.
+- CF-1A1: CERTIFIED_PREREQUISITE on Draft PR #33; architectural review / merge decision is now authorized.
 
 ## Continuity-state semantics
 
@@ -32,6 +33,6 @@ Non-legacy commercial tenants intentionally fail closed at the legacy operationa
 
 ## Explicit sequencing rule
 
-Sprint 26 remains planned after the commercial foundation sequencing decision. Do not begin Sprint 26 before the currently authorized sequencing permits it.
+Sprint 26 remains planned after the commercial foundation sequencing decision. Do not begin CF-1A2 or Sprint 26 before the currently authorized sequencing permits it.
 
 This continuity repair does not implement CF-1, Sprint 26, or any product feature. It does not rerun private-corpus certification.
