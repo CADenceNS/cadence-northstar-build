@@ -11,7 +11,10 @@ This ledger separates immutable product commits from later merge or continuity-o
 - Corrective certified product head: `e60be1f25cbccbae6770356bf532899a0065033b`, tree `b4b3cdddd1afc45aab1d525a7fcf46f3855d705b`; PR merge tree `b4b3cdddd1afc45aab1d525a7fcf46f3855d705b` is identical.
 - Scope: restored fail-closed protection preventing an authenticated non-legacy tenant from entering the default legacy operational runtime. Signed tenant assertions remain required at the downstream boundary; no CAD geometry changed.
 - Exact PR workflows: CI `32108187326` PASS; Runtime Validation `32108187313` PASS; Sprint 13A Validation `32108187317` PASS. Deterministic suite PASS; Playwright 47/47 in both Runtime and Sprint workflows.
-- Outcome: **CERTIFIED_PREREQUISITE**, Draft PR #32 pending architectural review/merge. Private dental corpus was not rerun because no geometry changed.
+- Main merge commit: `1136a8382e1bc9b1bc045b744235f5dd5ae888fe`; main tree `f8e28f3192a333139b55bb10aa795b4f1c05bc3b`.
+- Post-merge exact-main workflows: CI `32110225019` PASS; Runtime Validation `32110225115` PASS; Sprint 13A Validation `32110225007` PASS. Deterministic regression remained PASS and Playwright remained 47/47. Private dental corpus was not rerun because no geometry changed.
+- Limitation: non-legacy commercial tenants intentionally fail closed at the legacy operational runtime until tenant-native operational repositories are implemented in CF-1A.
+- Outcome: **CERTIFIED AND MERGED** via PR #32. CF-1A is the next authorized product foundation.
 
 | Milestone | PR and immutable product head | Product tree / merge | Public deterministic and browser evidence | Private evidence | Workflow evidence | Outcome |
 |---|---|---|---|---|---|---|

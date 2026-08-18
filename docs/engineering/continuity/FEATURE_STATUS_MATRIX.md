@@ -2,7 +2,7 @@
 
 Status values are restricted to: `CERTIFIED_PRODUCTION`, `IMPLEMENTED_PENDING_CERTIFICATION`, `IN_PROGRESS`, `BLOCKED`, `PLANNED`, `NOT_STARTED`, `UNSUPPORTED`, `RESEARCH_ONLY`.
 
-This matrix describes repository evidence as of 2026-08-17. Commercial vision is not implementation evidence.
+This matrix describes repository evidence as of 2026-08-18. Commercial vision is not implementation evidence.
 
 | Capability | Status | Evidence / boundary |
 |---|---|---|
@@ -15,8 +15,8 @@ This matrix describes repository evidence as of 2026-08-17. Commercial vision is
 | Multi-unit and fixed restoration production system | NOT_STARTED | Previously planned Sprint 26 scope; requires Gate 1 commercial architecture sequencing |
 | Three-product CADence structure | IN_PROGRESS | Existing NorthStar, Design Studio, and Knowledge Platform direction is established; commercial boundary is planned |
 | CADence Commercial Platform layer | IN_PROGRESS | CF-1A0 authenticated tenant-context boundary certified; remaining CF-1 commercial capabilities are not implemented |
-| Authenticated tenant-context propagation boundary | CERTIFIED_PRODUCTION | Draft PR #32 corrected product head `e60be1f`, tree `b4b3cddd`; CI/Runtime/Sprint green, deterministic PASS, Playwright 47/47; pending architectural merge only |
-| True tenant isolation | IN_PROGRESS | CF-1A0 prevents fixed/default authenticated runtime scope; complete operational-entity isolation remains CF-1A work |
+| Authenticated tenant-context propagation boundary | CERTIFIED_PRODUCTION | PR #32 merged as `1136a838`; certified product head `e60be1f`, tree `b4b3cddd`; post-merge CI/Runtime/Sprint green, deterministic PASS, Playwright 47/47 |
+| True tenant isolation | IN_PROGRESS | CF-1A0 prevents fixed/default authenticated runtime scope; non-legacy tenants fail closed at the legacy runtime; complete tenant-native operational-entity isolation remains CF-1A work |
 | Tenant-scoped staff, patients, cases, production, QC, shipping, billing, files, settings | PLANNED | Commercial multi-tenant capability not implemented |
 | Tenant-scoped backups, restore, encryption, break-glass support | PLANNED | Design requirement only |
 | CADence Owner/Super Admin licensing dashboard | PLANNED | No commercial administration evidence |
