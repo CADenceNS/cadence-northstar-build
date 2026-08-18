@@ -4,6 +4,15 @@ This ledger separates immutable product commits from later merge or continuity-o
 
 ## Certified and reconciled milestones
 
+## CF-1A0 authenticated tenant-context boundary
+
+- Original preserved checkpoint: `7d10e0f60ec6f3247df134f5db13596c5f6e368c`.
+- Restored product head: `81dd130d369afaf431c479f28b72d74c054bbc50`, tree `91dae2d9d40571406b09a13d4640ecead77c33b1`.
+- Corrective certified product head: `e60be1f25cbccbae6770356bf532899a0065033b`, tree `b4b3cdddd1afc45aab1d525a7fcf46f3855d705b`; PR merge tree `b4b3cdddd1afc45aab1d525a7fcf46f3855d705b` is identical.
+- Scope: restored fail-closed protection preventing an authenticated non-legacy tenant from entering the default legacy operational runtime. Signed tenant assertions remain required at the downstream boundary; no CAD geometry changed.
+- Exact PR workflows: CI `32108187326` PASS; Runtime Validation `32108187313` PASS; Sprint 13A Validation `32108187317` PASS. Deterministic suite PASS; Playwright 47/47 in both Runtime and Sprint workflows.
+- Outcome: **CERTIFIED_PREREQUISITE**, Draft PR #32 pending architectural review/merge. Private dental corpus was not rerun because no geometry changed.
+
 | Milestone | PR and immutable product head | Product tree / merge | Public deterministic and browser evidence | Private evidence | Workflow evidence | Outcome |
 |---|---|---|---|---|---|---|
 | Sprint 22 / 22A | PR #22, `1e66ec69deb005094a36d0f23764813a771b4b70` | Tree `db6ac43d9f8bda9d9ca0422e736fef0a82c4cb46`; merged as `eaed7d14b677987c73c035a08fecaeacae7d71b7` | 82/82 Design Studio; 34/34 Playwright | Historical PR evidence: v0.3 integrity 23/23, private 91/91, source immutable | CI: no run associated with the head was returned; Runtime `31253204043` pass; Sprint `31253204046` pass | Merged 2026-08-08. Certified scan registration, bite-evidence assembly, dental XYZ normalization, fallback, persistence/recovery, and fail-closed support classes. No direct upper/lower occlusion inference, clinical/manufacturing claim, or self-intersection claim. |

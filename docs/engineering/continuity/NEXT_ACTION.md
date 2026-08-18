@@ -6,11 +6,11 @@ Last verified: 2026-08-17
 
 The exact authorized next product implementation is:
 
-> **CF-1A0-C — Complete database-backed and exact-head certification**
+> **Architectural review / merge decision for PR #32**
 
 Recommended implementation model: **GPT-5.6 Terra**.
 
-CF-1A0 has been restored to remote product head `81dd130d369afaf431c479f28b72d74c054bbc50` with product-source equivalence proven. Complete database-backed and exact-head CF-1A0-C certification before resuming CF-1A.
+CF-1A0 is certified on corrected product head `e60be1f25cbccbae6770356bf532899a0065033b`, tree `b4b3cdddd1afc45aab1d525a7fcf46f3855d705b`. CI `32108187326`, Runtime `32108187313`, Sprint `32108187317`, deterministic, and 47/47 Playwright are green. Keep PR #32 Draft pending architectural review/merge before resuming CF-1A.
 
 ## Verified baseline
 
@@ -22,7 +22,7 @@ CF-1A0 has been restored to remote product head `81dd130d369afaf431c479f28b72d74
 - Expanded commercial roadmap: permanently stored
 - Sprint 25: fully reconciled, certified, and merged
 - No active Sprint 25 blocker remains
-- CF-1A0: IMPLEMENTED_PENDING_CERTIFICATION on Draft PR #32. Complete CF-1A0-C against the restored exact product head; no certification is claimed yet.
+- CF-1A0: CERTIFIED_PREREQUISITE on Draft PR #32; only architectural review/merge remains before CF-1A may resume.
 
 ## Continuity-state semantics
 
