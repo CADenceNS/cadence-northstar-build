@@ -6,13 +6,15 @@ Last verified: 2026-08-18
 
 The exact authorized next action is:
 
-> **Architectural review / merge decision for certified CF-1A1 Draft PR #33.**
+> **CF-1A2 — Module Entitlements + Seat Pools.**
 
-Recommended review/merge model: **GPT-5.6 Luna**.
+Recommended implementation model: **GPT-5.6 Terra**.
 
-CF-1A0 is certified and merged via PR #32. CF-1A1 is certified as a prerequisite on Draft PR #33 with product head `fd8d0f55322acd16ccc3fa796a6e674564c899c7`, tree `7d4215f00a87743a0fe5d8c09fa163155b323a2a`; its current PR head `ec020cc8ab8f8f781ffa694f580333834f1820bd` is documentation-only. CI `32156684645`, Sprint `32156684744`, and Runtime `32159092377` are green; Runtime Playwright is 47/47. The prior 46/47 result was an inherited runner responsiveness outlier, not a tenant regression.
+CF-1A0 is certified and merged via PR #32. CF-1A1 is certified and merged via PR #33 with product head `fd8d0f55322acd16ccc3fa796a6e674564c899c7`, tree `7d4215f00a87743a0fe5d8c09fa163155b323a2a`, merge commit `7d63a55938e4f7a06a6e4219863520ceb716aaae`, and merged-main CI/Runtime/Sprint `32198072606`/`32198072651`/`32198072542` all green; Playwright 47/47.
 
-CF-1A1 removes the legacy-only runtime block by routing tenant-native operational requests through trusted context and tenant-scoped repositories. It is certified as a prerequisite but remains unmerged pending architectural review.
+CF-1A1 removes the legacy-only runtime block by routing tenant-native operational requests through trusted context and tenant-scoped repositories. It is certified and merged.
+
+CF-1A2 must implement reusable module entitlements for `NORTHSTAR_CORE`, `DESIGN_STUDIO`, and `GVM`; NorthStar and independent Design Studio seat pools; entitlement enable/disable; backend/API/service enforcement; and preservation of historical data when disabled.
 
 ## Verified baseline
 
@@ -25,7 +27,7 @@ CF-1A1 removes the legacy-only runtime block by routing tenant-native operationa
 - Sprint 25: fully reconciled, certified, and merged
 - No active Sprint 25 blocker remains
 - CF-1A0: CERTIFIED AND MERGED via PR #32.
-- CF-1A1: CERTIFIED_PREREQUISITE on Draft PR #33; architectural review / merge decision is now authorized.
+- CF-1A1: CERTIFIED AND MERGED via PR #33.
 
 ## Continuity-state semantics
 

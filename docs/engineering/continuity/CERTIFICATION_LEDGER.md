@@ -11,7 +11,7 @@ This ledger separates immutable product commits from later merge or continuity-o
 - Scope: first-class tenant lifecycle and membership records, deterministic legacy-data migration ledger, tenant-native operational repository and artifact metadata scope, server-derived context, cross-tenant read/write/delete/list/search denial, and browser gateway isolation. No CAD geometry changed.
 - Targeted DB/UAT, migration, auth/RBAC, deterministic, and browser isolation evidence passed. Runtime Validation `32159092377` passed on the documentation-tail head with product source unchanged; Playwright 47/47. CI `32156684645` and Sprint 13A Validation `32156684744` passed on the exact product head.
 - The original Runtime attempt `32156684716` reached 46/47 because an inherited Design Studio responsiveness assertion measured 265.2 ms against its existing 250 ms bound. The unchanged retry was cancelled when the continuity-only PR head advanced; the later Runtime run `32159092377` is the valid green evidence.
-- Outcome: **CERTIFIED_PREREQUISITE**, PR #33 remains Draft and unmerged. Authorized next action is architectural review / merge decision for PR #33. CF-1A2 and Sprint 26 remain blocked.
+- Outcome: **CERTIFIED AND MERGED** via PR #33. Merge commit `7d63a55938e4f7a06a6e4219863520ceb716aaae`; merged-main tree `7a863d8985e52be0e0cba135a86fb4bd84f283fc`. Merged-main CI `32198072606`, Runtime Validation `32198072651`, and Sprint 13A Validation `32198072542` passed; both browser workflows passed 47/47. Authorized next action is CF-1A2 — Module Entitlements + Seat Pools. Sprint 26 remains blocked.
 
 ## CF-1A0 authenticated tenant-context boundary
 
