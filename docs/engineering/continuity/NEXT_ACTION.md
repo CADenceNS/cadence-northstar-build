@@ -6,13 +6,13 @@ Last verified: 2026-08-18
 
 The exact authorized next action is:
 
-> **Complete CF-1A1 exact-head certification of Draft PR #33.**
+> **Architectural review / merge decision for certified CF-1A1 Draft PR #33.**
 
-Recommended implementation model: **GPT-5.6 Terra**.
+Recommended review/merge model: **GPT-5.6 Luna**.
 
-CF-1A0 is certified and merged via PR #32. CF-1A1 is implemented on Draft PR #33 with product head `fd8d0f55322acd16ccc3fa796a6e674564c899c7`, tree `7d4215f00a87743a0fe5d8c09fa163155b323a2a`; it is **IMPLEMENTED_PENDING_CERTIFICATION**. CI `32156684645` and Sprint `32156684744` are green. The unchanged Runtime retry is required after the original Runtime run reached 46/47 Playwright only because an inherited Design Studio responsiveness check measured 265.2 ms against the existing 250 ms bound.
+CF-1A0 is certified and merged via PR #32. CF-1A1 is certified as a prerequisite on Draft PR #33 with product head `fd8d0f55322acd16ccc3fa796a6e674564c899c7`, tree `7d4215f00a87743a0fe5d8c09fa163155b323a2a`; its current PR head `ec020cc8ab8f8f781ffa694f580333834f1820bd` is documentation-only. CI `32156684645`, Sprint `32156684744`, and Runtime `32159092377` are green; Runtime Playwright is 47/47. The prior 46/47 result was an inherited runner responsiveness outlier, not a tenant regression.
 
-CF-1A1 removes the legacy-only runtime block by routing tenant-native operational requests through trusted context and tenant-scoped repositories; it is not yet certified or approved for merge.
+CF-1A1 removes the legacy-only runtime block by routing tenant-native operational requests through trusted context and tenant-scoped repositories. It is certified as a prerequisite but remains unmerged pending architectural review.
 
 ## Verified baseline
 
@@ -25,7 +25,7 @@ CF-1A1 removes the legacy-only runtime block by routing tenant-native operationa
 - Sprint 25: fully reconciled, certified, and merged
 - No active Sprint 25 blocker remains
 - CF-1A0: CERTIFIED AND MERGED via PR #32.
-- CF-1A1: IMPLEMENTED_PENDING_CERTIFICATION on Draft PR #33; complete the unchanged Runtime Validation retry before any architectural review/merge decision.
+- CF-1A1: CERTIFIED_PREREQUISITE on Draft PR #33; architectural review / merge decision is now authorized.
 
 ## Continuity-state semantics
 
