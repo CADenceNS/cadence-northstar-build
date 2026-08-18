@@ -15,7 +15,7 @@ This matrix describes repository evidence as of 2026-08-17. Commercial vision is
 | Multi-unit and fixed restoration production system | NOT_STARTED | Previously planned Sprint 26 scope; requires Gate 1 commercial architecture sequencing |
 | Three-product CADence structure | IN_PROGRESS | Existing NorthStar, Design Studio, and Knowledge Platform direction is established; commercial boundary is planned |
 | CADence Commercial Platform layer | IN_PROGRESS | CF-1A0 authenticated tenant-context boundary implemented; remaining CF-1 commercial capabilities are not certified |
-| Authenticated tenant-context propagation boundary | IMPLEMENTED_PENDING_CERTIFICATION | Gateway-issued signed internal assertion; operational runtime verifies and binds repository context; targeted tests + API TypeScript passed |
+| Authenticated tenant-context propagation boundary | IMPLEMENTED_PENDING_CERTIFICATION | Restored on PR #32 product head `81dd130d`; product-source equivalent to preserved checkpoint; targeted tests + API TypeScript previously passed; exact-head certification pending |
 | True tenant isolation | IN_PROGRESS | CF-1A0 prevents fixed/default authenticated runtime scope; complete operational-entity isolation remains CF-1A work |
 | Tenant-scoped staff, patients, cases, production, QC, shipping, billing, files, settings | PLANNED | Commercial multi-tenant capability not implemented |
 | Tenant-scoped backups, restore, encryption, break-glass support | PLANNED | Design requirement only |

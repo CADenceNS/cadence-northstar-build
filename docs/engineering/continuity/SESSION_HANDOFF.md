@@ -15,7 +15,7 @@ Repository: `CADenceNS/cadence-northstar-build`
 ## Verified baseline
 
 - Product-certified head: `5cc2b4ab2ee0d25d656db7c08b136f7014ff2a4a`, tree `f764f8622f4d62ca6f62833dc62fded7ff2069e4`
-- Last repository head verified before this continuity update: `df33a377ce9e8bf63daa7c34b3746f0c3ef859e5`; documentation-only advancement after product certification.
+- Last repository head verified before this continuity update: `81dd130d369afaf431c479f28b72d74c054bbc50`; CF-1A0 restored from preserved source content.
 - PR #29: merged; product certification remains bound to `5cc2b4ab2ee0d25d656db7c08b136f7014ff2a4a`
 - PR #30: merged at `4cdd57090b031b5b71bc811f666710dd99451cec`; documentation/continuity only
 - Merged-main workflows for PR #29: CI `31984965584`, Runtime `31984965612`, Sprint `31984965614`; all PASS
@@ -23,7 +23,7 @@ Repository: `CADenceNS/cadence-northstar-build`
 - Expanded commercial roadmap: permanently stored
 - Sprint 25: fully reconciled, certified, and merged
 - Sprint 26: planned after CF-1; not started
-- CF-1A0: implemented pending certification on `feature/cf-1a-tenant-entitlement-core`. Gateway-to-runtime operational requests now carry a gateway-issued, short-lived signed tenant assertion; the runtime verifies it and binds repository scope with `AsyncLocalStorage`. Targeted tests and API TypeScript passed. Database-backed tests, full deterministic/Playwright, CI, Runtime Validation, and Sprint Validation remain pending. The checkpoint is committed locally; push/PR publication is blocked until GitHub credentials are configured.
+- CF-1A0: implemented pending certification on Draft PR #32. Restored product head `81dd130d369afaf431c479f28b72d74c054bbc50`, tree `91dae2d9d40571406b09a13d4640ecead77c33b1`; product-source content is equivalent to preserved checkpoint `7d10e0f`. Database-backed tests, full deterministic/Playwright, CI, Runtime Validation, and Sprint Validation remain pending.
 
 ## Continuity-state rule
 
@@ -31,8 +31,8 @@ The last repository head is the commit inspected before a continuity update, not
 
 ## Exact next authorized action
 
-> **Resume CF-1A — Tenant + Entitlement Security Core**
+> **CF-1A0-C — Complete database-backed and exact-head certification**
 
 Recommended implementation model: **GPT-5.6 Terra**.
 
-Resume CF-1A from the authenticated tenant-context boundary. Do not begin Sprint 26 before the currently authorized sequencing permits it. Do not rerun protected private-corpus certification; CF-1A0 changes no geometry.
+Run CF-1A0-C against exact product head `81dd130d369afaf431c479f28b72d74c054bbc50`. Do not begin CF-1A or Sprint 26 before certification and authorized sequencing. Do not rerun protected private-corpus certification; CF-1A0 changes no geometry.
