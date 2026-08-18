@@ -6,6 +6,7 @@ Sprint 9 targets PostgreSQL 16. Migrations are applied in order:
 
 1. `apps/api/migrations/0001_infrastructure_core.sql`
 2. `apps/api/migrations/0002_repository_documents.sql`
+3. `apps/api/migrations/0003_identity_security.sql` through `0008_tenant_native_operations.sql`
 
 Each migration has a paired rollback script.
 
@@ -43,6 +44,10 @@ Backward-compatible APIs may accept and return base64. Production handlers decod
 6. Reconcile entity counts, relationships, identifiers, financial balances, object checksums, and audit totals.
 7. Run PostgreSQL repository integrations, restart-persistence validation, dashboard verification, and the complete Playwright suite.
 8. Enable the production composition root only after every parity gate passes.
+
+## CF-1A1 tenant-native ownership migration
+
+Migration `0008_tenant_native_operations.sql` makes the laboratory tenant lifecycle and membership state explicit. Every existing operational record already has a required `tenant_id`; the migration does not copy, merge, or reassign those rows. Existing NorthStar records remain assigned exactly once to the designated legacy tenant, recorded in `tenant_migration_ledger`. New live requests derive ownership from the authenticated tenant context, not from body, query, route, or header values.
 
 ## Rollback
 

@@ -2,6 +2,7 @@ import type {
   ClinicalCase, Doctor, Invoice, MonthlyStatement, Patient, Practice,
   ProductionWorkItem, QCInspection, QCTemplate, Shipment, User
 } from '@northstar/shared';
+import type { LaboratoryTenant, TenantMembership } from './tenant-native.js';
 
 export interface RepositoryContext { tenantId:string; actorId:string; actorName:string; }
 export interface ListOptions { includeDeleted?:boolean; limit?:number; offset?:number; }
@@ -20,6 +21,8 @@ export interface ProductionRepository extends EntityRepository<ProductionWorkIte
 export interface QCRepository { listTemplates(context:RepositoryContext):Promise<QCTemplate[]>; saveTemplate(context:RepositoryContext,value:QCTemplate):Promise<void>; listInspections(context:RepositoryContext,caseId?:string):Promise<QCInspection[]>; saveInspection(context:RepositoryContext,value:QCInspection):Promise<void>; }
 export interface ShippingRepository extends EntityRepository<Shipment> { findByTrackingNumber(context:RepositoryContext,trackingNumber:string):Promise<Shipment|null>; }
 export interface DurableFinancialRepository { listInvoices(context:RepositoryContext):Promise<Invoice[]>; getInvoice(context:RepositoryContext,id:string):Promise<Invoice|null>; saveInvoice(context:RepositoryContext,value:Invoice):Promise<void>; listStatements(context:RepositoryContext):Promise<MonthlyStatement[]>; saveStatement(context:RepositoryContext,value:MonthlyStatement):Promise<void>; }
+export interface TenantRepository { get(id:string):Promise<LaboratoryTenant|null>; getOperational(id:string):Promise<LaboratoryTenant|null>; create(value:Omit<LaboratoryTenant,'createdAt'|'updatedAt'>):Promise<void>; updateLifecycle(value:Pick<LaboratoryTenant,'id'|'status'|'activationState'|'commercialAccountReference'|'auditMetadata'>):Promise<void>; }
+export interface TenantMembershipRepository { get(tenantId:string,userId:string):Promise<TenantMembership|null>; save(value:TenantMembership):Promise<void>; }
 export interface AuditEventInput { tenantId:string; actorId:string; actorName:string; action:string; entityType:string; entityId:string; occurredAt:string; metadata:Record<string,unknown>; }
 export interface AuditRepository { append(event:AuditEventInput):Promise<void>; list(tenantId:string,entityType?:string,entityId?:string):Promise<ReadonlyArray<AuditEventInput>>; }
-export interface RepositoryRegistry { users:UserRepository; practices:PracticeRepository; doctors:DoctorRepository; patients:PatientRepository; cases:CaseRepository; production:ProductionRepository; qc:QCRepository; shipping:ShippingRepository; financial:DurableFinancialRepository; audit:AuditRepository; transaction<T>(work:(repositories:RepositoryRegistry)=>Promise<T>):Promise<T>; }
+export interface RepositoryRegistry { tenants:TenantRepository; memberships:TenantMembershipRepository; users:UserRepository; practices:PracticeRepository; doctors:DoctorRepository; patients:PatientRepository; cases:CaseRepository; production:ProductionRepository; qc:QCRepository; shipping:ShippingRepository; financial:DurableFinancialRepository; audit:AuditRepository; transaction<T>(work:(repositories:RepositoryRegistry)=>Promise<T>):Promise<T>; }
