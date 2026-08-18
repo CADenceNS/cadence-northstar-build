@@ -6,23 +6,23 @@ Last verified: 2026-08-17
 
 The exact authorized next product implementation is:
 
-> **CF-1 — CADence Commercial Multi-Tenant Licensing & Entitlement Foundation**
+> **Architectural review / merge decision for PR #32**
 
 Recommended implementation model: **GPT-5.6 Terra**.
 
-CF-1 is the commercial prerequisite before deeper NorthStar single-tenant assumptions and before Sprint 26. It must deliver working tenant-aware identity/data scope, licensing, server-side entitlements, seat pools, audit, and platform-administration behavior; it is not architecture-only placeholder work.
+CF-1A0 is certified on corrected product head `e60be1f25cbccbae6770356bf532899a0065033b`, tree `b4b3cdddd1afc45aab1d525a7fcf46f3855d705b`. CI `32108187326`, Runtime `32108187313`, Sprint `32108187317`, deterministic, and 47/47 Playwright are green. Keep PR #32 Draft pending architectural review/merge before resuming CF-1A.
 
 ## Verified baseline
 
 - Product-certified head: `5cc2b4ab2ee0d25d656db7c08b136f7014ff2a4a`
 - Product tree: `f764f8622f4d62ca6f62833dc62fded7ff2069e4`
-- Last repository head verified before this continuity update: `eaead9cb54d9878edc2a6c3f5ea0e5b79bbf8846`
-- Last verified tree: `526175ee23096762629f3f4d6472bd7283b18568`
+- Restored CF-1A0 product head: `81dd130d369afaf431c479f28b72d74c054bbc50`; product tree: `91dae2d9d40571406b09a13d4640ecead77c33b1`
 - PR #29: merged; CI, Runtime Validation, Sprint Validation, 421/421 deterministic, and 47/47 Playwright all passed
 - PR #30: merged at `4cdd57090b031b5b71bc811f666710dd99451cec`; documentation/continuity only
 - Expanded commercial roadmap: permanently stored
 - Sprint 25: fully reconciled, certified, and merged
 - No active Sprint 25 blocker remains
+- CF-1A0: CERTIFIED_PREREQUISITE on Draft PR #32; only architectural review/merge remains before CF-1A may resume.
 
 ## Continuity-state semantics
 

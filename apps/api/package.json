@@ -12,6 +12,8 @@
     "test:postgres-repositories": "tsx src/infrastructure/postgres-repository.integration.test.ts",
     "test:migrations": "tsx src/infrastructure/migration-contract.test.ts",
     "test:security": "tsx src/security.integration.test.ts",
+    "test:tenant-context": "tsx src/trusted-tenant-context.test.ts",
+    "test:legacy-operational-boundary": "tsx src/legacy-operational-boundary.test.ts",
     "test:communications": "tsx src/communications.integration.test.ts",
     "test:digital-intake": "tsx src/digital-intake.integration.test.ts",
     "test:uat": "tsx src/uat.integration.test.ts",
