@@ -18,10 +18,10 @@ export async function createDurableRuntime(){
 }
 
 export class LegacyFinancialRepositoryAdapter implements FinancialRepository {
- constructor(private readonly runtime:Awaited<ReturnType<typeof createDurableRuntime>>){}
- listInvoices(){return this.runtime.repositories.financial.listInvoices(this.runtime.context)}
- getInvoice(id:string){return this.runtime.repositories.financial.getInvoice(this.runtime.context,id)}
- saveInvoice(invoice:Invoice){return this.runtime.repositories.financial.saveInvoice(this.runtime.context,invoice)}
- listStatements(){return this.runtime.repositories.financial.listStatements(this.runtime.context)}
- saveStatement(statement:MonthlyStatement){return this.runtime.repositories.financial.saveStatement(this.runtime.context,statement)}
+ constructor(private readonly runtime:Awaited<ReturnType<typeof createDurableRuntime>>,private readonly context:RepositoryContext=runtime.context){}
+ listInvoices(){return this.runtime.repositories.financial.listInvoices(this.context)}
+ getInvoice(id:string){return this.runtime.repositories.financial.getInvoice(this.context,id)}
+ saveInvoice(invoice:Invoice){return this.runtime.repositories.financial.saveInvoice(this.context,invoice)}
+ listStatements(){return this.runtime.repositories.financial.listStatements(this.context)}
+ saveStatement(statement:MonthlyStatement){return this.runtime.repositories.financial.saveStatement(this.context,statement)}
 }
