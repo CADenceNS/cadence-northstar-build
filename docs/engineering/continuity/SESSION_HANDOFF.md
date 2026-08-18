@@ -24,7 +24,7 @@ Repository: `CADenceNS/cadence-northstar-build`
 - Sprint 25: fully reconciled, certified, and merged
 - Sprint 26: planned after CF-1; not started
 - CF-1A0: **CERTIFIED AND MERGED** via PR #32. The restored source `81dd130d` was corrected as product head `e60be1f25cbccbae6770356bf532899a0065033b`, tree `b4b3cdddd1afc45aab1d525a7fcf46f3855d705b`; main merge commit `1136a8382e1bc9b1bc045b744235f5dd5ae888fe`, tree `f8e28f3192a333139b55bb10aa795b4f1c05bc3b`. Post-merge CI `32110225019`, Runtime `32110225115`, and Sprint `32110225007` PASS; deterministic PASS and Playwright 47/47. No CAD geometry changed.
-- Current limitation: non-legacy commercial tenants intentionally fail closed at the legacy operational runtime until tenant-native operational repositories are implemented in CF-1A.
+- CF-1A1: **IMPLEMENTED_PENDING_CERTIFICATION** on Draft PR #33. Product head `fd8d0f55322acd16ccc3fa796a6e674564c899c7`, tree `7d4215f00a87743a0fe5d8c09fa163155b323a2a`; no CAD geometry changed. CI `32156684645` and Sprint `32156684744` PASS. The original Runtime run `32156684716` passed DB-backed tenant-native security and UAT integration, then hit an inherited Design Studio browser responsiveness outlier (265.2 ms against a 250 ms bound); an unchanged retry remains in progress. Do not certify or merge until it is green.
 
 ## Continuity-state rule
 
@@ -32,8 +32,8 @@ The last repository head is the commit inspected before a continuity update, not
 
 ## Exact next authorized action
 
-> **Resume CF-1A — Tenant + Entitlement Security Core**
+> **Complete CF-1A1 exact-head certification of Draft PR #33.**
 
 Recommended implementation model: **GPT-5.6 Terra**.
 
-PR #32 is merged. Do not begin Sprint 26 before the currently authorized commercial-foundation sequencing permits it. Do not rerun protected private-corpus certification; CF-1A0 changes no geometry.
+PR #32 is merged. Do not begin CF-1A2 or Sprint 26 before CF-1A1 is certified, reviewed, and merged. Do not rerun protected private-corpus certification; CF-1A1 changes no geometry.

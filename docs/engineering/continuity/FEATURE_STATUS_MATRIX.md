@@ -14,10 +14,10 @@ This matrix describes repository evidence as of 2026-08-18. Commercial vision is
 | Fully reconciled Sprint 25 on main | CERTIFIED_PRODUCTION | Main `5cc2b4ab` / tree `f764f862`; all merged-main gates green |
 | Multi-unit and fixed restoration production system | NOT_STARTED | Previously planned Sprint 26 scope; requires Gate 1 commercial architecture sequencing |
 | Three-product CADence structure | IN_PROGRESS | Existing NorthStar, Design Studio, and Knowledge Platform direction is established; commercial boundary is planned |
-| CADence Commercial Platform layer | IN_PROGRESS | CF-1A0 authenticated tenant-context boundary certified; remaining CF-1 commercial capabilities are not implemented |
+| CADence Commercial Platform layer | IN_PROGRESS | CF-1A0 authenticated tenant-context boundary is certified; CF-1A1 tenant-native operations is implemented pending exact-head certification |
 | Authenticated tenant-context propagation boundary | CERTIFIED_PRODUCTION | PR #32 merged as `1136a838`; certified product head `e60be1f`, tree `b4b3cddd`; post-merge CI/Runtime/Sprint green, deterministic PASS, Playwright 47/47 |
-| True tenant isolation | IN_PROGRESS | CF-1A0 prevents fixed/default authenticated runtime scope; non-legacy tenants fail closed at the legacy runtime; complete tenant-native operational-entity isolation remains CF-1A work |
-| Tenant-scoped staff, patients, cases, production, QC, shipping, billing, files, settings | PLANNED | Commercial multi-tenant capability not implemented |
+| True tenant isolation | IMPLEMENTED_PENDING_CERTIFICATION | Draft PR #33 product head `fd8d0f5` adds lifecycle/membership-aware, trusted-context tenant-native repository access and cross-tenant read/write/delete/list/search/browser proofs; Runtime retry remains required |
+| Tenant-scoped staff, patients, cases, production, QC, shipping, billing, files, settings | IMPLEMENTED_PENDING_CERTIFICATION | Tenant-scoped operational repository and artifact metadata paths are covered by CF-1A1; commercial entitlements/seats remain later CF-1 work |
 | Tenant-scoped backups, restore, encryption, break-glass support | PLANNED | Design requirement only |
 | CADence Owner/Super Admin licensing dashboard | PLANNED | No commercial administration evidence |
 | Subscriptions, trials, billing, renewals, discounts, proration | PLANNED | No commercial billing evidence |
