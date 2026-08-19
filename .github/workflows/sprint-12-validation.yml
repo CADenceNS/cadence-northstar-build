@@ -88,7 +88,7 @@ jobs:
           set -euo pipefail
           LOGIN=$(curl -fsS -c /tmp/session-cookie -X POST http://127.0.0.1:4000/api/auth/login -H 'Content-Type: application/json' -d '{"email":"tenant.owner@keramos-uat.example","password":"NorthStar!2026-UAT","rememberMe":true}')
           CSRF=$(python -c 'import json,sys;print(json.load(sys.stdin)["csrfToken"])' <<<"$LOGIN")
-          curl -fsS -b /tmp/session-cookie http://127.0.0.1:4000/api/system/information | grep '0009'
+          curl -fsS -b /tmp/session-cookie http://127.0.0.1:4000/api/system/information | grep '"migrationVersion":"0010"'
           curl -fsS -b /tmp/session-cookie -X POST http://127.0.0.1:4000/api/uat/seed -H 'Content-Type: application/json' -H "X-CSRF-Token: $CSRF" -d '{}' | grep '240'
           curl -fsS -b /tmp/session-cookie http://127.0.0.1:4000/api/uat/readiness | grep 'buildVersion'
       - name: Install Chromium
