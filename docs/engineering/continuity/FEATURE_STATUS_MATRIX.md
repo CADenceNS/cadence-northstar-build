@@ -2,7 +2,9 @@
 
 Status values are restricted to: `CERTIFIED_PRODUCTION`, `IMPLEMENTED_PENDING_CERTIFICATION`, `IN_PROGRESS`, `BLOCKED`, `PLANNED`, `NOT_STARTED`, `UNSUPPORTED`, `RESEARCH_ONLY`.
 
-This matrix describes repository evidence as of 2026-08-18. Commercial vision is not implementation evidence.
+This matrix describes repository evidence as of 2026-08-19. Commercial vision is not implementation evidence.
+
+CF-1A2 — Module Entitlements + Seat Pools: **IMPLEMENTED_PENDING_CERTIFICATION**. Product head `f01df11d87e28827091b3c5932d6ca8928f7171e` (tree `e238e9b14a52f983365febbc5e8b226da73b24a1`) is blocked by incomplete deterministic legacy `NORTHSTAR_CORE` seat bootstrap; do not represent it as certified.
 
 | Capability | Status | Evidence / boundary |
 |---|---|---|
