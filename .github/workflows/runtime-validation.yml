@@ -50,12 +50,13 @@ jobs:
         run: pnpm typecheck && pnpm build
       - name: Run Design Studio deterministic geometry suite
         run: pnpm --filter @cadence/design-studio test
-      - name: Apply migrations 0001 through 0008
+      - name: Apply migrations 0001 through 0009
         run: |
-          for migration in apps/api/migrations/0001_infrastructure_core.sql apps/api/migrations/0002_repository_documents.sql apps/api/migrations/0003_identity_security.sql apps/api/migrations/0004_clinical_communications.sql apps/api/migrations/0005_digital_intake_platform.sql apps/api/migrations/0006_intake_administration.sql apps/api/migrations/0007_uat_foundation.sql apps/api/migrations/0008_tenant_native_operations.sql; do psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$migration"; done
+          for migration in apps/api/migrations/0001_infrastructure_core.sql apps/api/migrations/0002_repository_documents.sql apps/api/migrations/0003_identity_security.sql apps/api/migrations/0004_clinical_communications.sql apps/api/migrations/0005_digital_intake_platform.sql apps/api/migrations/0006_intake_administration.sql apps/api/migrations/0007_uat_foundation.sql apps/api/migrations/0008_tenant_native_operations.sql apps/api/migrations/0009_commercial_entitlements.sql; do psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$migration"; done
       - name: Run UAT integrations
         run: |
           pnpm --filter @northstar/api test:tenant-native
+          pnpm --filter @northstar/api test:commercial-entitlements
           pnpm --filter @northstar/api test:uat
           pnpm --filter @northstar/api test:uat-attachments
       - name: Start API

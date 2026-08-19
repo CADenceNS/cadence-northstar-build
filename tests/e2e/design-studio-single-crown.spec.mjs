@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { openAuthorizedDesignStudio } from './design-studio-access.mjs';
 
 test.describe.configure({ timeout: 180_000 });
 
@@ -18,7 +19,7 @@ test.describe('production single-unit crown technician workflows', () => {
 
 async function completeCrown(page, value) {
   const errors = []; page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); }); page.on('pageerror', (error) => errors.push(error.message));
-  await page.goto('/design-studio.html'); await expect(page.getByRole('heading', { name: 'Production Viewer' })).toBeVisible();
+  await openAuthorizedDesignStudio(page);
   const prep = preparationGeometry(value.preparationKind, 48); const registrationTarget = archGeometry(17, 13); const registrationSource = inverseRigidGeometry(registrationTarget, { angle: 8, translation: [2.2, -1.1, 0.7] });
   const files = [
     { name: 'upper-arch-mm.ply', content: ply(registrationTarget, 'registration-target') }, { name: 'full-bite-mm.ply', content: ply(registrationSource, 'registration-source') },

@@ -16,6 +16,8 @@ import { installUatFoundation } from './uat.js';
 import { installUatAttachments } from './uat-attachments.js';
 import { installUatIdentityExperience, provisionUatIdentities } from './uat-identity.js';
 import { internalTenantContextHeader, issueInternalTenantContext } from './trusted-tenant-context.js';
+import { CommercialEntitlementService, CommercialAccessError, moduleCatalog, reconcileLegacyNorthstarCoreBootstrap, type ModuleKey } from './infrastructure/commercial-entitlements.js';
+import { commercialErrorHandler, installCommercialControlPlane } from './commercial-control-plane.js';
 
 const durable=await createDurableRuntime();
 const gatewayRequestContexts=new AsyncLocalStorage<RepositoryContext>();
@@ -30,7 +32,11 @@ app.use((req,res,next)=>{const body=req.body&&typeof req.body==='object'?req.bod
 app.get('/health',async(_req,res)=>{const response=await fetch(`${upstream}/health`);res.status(response.status);return res.send(Buffer.from(await response.arrayBuffer()))});
 installUatIdentityExperience(app,{pool:durable.pool,audit:durable.repositories.audit,context:durable.context});
 const security=new SecurityService(durable.pool,durable.repositories.users,durable.repositories.audit,durable.context);
-await installSecurity(app,security);
+const commercial=new CommercialEntitlementService(durable.repositories);
+await installSecurity(app,security,{beforeAuthorize:async target=>installCommercialControlPlane(target,commercial)});
+await reconcileLegacyNorthstarCoreBootstrap(durable.pool,durable.context.tenantId);
+app.use(async(req:SecurityRequest,res,next)=>{try{if(!req.path.startsWith('/api/'))return next();if(!req.identity)return res.status(401).json({error:'Authentication required.'});await commercial.checkAccess(req.identity,'NORTHSTAR_CORE');return next();}catch(error){if(error instanceof CommercialAccessError)return res.status(error.statusCode).json({error:error.message});return next(error);}});
+app.get('/api/modules/:moduleKey/access',async(req:SecurityRequest,res,next)=>{try{const value=req.params.moduleKey;if(!(value in moduleCatalog))throw new CommercialAccessError(404,'Module is not registered.');res.json(await commercial.checkAccess(req.identity!,value as ModuleKey));}catch(error){next(error);}});
 app.use((req:SecurityRequest,_res,next)=>req.identity?gatewayRequestContexts.run({tenantId:req.identity.tenantId,actorId:req.identity.userId,actorName:req.identity.name},next):next());
 app.use((req:SecurityRequest,_res,next)=>{if(req.identity&&req.body&&typeof req.body==='object'){req.body.actorId=req.body.actorId||req.identity.userId;req.body.actorName=req.body.actorName||req.identity.name;req.body.recordedBy=req.body.recordedBy||req.identity.name;req.body.uploadedBy=req.body.uploadedBy||req.identity.name}next()});
 installUatFoundation(app,{pool:durable.pool,audit:durable.repositories.audit});
@@ -52,6 +58,7 @@ const billing=createBillingEngine(app,now,new LegacyFinancialRepositoryAdapter(d
 const shipping=createShippingEngine(app,now,listCases,updateCase,billing.invoiceShipment,{repository:durable.repositories.shipping,audit:durable.repositories.audit,context:gatewayContext});
 app.get('/api/dashboard',async(_req,res)=>{const response=await fetch(`${upstream}/api/dashboard`,{headers:legacyInternalHeaders()});if(!response.ok)return res.status(response.status).send(await response.text());const snapshot=await response.json() as DashboardSnapshot;const metrics=await qc.metrics();const logistics=await shipping.metrics();const financial=await billing.metrics();const value:FinancialDashboardSnapshot={...snapshot,qcPassRate:metrics.passRate,qcRemakeRate:metrics.remakeRate,qcReworkRate:metrics.reworkRate,qcFirstPassYield:metrics.firstPassYield,qcDefectTrends:metrics.defectTrends,logistics,financial};return res.json(value)});
 app.use(async(req:SecurityRequest,res)=>{if(!req.identity)return res.status(401).json({error:'Authentication required.'});if(req.identity.platformRole==='platform-admin')return res.status(403).json({error:'Platform administrators do not have tenant operational access.'});const headers=new Headers();for(const[key,value]of Object.entries(req.headers)){if(typeof value==='string'&&!['host','content-length','cookie','x-actor-id','x-actor-name','x-northstar-role','x-northstar-tenant','x-northstar-suppress-audit',internalTenantContextHeader].includes(key.toLowerCase()))headers.set(key,value)}headers.set(internalTenantContextHeader,issueInternalTenantContext({actorId:req.identity.userId,actorName:req.identity.name,tenantId:req.identity.tenantId,laboratoryRole:req.identity.role,platformRole:'none'}));const hasBody=!['GET','HEAD'].includes(req.method);const response=await fetch(`${upstream}${req.originalUrl}`,{method:req.method,headers,body:hasBody?JSON.stringify(req.body):undefined});res.status(response.status);response.headers.forEach((value,key)=>{if(key.toLowerCase()!=='content-encoding'&&key.toLowerCase()!=='content-length')res.setHeader(key,value)});return res.send(Buffer.from(await response.arrayBuffer()))});
+app.use(commercialErrorHandler);
 const server=app.listen(port,()=>console.log(`CADence NorthStar secure gateway listening on http://localhost:${port}`));
 const shutdown=async()=>{server.close();await durable.pool.end()};
 process.once('SIGTERM',shutdown);process.once('SIGINT',shutdown);

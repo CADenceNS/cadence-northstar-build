@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { openAuthorizedDesignStudio } from './design-studio-access.mjs';
 
 const cubePly = (offsetX = 0) => {
   const vertices = [[0, 0, 0], [10, 0, 0], [10, 10, 0], [0, 10, 0], [0, 0, 10], [10, 0, 10], [10, 10, 10], [0, 10, 10]].map(([x, y, z]) => `${x + offsetX} ${y} ${z}`).join('\n');
@@ -22,8 +23,7 @@ async function openStudio(page) {
   const errors = [];
   page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
   page.on('pageerror', (error) => errors.push(error.message));
-  await page.goto('/design-studio.html');
-  await expect(page.getByRole('heading', { name: 'Production Viewer' })).toBeVisible();
+  await openAuthorizedDesignStudio(page);
   return errors;
 }
 

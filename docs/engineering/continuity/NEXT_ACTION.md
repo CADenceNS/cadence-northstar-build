@@ -6,7 +6,7 @@ Last verified: 2026-08-18
 
 The exact authorized next action is:
 
-> **CF-1A2 — Module Entitlements + Seat Pools.**
+> **CF-1A2 corrective implementation — resolve deterministic legacy `NORTHSTAR_CORE` seat bootstrap and repeat exact-head certification.**
 
 Recommended implementation model: **GPT-5.6 Terra**.
 
@@ -14,7 +14,7 @@ CF-1A0 is certified and merged via PR #32. CF-1A1 is certified and merged via PR
 
 CF-1A1 removes the legacy-only runtime block by routing tenant-native operational requests through trusted context and tenant-scoped repositories. It is certified and merged.
 
-CF-1A2 must implement reusable module entitlements for `NORTHSTAR_CORE`, `DESIGN_STUDIO`, and `GVM`; NorthStar and independent Design Studio seat pools; entitlement enable/disable; backend/API/service enforcement; and preservation of historical data when disabled.
+CF-1A2 has implemented reusable module entitlements for `NORTHSTAR_CORE`, `DESIGN_STUDIO`, and `GVM`; NorthStar and independent Design Studio seat pools; entitlement enable/disable; backend/API/service enforcement; and preservation of historical data when disabled. It remains `IMPLEMENTED_PENDING_CERTIFICATION`: Runtime Validation 367 found that a legacy administrator is not assigned a deterministic `NORTHSTAR_CORE` seat, causing an authorized legacy practice-create request to return 403. Correct that migration/bootstrap compatibility defect without weakening tenant or seat enforcement, then repeat certification. Do not begin CF-1A3 or Sprint 26.
 
 ## Verified baseline
 

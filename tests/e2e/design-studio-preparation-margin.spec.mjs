@@ -1,7 +1,8 @@
 import { expect, test } from '@playwright/test';
+import { openAuthorizedDesignStudio } from './design-studio-access.mjs';
 
 async function openStudio(page) {
-  const errors = []; page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); }); page.on('pageerror', (error) => errors.push(error.message)); await page.goto('/design-studio.html'); await expect(page.getByRole('heading', { name: 'Production Viewer' })).toBeVisible(); return errors;
+  const errors = []; page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); }); page.on('pageerror', (error) => errors.push(error.message)); await openAuthorizedDesignStudio(page); return errors;
 }
 
 async function importPreparation(page, name, content) { await page.locator('input[type=file]').setInputFiles({ name, mimeType: 'application/octet-stream', buffer: Buffer.from(content) }); await expect(page.getByText(name, { exact: true })).toBeVisible(); await page.getByText(name, { exact: true }).click(); await page.getByRole('button', { name: 'Prepare', exact: true }).click(); await expect(page.getByRole('heading', { name: 'Preparation & Margin' })).toBeVisible(); }
