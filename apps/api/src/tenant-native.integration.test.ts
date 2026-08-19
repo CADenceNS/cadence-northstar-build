@@ -19,8 +19,8 @@ const clinicalCase=(id:string,practiceId:string,doctorId:string,patientId:string
 const invoice=(id:string,practiceId:string,caseId:string):Invoice=>({id,invoiceNumber:'SAME-INV-001',practiceId,practiceName:'Same Name Dental',shipmentIds:[],caseIds:[caseId],status:'open',terms:'net-30',issuedAt:now,dueAt:'2026-09-17T00:00:00.000Z',subtotal:100,discountTotal:0,adjustmentTotal:0,taxableAmount:100,taxRate:0,taxAmount:0,total:100,amountPaid:0,balance:100,lines:[],adjustments:[],payments:[],notes:'',createdAt:now,updatedAt:now});
 
 try {
-  await registry.tenants.create({id:tenantA,name:'Laboratory A',status:'ACTIVE',activationState:'ACTIVATED',commercialAccountReference:'acct-a',auditMetadata:{source:'tenant-native-test'}});
-  await registry.tenants.create({id:tenantB,name:'Laboratory B',status:'TRIAL',activationState:'ACTIVATED',commercialAccountReference:'acct-b',auditMetadata:{source:'tenant-native-test'}});
+  await registry.tenants.create({id:tenantA,name:'Laboratory A',status:'ACTIVE',activationState:'ACTIVATED',commercialAccountReference:'acct-tenant-native-a',auditMetadata:{source:'tenant-native-test'}});
+  await registry.tenants.create({id:tenantB,name:'Laboratory B',status:'TRIAL',activationState:'ACTIVATED',commercialAccountReference:'acct-tenant-native-b',auditMetadata:{source:'tenant-native-test'}});
   assert.equal((await registry.tenants.getOperational(tenantA))?.name,'Laboratory A');
   assert.equal((await registry.tenants.getOperational(tenantB))?.name,'Laboratory B');
   await registry.memberships.save({tenantId:tenantA,userId:'lab-a-owner',laboratoryRole:'laboratory-administrator',platformRole:'none',status:'ACTIVE',locationIds:[],practiceIds:[],administrativeOverride:true});
@@ -53,12 +53,12 @@ try {
   const foreignObject=await pool.query('SELECT id FROM object_records WHERE id=$1 AND tenant_id=$2',[stored.id,tenantB]);
   assert.equal(foreignObject.rowCount,0,'artifact metadata must remain tenant-scoped');
 
-  await registry.tenants.updateLifecycle({id:tenantB,status:'SUSPENDED',activationState:'DEACTIVATED',commercialAccountReference:'acct-b',auditMetadata:{reason:'security-test'}});
+  await registry.tenants.updateLifecycle({id:tenantB,status:'SUSPENDED',activationState:'DEACTIVATED',commercialAccountReference:'acct-tenant-native-b',auditMetadata:{reason:'security-test'}});
   assert.equal(await registry.tenants.getOperational(tenantB),null,'suspended tenant must fail the operational-access policy');
   assert.equal((await registry.patients.get(contextB,patientB.id))?.id,patientB.id,'suspension must retain tenant data');
-  await registry.tenants.updateLifecycle({id:tenantB,status:'ACTIVE',activationState:'ACTIVATED',commercialAccountReference:'acct-b',auditMetadata:{reactivated:true}});
+  await registry.tenants.updateLifecycle({id:tenantB,status:'ACTIVE',activationState:'ACTIVATED',commercialAccountReference:'acct-tenant-native-b',auditMetadata:{reactivated:true}});
   assert.equal((await registry.tenants.getOperational(tenantB))?.id,tenantB,'reactivated tenant regains only its own repository scope');
-  await registry.tenants.updateLifecycle({id:tenantB,status:'CANCELLED',activationState:'DEACTIVATED',commercialAccountReference:'acct-b',auditMetadata:{cancelled:true}});
+  await registry.tenants.updateLifecycle({id:tenantB,status:'CANCELLED',activationState:'DEACTIVATED',commercialAccountReference:'acct-tenant-native-b',auditMetadata:{cancelled:true}});
   assert.equal(await registry.tenants.getOperational(tenantB),null,'cancelled tenant must not receive operational access');
   assert.equal((await registry.cases.get(contextB,caseB.id))?.id,caseB.id,'cancellation must retain tenant operational records');
 
