@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { openAuthorizedDesignStudio } from './design-studio-access.mjs';
 
 const trianglePly = (offset = 0) => `ply
 format ascii 1.0
@@ -20,8 +21,7 @@ async function openStudio(page) {
   const errors = [];
   page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
   page.on('pageerror', (error) => errors.push(error.message));
-  await page.goto('/design-studio.html');
-  await expect(page.getByRole('heading', { name: 'Production Viewer' })).toBeVisible();
+  await openAuthorizedDesignStudio(page);
   return errors;
 }
 

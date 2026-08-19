@@ -553,12 +553,13 @@ export class SecurityService {
   }
 }
 
-export async function installSecurity(app: Express, service: SecurityService) {
+export async function installSecurity(app: Express, service: SecurityService, options:{beforeAuthorize?:(app:Express)=>void|Promise<void>}={}) {
   await service.bootstrap();
   app.post('/api/auth/login', (req, res) => void service.login(req, res));
   app.use((req: SecurityRequest, res, next) => void service.authenticate(req, res, next));
   app.get('/api/auth/session', (req: SecurityRequest, res) => void service.session(req, res));
   app.post('/api/auth/logout', (req: SecurityRequest, res) => void service.logout(req, res));
+  await options.beforeAuthorize?.(app);
   app.use((req: SecurityRequest, res, next) => void service.authorize(req, res, next));
   app.use((req: SecurityRequest, res, next) => void service.auditMutation(req, res, next));
 }
