@@ -3,7 +3,7 @@ import type {
   ProductionWorkItem, QCInspection, QCTemplate, Shipment, User
 } from '@northstar/shared';
 import type { LaboratoryTenant, TenantMembership } from './tenant-native.js';
-import type { ModuleEntitlement, ModuleKey, ModuleSeatAssignment, ModuleSeatPool } from './commercial-entitlements.js';
+import type { ActivationCredential, ModuleEntitlement, ModuleKey, ModuleSeatAssignment, ModuleSeatPool } from './commercial-entitlements.js';
 
 export interface RepositoryContext { tenantId:string; actorId:string; actorName:string; }
 export interface ListOptions { includeDeleted?:boolean; limit?:number; offset?:number; }
@@ -22,7 +22,9 @@ export interface ProductionRepository extends EntityRepository<ProductionWorkIte
 export interface QCRepository { listTemplates(context:RepositoryContext):Promise<QCTemplate[]>; saveTemplate(context:RepositoryContext,value:QCTemplate):Promise<void>; listInspections(context:RepositoryContext,caseId?:string):Promise<QCInspection[]>; saveInspection(context:RepositoryContext,value:QCInspection):Promise<void>; }
 export interface ShippingRepository extends EntityRepository<Shipment> { findByTrackingNumber(context:RepositoryContext,trackingNumber:string):Promise<Shipment|null>; }
 export interface DurableFinancialRepository { listInvoices(context:RepositoryContext):Promise<Invoice[]>; getInvoice(context:RepositoryContext,id:string):Promise<Invoice|null>; saveInvoice(context:RepositoryContext,value:Invoice):Promise<void>; listStatements(context:RepositoryContext):Promise<MonthlyStatement[]>; saveStatement(context:RepositoryContext,value:MonthlyStatement):Promise<void>; }
-export interface TenantRepository { get(id:string):Promise<LaboratoryTenant|null>; getOperational(id:string):Promise<LaboratoryTenant|null>; create(value:Omit<LaboratoryTenant,'createdAt'|'updatedAt'>):Promise<void>; updateLifecycle(value:Pick<LaboratoryTenant,'id'|'status'|'activationState'|'commercialAccountReference'|'auditMetadata'>):Promise<void>; }
+export type TenantLifecycleUpdate=Pick<LaboratoryTenant,'id'|'status'|'activationState'|'commercialAccountReference'|'auditMetadata'>&Partial<Pick<LaboratoryTenant,'commercialActivatedAt'|'commercialSuspendedAt'|'commercialCancelledAt'>>;
+export type TenantCreate=Omit<LaboratoryTenant,'createdAt'|'updatedAt'|'commercialActivatedAt'|'commercialSuspendedAt'|'commercialCancelledAt'>&Partial<Pick<LaboratoryTenant,'commercialActivatedAt'|'commercialSuspendedAt'|'commercialCancelledAt'>>;
+export interface TenantRepository { get(id:string):Promise<LaboratoryTenant|null>; getOperational(id:string):Promise<LaboratoryTenant|null>; create(value:TenantCreate):Promise<void>; updateLifecycle(value:TenantLifecycleUpdate):Promise<void>; }
 export interface TenantMembershipRepository { get(tenantId:string,userId:string):Promise<TenantMembership|null>; save(value:TenantMembership):Promise<void>; }
 export interface CommercialRepository {
   getEntitlement(tenantId:string,moduleKey:ModuleKey):Promise<ModuleEntitlement|null>;
@@ -34,6 +36,11 @@ export interface CommercialRepository {
   activeAssignment(tenantId:string,moduleKey:ModuleKey,userId:string,lock?:boolean):Promise<ModuleSeatAssignment|null>;
   assignSeat(tenantId:string,moduleKey:ModuleKey,userId:string,actorId:string,metadata?:Record<string,unknown>):Promise<ModuleSeatAssignment>;
   releaseSeat(tenantId:string,moduleKey:ModuleKey,userId:string,actorId:string):Promise<ModuleSeatAssignment|null>;
+  getActivationCredential(id:string):Promise<ActivationCredential|null>;
+  listActivationCredentials(tenantId:string):Promise<ActivationCredential[]>;
+  createActivationCredential(value:Pick<ActivationCredential,'id'|'tenantId'|'secretHash'|'issuedBy'|'expiresAt'|'supersedesCredentialId'|'metadata'>):Promise<ActivationCredential>;
+  activateCredential(id:string,actorId:string):Promise<ActivationCredential|null>;
+  revokeActivationCredential(id:string,actorId:string,reason:string|null,replacedByCredentialId?:string|null):Promise<ActivationCredential|null>;
 }
 export interface AuditEventInput { tenantId:string; actorId:string; actorName:string; action:string; entityType:string; entityId:string; occurredAt:string; metadata:Record<string,unknown>; }
 export interface AuditRepository { append(event:AuditEventInput):Promise<void>; list(tenantId:string,entityType?:string,entityId?:string):Promise<ReadonlyArray<AuditEventInput>>; }

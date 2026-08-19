@@ -50,9 +50,9 @@ jobs:
         run: pnpm typecheck && pnpm build
       - name: Run Design Studio deterministic geometry suite
         run: pnpm --filter @cadence/design-studio test
-      - name: Apply migrations 0001 through 0009
+      - name: Apply migrations 0001 through 0010
         run: |
-          for migration in apps/api/migrations/0001_infrastructure_core.sql apps/api/migrations/0002_repository_documents.sql apps/api/migrations/0003_identity_security.sql apps/api/migrations/0004_clinical_communications.sql apps/api/migrations/0005_digital_intake_platform.sql apps/api/migrations/0006_intake_administration.sql apps/api/migrations/0007_uat_foundation.sql apps/api/migrations/0008_tenant_native_operations.sql apps/api/migrations/0009_commercial_entitlements.sql; do psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$migration"; done
+          for migration in apps/api/migrations/0001_infrastructure_core.sql apps/api/migrations/0002_repository_documents.sql apps/api/migrations/0003_identity_security.sql apps/api/migrations/0004_clinical_communications.sql apps/api/migrations/0005_digital_intake_platform.sql apps/api/migrations/0006_intake_administration.sql apps/api/migrations/0007_uat_foundation.sql apps/api/migrations/0008_tenant_native_operations.sql apps/api/migrations/0009_commercial_entitlements.sql apps/api/migrations/0010_commercial_activation_licensing.sql; do psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$migration"; done
       - name: Run inherited persistence, security, communications, and intake contracts
         run: |
           pnpm --filter @northstar/api test:repositories
@@ -63,14 +63,15 @@ jobs:
           pnpm --filter @northstar/api test:digital-intake
           pnpm --filter @northstar/api test:tenant-native
           pnpm --filter @northstar/api test:commercial-entitlements
+          pnpm --filter @northstar/api test:commercial-licensing
       - name: Run Sprint 13A UAT integrations
         run: |
           pnpm --filter @northstar/api test:uat
           pnpm --filter @northstar/api test:uat-attachments
-      - name: Validate migration 0009 rollback and reapplication
+      - name: Validate migration 0010 rollback and reapplication
         run: |
-          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0009_commercial_entitlements.rollback.sql
-          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0009_commercial_entitlements.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0010_commercial_activation_licensing.rollback.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0010_commercial_activation_licensing.sql
       - name: Start secure application services
         run: |
           pnpm --filter @northstar/api dev > /tmp/sprint13a-api.log 2>&1 &

@@ -5,7 +5,7 @@ Last updated: 2026-08-18
 ## Authoritative status
 
 - Repository: `CADenceNS/cadence-northstar-build`
-- Current phase: Sprint 25 fully reconciled, certified, and merged; CF-1A0 and CF-1A1 are certified and merged; CF-1A2 is **IMPLEMENTED_PENDING_CERTIFICATION** on product head `f01df11d87e28827091b3c5932d6ca8928f7171e` (product tree `e238e9b14a52f983365febbc5e8b226da73b24a1`).
+- Current phase: CF-1A0, CF-1A1, and CF-1A2 are **CERTIFIED AND MERGED** through main `bc846976cb06bdc1ce9ee659129a12d9eb0627a3`; CF-1A3A is **IMPLEMENTED_PENDING_CERTIFICATION** on `feature/cf-1a3a-activation-commercial-control`.
 - Sprint 25: **FULLY RECONCILED, CERTIFIED, AND MERGED**
 - Sprint 26: **PLANNED AFTER CF-1 / NOT STARTED**
 - Product-certified head: `5cc2b4ab2ee0d25d656db7c08b136f7014ff2a4a`; product tree: `f764f8622f4d62ca6f62833dc62fded7ff2069e4`
@@ -44,6 +44,6 @@ The correction observes durable `manufacturingState: EXPORTED` after export and 
 
 The next authorized action is:
 
-> **CF-1A2 corrective implementation — assign deterministic legacy `NORTHSTAR_CORE` access before enforcing the core operational gate, then repeat exact-head certification.**
+> **CF-1A3A — Laboratory Activation Licensing Core + Platform Admin Commercial Control Plane: complete exact-head DB/browser/workflow certification.**
 
-CF-1A2 PR #34 current test-only tip is `8b8289a740e846bb1aecaf213f6af5599afb7da9`; CI 602 passed, while Runtime Validation 367 exposed an incomplete legacy seat bootstrap (legacy administrator practice creation returned 403). Do not begin CF-1A3 or Sprint 26 until this is corrected and all exact-head gates pass.
+CF-1A2 is fully reconciled on merged main `bc846976cb06bdc1ce9ee659129a12d9eb0627a3`. CF-1A3A adds only activation licensing and Platform Admin commercial control-plane capabilities; it is not certified until its own exact-head gates pass. Do not begin CF-1A3B or Sprint 26.
