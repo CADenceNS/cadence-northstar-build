@@ -3,6 +3,7 @@ import type { AuditEventInput, RepositoryRegistry } from './contracts.js';
 import type { SqlExecutor } from './postgres.js';
 
 export type ModuleKey='NORTHSTAR_CORE'|'DESIGN_STUDIO'|'GVM';
+export const LEGACY_NORTHSTAR_TENANT_ID='00000000-0000-0000-0000-000000000001';
 export const moduleCatalog:Readonly<Record<ModuleKey,{readonly key:ModuleKey;readonly requires:ReadonlyArray<ModuleKey>}>>=Object.freeze({
   NORTHSTAR_CORE:Object.freeze({key:'NORTHSTAR_CORE' as ModuleKey,requires:Object.freeze([]) as ReadonlyArray<ModuleKey>}),
   DESIGN_STUDIO:Object.freeze({key:'DESIGN_STUDIO' as ModuleKey,requires:Object.freeze(['NORTHSTAR_CORE'] as ModuleKey[])}),
@@ -96,4 +97,25 @@ export async function bootstrapExistingTenantCommercialAccess(db:SqlExecutor,ten
   }
   await db.query(`INSERT INTO tenant_module_entitlements(tenant_id,module_key,state,source,metadata) VALUES($1,'GVM','DISABLED','legacy-bootstrap',$2::jsonb) ON CONFLICT(tenant_id,module_key) DO NOTHING`,[tenantId,JSON.stringify({compatibility:'no-gvm-entitlement'})]);
   await db.query(`INSERT INTO tenant_module_seat_pools(tenant_id,module_key,purchased_seat_count,source) VALUES($1,'GVM',0,'legacy-bootstrap') ON CONFLICT(tenant_id,module_key) DO NOTHING`,[tenantId]);
+}
+
+/**
+ * One-time post-identity reconciliation for the designated pre-commercial
+ * tenant. The original 0009 migration snapshots memberships before the
+ * durable runtime creates its historical administrator membership. This
+ * materializes that finite missing NORTHSTAR_CORE seat once, records it in
+ * the migration ledger, and never re-enables an explicitly managed module.
+ */
+export async function reconcileLegacyNorthstarCoreBootstrap(db:SqlExecutor,tenantId:string){
+  if(tenantId!==LEGACY_NORTHSTAR_TENANT_ID)return false;
+  const migrationKey='0009_legacy_northstar_core_post_identity_bootstrap';
+    const applied=await db.query('SELECT 1 FROM tenant_migration_ledger WHERE migration_key=$1',[migrationKey]);
+    if(applied.rowCount)return false;
+    const members=await db.query<{user_id:string}>(`SELECT user_id FROM identity_memberships WHERE tenant_id=$1 AND membership_status='ACTIVE' AND platform_role='none' ORDER BY user_id`,[tenantId]);
+    const seatCount=members.rows.length;
+    await db.query(`INSERT INTO tenant_module_entitlements(tenant_id,module_key,state,source,metadata) VALUES($1,'NORTHSTAR_CORE','ACTIVE','legacy-core-post-identity-bootstrap',$2::jsonb) ON CONFLICT(tenant_id,module_key) DO NOTHING`,[tenantId,JSON.stringify({compatibility:'post-identity legacy snapshot',migration:migrationKey})]);
+    await db.query(`INSERT INTO tenant_module_seat_pools(tenant_id,module_key,purchased_seat_count,source) VALUES($1,'NORTHSTAR_CORE',$2,'legacy-core-post-identity-bootstrap') ON CONFLICT(tenant_id,module_key) DO UPDATE SET purchased_seat_count=GREATEST(tenant_module_seat_pools.purchased_seat_count,EXCLUDED.purchased_seat_count),source=CASE WHEN tenant_module_seat_pools.source IN ('legacy-migration','legacy-bootstrap') THEN 'legacy-core-post-identity-bootstrap' ELSE tenant_module_seat_pools.source END,updated_at=now() WHERE tenant_module_seat_pools.source IN ('legacy-migration','legacy-bootstrap','legacy-core-post-identity-bootstrap')`,[tenantId,seatCount]);
+    await db.query(`INSERT INTO tenant_module_seat_assignments(tenant_id,module_key,user_id,assigned_by,metadata) SELECT m.tenant_id,'NORTHSTAR_CORE',m.user_id,'legacy-core-post-identity-bootstrap',$2::jsonb FROM identity_memberships m JOIN tenant_module_seat_pools p ON p.tenant_id=m.tenant_id AND p.module_key='NORTHSTAR_CORE' AND p.source IN ('legacy-migration','legacy-bootstrap','legacy-core-post-identity-bootstrap') WHERE m.tenant_id=$1 AND m.membership_status='ACTIVE' AND m.platform_role='none' ON CONFLICT DO NOTHING`,[tenantId,JSON.stringify({compatibility:'post-identity legacy membership snapshot',migration:migrationKey})]);
+    await db.query(`INSERT INTO tenant_migration_ledger(migration_key,legacy_tenant_id,ownership_rule,metadata) VALUES($1,$2,'A one-time post-identity snapshot assigns finite NORTHSTAR_CORE seats only to active non-platform memberships of the designated legacy tenant.',$3::jsonb)`,[migrationKey,tenantId,JSON.stringify({idempotent:true,entitlement:'ON CONFLICT DO NOTHING',seatPool:'legacy sources only',runtimeFallback:false})]);
+    return true;
 }

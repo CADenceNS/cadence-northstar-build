@@ -16,14 +16,13 @@ import { installUatFoundation } from './uat.js';
 import { installUatAttachments } from './uat-attachments.js';
 import { installUatIdentityExperience, provisionUatIdentities } from './uat-identity.js';
 import { internalTenantContextHeader, issueInternalTenantContext } from './trusted-tenant-context.js';
-import { CommercialEntitlementService, CommercialAccessError, bootstrapExistingTenantCommercialAccess, moduleCatalog, type ModuleKey } from './infrastructure/commercial-entitlements.js';
+import { CommercialEntitlementService, CommercialAccessError, moduleCatalog, reconcileLegacyNorthstarCoreBootstrap, type ModuleKey } from './infrastructure/commercial-entitlements.js';
 import { commercialErrorHandler, installCommercialControlPlane } from './commercial-control-plane.js';
 
 const durable=await createDurableRuntime();
 const gatewayRequestContexts=new AsyncLocalStorage<RepositoryContext>();
 const gatewayContext=new Proxy(durable.context,{get:(target,key,receiver)=>Reflect.get(gatewayRequestContexts.getStore()??target,key,receiver)}) as RepositoryContext;
 await provisionUatIdentities(durable.pool);
-await bootstrapExistingTenantCommercialAccess(durable.pool,durable.context.tenantId);
 process.env.PORT='4001';
 await import('./durable-server.js');
 const app=express();const port=4000;const upstream='http://127.0.0.1:4001';const now=()=>new Date().toISOString();
@@ -35,6 +34,7 @@ installUatIdentityExperience(app,{pool:durable.pool,audit:durable.repositories.a
 const security=new SecurityService(durable.pool,durable.repositories.users,durable.repositories.audit,durable.context);
 const commercial=new CommercialEntitlementService(durable.repositories);
 await installSecurity(app,security,{beforeAuthorize:async target=>installCommercialControlPlane(target,commercial)});
+await reconcileLegacyNorthstarCoreBootstrap(durable.pool,durable.context.tenantId);
 app.use(async(req:SecurityRequest,res,next)=>{try{if(!req.path.startsWith('/api/'))return next();if(!req.identity)return res.status(401).json({error:'Authentication required.'});await commercial.checkAccess(req.identity,'NORTHSTAR_CORE');return next();}catch(error){if(error instanceof CommercialAccessError)return res.status(error.statusCode).json({error:error.message});return next(error);}});
 app.get('/api/modules/:moduleKey/access',async(req:SecurityRequest,res,next)=>{try{const value=req.params.moduleKey;if(!(value in moduleCatalog))throw new CommercialAccessError(404,'Module is not registered.');res.json(await commercial.checkAccess(req.identity!,value as ModuleKey));}catch(error){next(error);}});
 app.use((req:SecurityRequest,_res,next)=>req.identity?gatewayRequestContexts.run({tenantId:req.identity.tenantId,actorId:req.identity.userId,actorName:req.identity.name},next):next());

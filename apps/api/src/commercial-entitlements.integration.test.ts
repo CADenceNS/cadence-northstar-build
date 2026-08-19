@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { CommercialAccessError, CommercialEntitlementService } from './infrastructure/commercial-entitlements.js';
+import { CommercialAccessError, CommercialEntitlementService, LEGACY_NORTHSTAR_TENANT_ID, reconcileLegacyNorthstarCoreBootstrap } from './infrastructure/commercial-entitlements.js';
 import { createPostgresPool, PostgresRegistry } from './infrastructure/postgres.js';
 import { DefaultPostgresRepositoryFactory } from './infrastructure/postgres-repositories.js';
 
@@ -54,6 +54,25 @@ try {
   await service.grantOrDisable(platform,{tenantId:tenantA,moduleKey:'NORTHSTAR_CORE',state:'DISABLED'});
   await denied(()=>service.checkAccess(identity(tenantA,'a-owner'),'NORTHSTAR_CORE'),/not active/);
   await denied(()=>service.checkAccess({...identity(tenantA,'platform-admin'),platformRole:'platform-admin'},'DESIGN_STUDIO'),/Platform administrators/);
+  const legacyUser=`legacy-bootstrap-${randomUUID()}`;
+  const legacyEntitlement=await pool.query<{state:string;source:string}>('SELECT state,source FROM tenant_module_entitlements WHERE tenant_id=$1 AND module_key=\'NORTHSTAR_CORE\'',[LEGACY_NORTHSTAR_TENANT_ID]);
+  const legacyPool=await pool.query<{purchased_seat_count:number;source:string}>('SELECT purchased_seat_count,source FROM tenant_module_seat_pools WHERE tenant_id=$1 AND module_key=\'NORTHSTAR_CORE\'',[LEGACY_NORTHSTAR_TENANT_ID]);
+  await registry.memberships.save({tenantId:LEGACY_NORTHSTAR_TENANT_ID,userId:legacyUser,laboratoryRole:'laboratory-administrator',platformRole:'none',status:'ACTIVE',locationIds:[],practiceIds:[],administrativeOverride:true});
+  await pool.query('DELETE FROM tenant_migration_ledger WHERE migration_key=$1',['0009_legacy_northstar_core_post_identity_bootstrap']);
+  assert.equal(await reconcileLegacyNorthstarCoreBootstrap(pool,LEGACY_NORTHSTAR_TENANT_ID),true,'designated legacy tenant receives one post-identity snapshot');
+  assert.equal((await registry.commercial.activeAssignment(LEGACY_NORTHSTAR_TENANT_ID,'NORTHSTAR_CORE',legacyUser))?.userId,legacyUser,'existing legacy membership receives a finite core seat');
+  assert.equal(await reconcileLegacyNorthstarCoreBootstrap(pool,LEGACY_NORTHSTAR_TENANT_ID),false,'bootstrap ledger prevents duplicate runtime assignment');
+  await pool.query(`UPDATE tenant_module_entitlements SET state='DISABLED',source='commercial-control-plane' WHERE tenant_id=$1 AND module_key='NORTHSTAR_CORE'`,[LEGACY_NORTHSTAR_TENANT_ID]);
+  assert.equal(await reconcileLegacyNorthstarCoreBootstrap(pool,LEGACY_NORTHSTAR_TENANT_ID),false,'ordinary startup cannot reapply the one-time migration');
+  assert.equal((await registry.commercial.getEntitlement(LEGACY_NORTHSTAR_TENANT_ID,'NORTHSTAR_CORE'))?.state,'DISABLED','explicit commercial disable is preserved');
+  await pool.query('DELETE FROM tenant_module_seat_assignments WHERE tenant_id=$1 AND user_id=$2',[LEGACY_NORTHSTAR_TENANT_ID,legacyUser]);
+  await pool.query('DELETE FROM identity_memberships WHERE tenant_id=$1 AND user_id=$2',[LEGACY_NORTHSTAR_TENANT_ID,legacyUser]);
+  await pool.query('DELETE FROM tenant_migration_ledger WHERE migration_key=$1',['0009_legacy_northstar_core_post_identity_bootstrap']);
+  if(legacyEntitlement.rows[0])await pool.query('UPDATE tenant_module_entitlements SET state=$3,source=$4 WHERE tenant_id=$1 AND module_key=$2',[LEGACY_NORTHSTAR_TENANT_ID,'NORTHSTAR_CORE',legacyEntitlement.rows[0].state,legacyEntitlement.rows[0].source]);
+  if(legacyPool.rows[0])await pool.query('UPDATE tenant_module_seat_pools SET purchased_seat_count=$3,source=$4 WHERE tenant_id=$1 AND module_key=$2',[LEGACY_NORTHSTAR_TENANT_ID,'NORTHSTAR_CORE',legacyPool.rows[0].purchased_seat_count,legacyPool.rows[0].source]);
+  const futureTenant=randomUUID();await registry.tenants.create({id:futureTenant,name:'No Automatic Core',status:'ACTIVE',activationState:'ACTIVATED',commercialAccountReference:'none',auditMetadata:{test:'no-legacy-bootstrap'}});
+  assert.equal(await reconcileLegacyNorthstarCoreBootstrap(pool,futureTenant),false,'future tenants cannot inherit legacy bootstrap');
+  assert.equal(await registry.commercial.getEntitlement(futureTenant,'NORTHSTAR_CORE'),null,'future tenant remains without automatic core entitlement');
   const events=await registry.audit.list(tenantA,'commercial-seat-assignment');
   assert(events.some(event=>event.action==='commercial.seat.assigned'&&event.metadata.newState),'seat assignment audit records a new state');
   assert(events.some(event=>event.action==='commercial.seat.released'&&event.metadata.previousState),'seat release audit records a previous state');
