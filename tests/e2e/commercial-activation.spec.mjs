@@ -17,7 +17,7 @@ test('Platform Admin activation lifecycle is server-backed and preserves operati
   expect((await request(page,`/api/commercial/tenants/${sampleTenant}/activate`,json({credential}))).status).toBe(200);
   expect((await request(page,`/api/commercial/tenants/${sampleTenant}/activate`,json({credential}))).status).toBe(403);
   expect((await request(page,`/api/commercial/tenants/${sampleTenant}/suspend`,json({reason:'browser suspension'}))).status).toBe(200);
-  expect((await request(ownerPage,'/api/dashboard')).status).toBe(401);
+  expect((await request(ownerPage,'/api/dashboard')).status).toBe(403);
   await login(page,'platform.owner@northstar-uat.example');
   expect((await request(page,`/api/commercial/tenants/${sampleTenant}/reactivate`,json({reason:'browser reactivation'}))).status).toBe(200);
   await login(ownerPage,'owner@sample-lab-a-uat.example');
