@@ -1,5 +1,11 @@
 # Certification Ledger
 
+## CF-1A3A activation licensing and Platform Admin commercial control plane
+
+- Status: **IMPLEMENTED_PENDING_CERTIFICATION** on `feature/cf-1a3a-activation-commercial-control`.
+- Scope: hashed one-time activation credentials, lifecycle controls, immutable commercial audit events, and Platform Admin-only commercial APIs. No CAD geometry change.
+- Required before certification: approved DB-backed integration, browser, CI, Runtime Validation, and Sprint Validation evidence on one exact product head.
+
 This ledger separates immutable product commits from later merge or continuity-only commits. A PR description is historical evidence, not a substitute for an immutable workflow result. Private-corpus evidence is labeled historical unless it was independently rerun against the named exact head.
 
 ## Certified and reconciled milestones

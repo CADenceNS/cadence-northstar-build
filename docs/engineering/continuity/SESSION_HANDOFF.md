@@ -32,8 +32,8 @@ The last repository head is the commit inspected before a continuity update, not
 
 ## Exact next authorized action
 
-> **CF-1A2 corrective implementation — complete deterministic legacy `NORTHSTAR_CORE` seat bootstrap, then repeat exact-head certification.**
+> **CF-1A3A — Laboratory Activation Licensing Core + Platform Admin Commercial Control Plane: implemented pending DB/browser/workflow certification on `feature/cf-1a3a-activation-commercial-control`.**
 
-Recommended implementation model: **GPT-5.6 Terra**. CF-1A2 product source is `f01df11d87e28827091b3c5932d6ca8928f7171e` (tree `e238e9b14a52f983365febbc5e8b226da73b24a1`); PR #34 tip `8b8289a740e846bb1aecaf213f6af5599afb7da9` adds only the authenticated-browser test setup correction. Runtime Validation 367 failed because the legacy administrator had no deterministic core-seat assignment, causing practice creation to return 403. Do not begin CF-1A3 or Sprint 26.
+Recommended implementation model: **GPT-5.6 Terra**. CF-1A2 is fully reconciled on merged main `bc846976cb06bdc1ce9ee659129a12d9eb0627a3`. CF-1A3A requires exact-head DB, browser, CI, Runtime, and Sprint certification before review. Do not begin CF-1A3B or Sprint 26.
 
 PR #32 and PR #33 are merged. Do not begin Sprint 26 or rerun protected private-corpus certification; CF-1A1 changes no geometry.

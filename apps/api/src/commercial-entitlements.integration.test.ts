@@ -15,8 +15,12 @@ const identity=(tenantId:string,userId:string)=>({userId,name:userId,email:`${us
 const denied=async(work:()=>Promise<unknown>,message:RegExp)=>await assert.rejects(work,(error:unknown)=>error instanceof CommercialAccessError&&error.statusCode===403&&message.test(error.message));
 
 try {
-  await registry.tenants.create({id:tenantA,name:'Laboratory A',status:'ACTIVE',activationState:'ACTIVATED',commercialAccountReference:'acct-a',auditMetadata:{test:'commercial-entitlements'}});
-  await registry.tenants.create({id:tenantB,name:'Laboratory B',status:'ACTIVE',activationState:'ACTIVATED',commercialAccountReference:'acct-b',auditMetadata:{test:'commercial-entitlements'}});
+  await registry.tenants.create({id:tenantA,name:'Laboratory A',status:'ACTIVE',activationState:'ACTIVATED',commercialAccountReference:'acct-commercial-entitlements-a',auditMetadata:{test:'commercial-entitlements'}});
+  await registry.tenants.create({id:tenantB,name:'Laboratory B',status:'ACTIVE',activationState:'ACTIVATED',commercialAccountReference:'acct-commercial-entitlements-b',auditMetadata:{test:'commercial-entitlements'}});
+  const duplicateTenant=randomUUID();
+  await assert.rejects(()=>registry.tenants.create({id:duplicateTenant,name:'Duplicate Commercial Account',status:'ACTIVE',activationState:'ACTIVATED',commercialAccountReference:'acct-commercial-entitlements-a',auditMetadata:{test:'commercial-account-uniqueness'}}),(error:unknown)=>error instanceof Error&&/tenants_commercial_account_reference_idx/.test(error.message),'database must reject duplicate commercial-account references');
+  await registry.tenants.updateLifecycle({id:tenantA,status:'ACTIVE',activationState:'ACTIVATED',commercialAccountReference:'acct-commercial-entitlements-a',auditMetadata:{test:'commercial-entitlements'}});
+  assert.equal((await registry.tenants.get(tenantA))?.commercialAccountReference,'acct-commercial-entitlements-a','a tenant may retain its own unique commercial-account reference');
   for(const userId of['a-owner','a-1','a-2','a-3','a-4'])await member(tenantA,userId);
   await member(tenantA,'platform-admin','platform-admin');await member(tenantB,'b-owner');
 
@@ -70,7 +74,7 @@ try {
   await pool.query('DELETE FROM tenant_migration_ledger WHERE migration_key=$1',['0009_legacy_northstar_core_post_identity_bootstrap']);
   if(legacyEntitlement.rows[0])await pool.query('UPDATE tenant_module_entitlements SET state=$3,source=$4 WHERE tenant_id=$1 AND module_key=$2',[LEGACY_NORTHSTAR_TENANT_ID,'NORTHSTAR_CORE',legacyEntitlement.rows[0].state,legacyEntitlement.rows[0].source]);
   if(legacyPool.rows[0])await pool.query('UPDATE tenant_module_seat_pools SET purchased_seat_count=$3,source=$4 WHERE tenant_id=$1 AND module_key=$2',[LEGACY_NORTHSTAR_TENANT_ID,'NORTHSTAR_CORE',legacyPool.rows[0].purchased_seat_count,legacyPool.rows[0].source]);
-  const futureTenant=randomUUID();await registry.tenants.create({id:futureTenant,name:'No Automatic Core',status:'ACTIVE',activationState:'ACTIVATED',commercialAccountReference:'none',auditMetadata:{test:'no-legacy-bootstrap'}});
+  const futureTenant=randomUUID();await registry.tenants.create({id:futureTenant,name:'No Automatic Core',status:'ACTIVE',activationState:'ACTIVATED',commercialAccountReference:'acct-commercial-entitlements-no-legacy',auditMetadata:{test:'no-legacy-bootstrap'}});
   assert.equal(await reconcileLegacyNorthstarCoreBootstrap(pool,futureTenant),false,'future tenants cannot inherit legacy bootstrap');
   assert.equal(await registry.commercial.getEntitlement(futureTenant,'NORTHSTAR_CORE'),null,'future tenant remains without automatic core entitlement');
   const events=await registry.audit.list(tenantA,'commercial-seat-assignment');
