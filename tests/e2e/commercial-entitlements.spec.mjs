@@ -4,7 +4,7 @@ const password=process.env.NORTHSTAR_UAT_PASSWORD??'NorthStar!2026-UAT';
 const sampleTenant='00000000-0000-0000-0000-000000000002';
 const staff={one:'10000000-0000-0000-0000-000000000102',two:'10000000-0000-0000-0000-000000000103',three:'10000000-0000-0000-0000-000000000104'};
 
-async function login(page,email){await page.goto('/');await page.evaluate(()=>{localStorage.clear();sessionStorage.clear();});const result=await page.evaluate(async({email,password})=>{const response=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});return response.status;},{email,password});expect(result).toBe(200);}
+async function login(page,email){await page.goto('/');await expect(page.getByRole('heading',{name:'Welcome back'})).toBeVisible();await page.evaluate(()=>{localStorage.clear();sessionStorage.clear();});const result=await page.evaluate(async({email,password})=>{const response=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});return response.status;},{email,password});expect(result).toBe(200);await expect.poll(()=>page.evaluate(()=>sessionStorage.getItem('northstar.csrf'))).not.toBeNull();}
 async function request(page,url,options={}){return page.evaluate(async({url,options})=>{const response=await fetch(url,options);let body=null;try{body=await response.json();}catch{}return{status:response.status,body};},{url,options});}
 const json=(method,body)=>({method,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
 
