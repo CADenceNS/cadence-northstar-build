@@ -2,9 +2,15 @@
 
 ## CF-1A3A activation licensing and Platform Admin commercial control plane
 
-- Status: **IMPLEMENTED_PENDING_CERTIFICATION** on `feature/cf-1a3a-activation-commercial-control`.
-- Scope: hashed one-time activation credentials, lifecycle controls, immutable commercial audit events, and Platform Admin-only commercial APIs. No CAD geometry change.
-- Required before certification: approved DB-backed integration, browser, CI, Runtime Validation, and Sprint Validation evidence on one exact product head.
+- Status: **CERTIFIED AND MERGED** via PR #36.
+- Certified product head: `53b4773aaa9cfe807f12ff77c9da215eb39d6074`; product tree: `778d358c653200a5276434e00da59e41e6bfad48`.
+- Merge commit: `55e34f983bf18cc8cd35660ed0b318e953b782d4`; merged-main tree: `778d358c653200a5276434e00da59e41e6bfad48`.
+- Merged-main evidence: CI #613 PASS; Runtime Validation #378 PASS; Sprint 13A Validation #272 PASS; deterministic 421/421; Runtime/Sprint Playwright 49/49.
+- Regression evidence: migration 0010, tenant-native security, entitlement/seat, commercial activation/licensing, sequential DB, and commercial-account uniqueness PASS.
+- Scope: hashed one-time activation credentials, lifecycle controls, immutable commercial audit events, and Platform Admin-only commercial APIs. No CAD geometry changed.
+- Explicit non-claims: Platform Admin management UI, subscription billing, GVM functionality, and white-labeling are not complete.
+- Authorized next action: **CF-1A3B — Platform Admin Commercial Management UI**. Recommended model: **GPT-5.6 Terra**. Do not begin CF-1A3B in this task.
+
 
 This ledger separates immutable product commits from later merge or continuity-only commits. A PR description is historical evidence, not a substitute for an immutable workflow result. Private-corpus evidence is labeled historical unless it was independently rerun against the named exact head.
 
