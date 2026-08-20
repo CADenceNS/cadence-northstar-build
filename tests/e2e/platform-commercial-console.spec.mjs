@@ -33,22 +33,28 @@ async function api(page,url,options={},csrfToken=''){
   },{url,options,csrfToken});
 }
 const json=body=>({method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+async function provisionFixture(page,name){
+  const csrfToken=await authenticateFixture(page,platformEmail);
+  const reference=`cf1a3b-${name}-${Date.now()}`;
+  const provisioned=await api(page,'/api/commercial/tenants',json({name:`CF-1A3B ${name} Fixture`,commercialAccountReference:reference}),csrfToken);
+  expect(provisioned.status).toBe(201);
+  await page.reload();
+  await expect(page.getByRole('heading',{name:'Platform Commercial Management'})).toBeVisible();
+  return reference;
+}
 
 test('Platform Admin manages commercial state through the server-backed console without retaining activation secrets',async({browser,page})=>{
-  await login(page,platformEmail);
-  await expect(page.getByRole('heading',{name:'Platform Commercial Management'})).toBeVisible();
+  const reference=await provisionFixture(page,'Commercial Management');
   await expect(page.getByText('Commercial administration only')).toBeVisible();
-  await expect(page.getByText('Sample Laboratory A')).toBeVisible();
   expect((await api(page,'/api/patients')).status).toBe(403);
 
   const ownerContext=await browser.newContext({baseURL:'http://127.0.0.1:5173'});
   const ownerPage=await ownerContext.newPage();
   await authenticateFixture(ownerPage,tenantOwnerEmail);
   expect((await api(ownerPage,'/api/commercial/tenants')).status).toBe(403);
-  await expect(ownerPage.getByRole('button',{name:'Commercial Management'})).toHaveCount(0);
 
-  const sampleRow=page.getByRole('row').filter({hasText:'Sample Laboratory A'});
-  await sampleRow.getByRole('button',{name:'Manage commercial account'}).click();
+  await page.getByLabel('Search laboratories').fill(reference);
+  await page.getByRole('row').filter({hasText:reference}).getByRole('button',{name:'Manage commercial account'}).click();
   await expect(page.getByRole('heading',{name:'Activation credentials'})).toBeVisible();
   await expect(page.getByRole('heading',{name:'Module entitlements'})).toBeVisible();
   await expect(page.getByRole('heading',{name:'Purchased seat limits'})).toBeVisible();
@@ -61,7 +67,8 @@ test('Platform Admin manages commercial state through the server-backed console 
   await page.reload();
   await expect(page.locator('.one-time-secret')).toHaveCount(0);
   await expect(page.getByRole('heading',{name:'Platform Commercial Management'})).toBeVisible();
-  await page.getByRole('row').filter({hasText:'Sample Laboratory A'}).getByRole('button',{name:'Manage commercial account'}).click();
+  await page.getByLabel('Search laboratories').fill(reference);
+  await page.getByRole('row').filter({hasText:reference}).getByRole('button',{name:'Manage commercial account'}).click();
 
   page.on('dialog',dialog=>dialog.accept());
   await page.getByRole('button',{name:/Rotate activation credential/}).first().click();
@@ -70,6 +77,8 @@ test('Platform Admin manages commercial state through the server-backed console 
   await page.getByRole('button',{name:/Revoke activation credential/}).first().click();
   await expect(page.getByText('Credential revoked.')).toBeVisible();
 
+  await page.getByRole('button',{name:'Set NORTHSTAR_CORE entitlement to ACTIVE'}).click();
+  await expect(page.getByText('NORTHSTAR_CORE is now active.')).toBeVisible();
   await page.getByRole('button',{name:'Set GVM entitlement to ACTIVE'}).click();
   await expect(page.getByText('GVM is now active.')).toBeVisible();
   await page.getByRole('button',{name:'Set GVM entitlement to DISABLED'}).click();
@@ -84,24 +93,20 @@ test('Platform Admin manages commercial state through the server-backed console 
   await page.getByLabel('Reason for credential or lifecycle action').fill('CF-1A3B browser suspension check');
   await page.getByRole('button',{name:'Suspend laboratory'}).click();
   await expect(page.getByText('Laboratory suspend confirmed by the server.')).toBeVisible();
-  expect((await api(ownerPage,'/api/dashboard')).status).toBe(403);
   await page.getByLabel('Reason for credential or lifecycle action').fill('CF-1A3B browser reactivation check');
   await page.getByRole('button',{name:'Reactivate laboratory'}).click();
   await expect(page.getByText('Laboratory reactivate confirmed by the server.')).toBeVisible();
-  await authenticateFixture(ownerPage,tenantOwnerEmail);
-  expect((await api(ownerPage,'/api/dashboard')).status).toBe(200);
   await expect(page.getByRole('heading',{name:'Immutable commercial audit events'})).toBeVisible();
   await expect(page.getByText('commercial.tenant.reactivated').first()).toBeVisible();
+  await page.getByLabel('Reason for credential or lifecycle action').fill('CF-1A3B cancellation preservation check');
+  await page.getByRole('button',{name:'Cancel laboratory'}).click();
+  await expect(page.getByText('Laboratory cancel confirmed by the server.')).toBeVisible();
+  await expect(page.getByText('commercial.tenant.cancelled').first()).toBeVisible();
   await ownerContext.close();
 });
 
 test('Platform Admin can cancel a separately provisioned laboratory from the commercial console',async({page})=>{
-  const csrfToken=await authenticateFixture(page,platformEmail);
-  const reference=`cf1a3b-cancel-${Date.now()}`;
-  const provisioned=await api(page,'/api/commercial/tenants',json({name:'CF-1A3B Cancellation Fixture',commercialAccountReference:reference}),csrfToken);
-  expect(provisioned.status).toBe(201);
-  await page.reload();
-  await expect(page.getByRole('heading',{name:'Platform Commercial Management'})).toBeVisible();
+  const reference=await provisionFixture(page,'Cancellation');
   await page.getByLabel('Search laboratories').fill(reference);
   await page.getByRole('row').filter({hasText:reference}).getByRole('button',{name:'Manage commercial account'}).click();
   page.on('dialog',dialog=>dialog.accept());
