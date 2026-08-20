@@ -4,7 +4,7 @@ Status values are restricted to: `CERTIFIED_PRODUCTION`, `IMPLEMENTED_PENDING_CE
 
 This matrix describes repository evidence as of 2026-08-20. Commercial vision is not implementation evidence.
 
-CF-1A2 — Module Entitlements + Seat Pools: **CERTIFIED_AND_MERGED**. CF-1A3A — Activation Licensing + Platform Admin Commercial Controls: **CERTIFIED_AND_MERGED** via PR #36. CF-1A3B — Platform Admin Commercial Management UI: **CERTIFIED AND MERGED** via PR #37; product head `0535e8c433226c167cca85ffefd83d50ee1d57db`, tree `2b72dce8956e940d93e6513567d19039c1609e8c`, main merge `e03f85144f31533e8785588c5cf1514a92184ab1`; merged-main CI/Runtime/Sprint #622/#387/#281 passed; Runtime/Sprint Playwright 51/51.
+CF-1A2 — Module Entitlements + Seat Pools: **CERTIFIED_AND_MERGED**. CF-1A3A — Activation Licensing + Platform Admin Commercial Controls: **CERTIFIED_AND_MERGED** via PR #36. CF-1A3B — Platform Admin Commercial Management UI: **CERTIFIED AND MERGED** via PR #37; product head `0535e8c433226c167cca85ffefd83d50ee1d57db`, tree `2b72dce8956e940d93e6513567d19039c1609e8c`, main merge `e03f85144f31533e8785588c5cf1514a92184ab1`; merged-main CI/Runtime/Sprint #622/#387/#281 passed; Runtime/Sprint Playwright 51/51. VIS-1B — Production Preview Runtime Readiness: **CERTIFIED AND MERGED** via PR #38; merge `d2f4d3e01cfd25ec95104f8e71f7795a8e9de889`, tree `616a00d409cf98ff64255c8545efbcfc13a4d143`; CI/Runtime/Sprint #625/#390/#284 passed; Runtime/Sprint Playwright 51/51. No deployment occurred.
 
 | Capability | Status | Evidence / boundary |
 |---|---|---|

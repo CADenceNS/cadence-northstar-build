@@ -18,6 +18,7 @@ Last updated: 2026-08-20
 - CF-1A1: **CERTIFIED AND MERGED** via PR #33. Product implementation head `fd8d0f55322acd16ccc3fa796a6e674564c899c7`, tree `7d4215f00a87743a0fe5d8c09fa163155b323a2a`; merge commit `7d63a55938e4f7a06a6e4219863520ceb716aaae`, merged-main tree `7a863d8985e52be0e0cba135a86fb4bd84f283fc`. Merged-main CI `32198072606`, Runtime `32198072651`, and Sprint `32198072542` PASS; deterministic PASS and Playwright 47/47. Tenant-native DB/UAT, auth/RBAC, migration, and isolation evidence remained green. No CAD geometry changed.
 - CF-1A3A: **CERTIFIED AND MERGED** via PR #36. Certified product head `53b4773aaa9cfe807f12ff77c9da215eb39d6074`, tree `778d358c653200a5276434e00da59e41e6bfad48`; main merge commit `55e34f983bf18cc8cd35660ed0b318e953b782d4`. Merged-main CI #613, Runtime Validation #378, and Sprint 13A Validation #272 passed; deterministic regression was 421/421 and Runtime/Sprint Playwright was 49/49. Migration 0010, tenant-native security, entitlement/seat, activation/licensing, sequential DB, and commercial-account uniqueness regressions passed. No CAD geometry changed.
 - CF-1A3B: **CERTIFIED AND MERGED** via PR #37. Certified product head `0535e8c433226c167cca85ffefd83d50ee1d57db`, tree `2b72dce8956e940d93e6513567d19039c1609e8c`; main merge `e03f85144f31533e8785588c5cf1514a92184ab1`, tree `e30b3b43f74f4b32cbe729ef8188aaa5d596fb6e`; CI #622, Runtime Validation #387, and Sprint 13A Validation #281 passed. Runtime and Sprint Playwright each passed 51/51. Subscription billing, GVM functionality, white-label management, and public production deployment are not complete. No CAD geometry changed.
+- VIS-1B: **CERTIFIED AND MERGED** via PR #38. Runtime head `0033ecc7363274821e81806fa6b71bfd4d2fe7cb`, tree `616a00d409cf98ff64255c8545efbcfc13a4d143`; merge commit `d2f4d3e01cfd25ec95104f8e71f7795a8e9de889`. CI #625, Runtime Validation #390, and Sprint 13A Validation #284 passed; Runtime and Sprint Playwright each passed 51/51. Production API start/health, PORT handling, external migrations 0001–0010, security/UAT, tenant isolation, Platform Admin boundary, NorthStar build, and Design Studio build passed. No deployment or DNS action occurred; no CAD geometry changed.
 
 ## Continuity-state semantics
 
@@ -46,6 +47,6 @@ The correction observes durable `manufacturingState: EXPORTED` after export and 
 
 The next authorized action is:
 
-> **VIS-1 — CADence NorthStar Owner Preview Deployment.**
+> **VIS-1C — OWNER PREVIEW INFRASTRUCTURE DEPLOYMENT.**
 
-Recommended next model: **GPT-5.6 Terra**. Deploy a private/non-production browser-accessible environment with real backend/database support for login, the NorthStar shell, Platform Admin commercial management, existing operational workflows, and supported Design Studio entry. Do not configure `preview.cadencenorthstar.com` during this merge task or begin another commercial implementation phase.
+Recommended next model: **GPT-5.6 Terra**. Deploy one persistent CADence Node gateway serving NorthStar and Design Studio with an isolated PostgreSQL preview database. Do not deploy during the VIS-1B merge task, configure DNS, begin CF-1B, or begin Sprint 26.

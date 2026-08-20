@@ -6,11 +6,11 @@ Last verified: 2026-08-20
 
 The exact authorized next action is:
 
-> **Architectural review / merge decision for PR #37.**
+> **VIS-1C — OWNER PREVIEW INFRASTRUCTURE DEPLOYMENT.**
 
 Recommended implementation model: **GPT-5.6 Terra**.
 
-CF-1A3B is **CERTIFIED AND MERGED** via PR #37. Certified product head `0535e8c433226c167cca85ffefd83d50ee1d57db`, product tree `2b72dce8956e940d93e6513567d19039c1609e8c`; main merge `e03f85144f31533e8785588c5cf1514a92184ab1`, merged-main tree `e30b3b43f74f4b32cbe729ef8188aaa5d596fb6e`; CI #622, Runtime Validation #387, and Sprint 13A Validation #281 all passed. Runtime and Sprint Playwright were 51/51. Subscription billing, GVM functionality, white-label management, and public production deployment remain incomplete. The exact next action is VIS-1 — CADence NorthStar Owner Preview Deployment.
+VIS-1B is **CERTIFIED AND MERGED** via PR #38. Runtime head `0033ecc7363274821e81806fa6b71bfd4d2fe7cb`, tree `616a00d409cf98ff64255c8545efbcfc13a4d143`; merge commit `d2f4d3e01cfd25ec95104f8e71f7795a8e9de889`. CI #625, Runtime #390, and Sprint #284 passed; Runtime/Sprint Playwright 51/51. Production API start/health, PORT handling, external migrations 0001–0010, security/UAT, tenant isolation, Platform Admin boundary, NorthStar build, and Design Studio build passed. No deployment or DNS action occurred.
 
 ## Verified baseline
 
@@ -32,6 +32,6 @@ CF-1A3B is **CERTIFIED AND MERGED** via PR #37. Certified product head `0535e8c4
 
 ## Explicit sequencing rule
 
-VIS-1 is the next authorized task. Do not begin another commercial implementation phase, subscription billing, CF-1B, or Sprint 26 before a separately authorized task permits it.
+VIS-1C is the next authorized task. Deploy one persistent CADence Node gateway serving NorthStar and Design Studio with an isolated PostgreSQL preview database. Do not begin CF-1B or Sprint 26 before a separately authorized task permits it.
 
 This continuity repair does not implement CF-1, Sprint 26, or any product feature. It does not rerun private-corpus certification.

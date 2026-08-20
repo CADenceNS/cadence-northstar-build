@@ -118,3 +118,12 @@ Additional governed values—global/cusp/fossa thickness, cement and marginal ra
 - PR #30 changed nine documentation/continuity files and no product or test source.
 - PR #30 workflows on docs head `d0d79034e4e508846f62436dfb3b8d135a229363`: CI `31985580983` PASS; Runtime `31985580942` PASS; Sprint `31985580947` PASS.
 - Product certification remains bound to product head `5cc2b4ab`; this later commit is continuity-only.
+
+## VIS-1B — Production Preview Runtime Readiness
+
+- Certified runtime head: `0033ecc7363274821e81806fa6b71bfd4d2fe7cb`; tree `616a00d409cf98ff64255c8545efbcfc13a4d143`.
+- Merge commit: `d2f4d3e01cfd25ec95104f8e71f7795a8e9de889`; merged-main product/runtime tree unchanged.
+- Scope: compiled API start command, provider PORT handling, private loopback upstream, external ordered migrations 0001–0010, static same-origin NorthStar/Design Studio serving, environment contract, and deployment documentation.
+- Merged-main evidence: CI #625 PASS; Runtime Validation #390 PASS; Sprint 13A Validation #284 PASS; complete Runtime/Sprint Playwright 51/51.
+- Runtime/security evidence: API build/start/health, PORT handling, migrations, authentication/session, CSRF, origin/cookie rules, tenant isolation, Platform Admin boundary, NorthStar build, and Design Studio build PASS.
+- Boundary: no deployment, DNS, private dental corpus, product feature, commercial behavior, authentication weakening, tenant-boundary weakening, or Design Studio geometry change.
