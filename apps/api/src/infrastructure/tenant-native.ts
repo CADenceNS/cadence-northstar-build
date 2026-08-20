@@ -45,6 +45,11 @@ export function tenantHasOperationalAccess(value:{status:TenantStatus;activation
 export class PostgresTenantRepository {
   constructor(private readonly db:SqlExecutor){}
 
+  async list(){
+    const result=await this.db.query<TenantRow>('SELECT id::text,name,status,activation_state,commercial_account_reference,commercial_activated_at,commercial_suspended_at,commercial_cancelled_at,audit_metadata,created_at,updated_at FROM tenants WHERE deleted_at IS NULL ORDER BY name,id');
+    return result.rows.map(tenant);
+  }
+
   async get(id:string){
     const result=await this.db.query<TenantRow>('SELECT id::text,name,status,activation_state,commercial_account_reference,commercial_activated_at,commercial_suspended_at,commercial_cancelled_at,audit_metadata,created_at,updated_at FROM tenants WHERE id=$1 AND deleted_at IS NULL',[id]);
     return result.rows[0]?tenant(result.rows[0]):null;
