@@ -91,7 +91,7 @@ test('Platform Admin manages commercial state through the server-backed console 
   await authenticateFixture(ownerPage,tenantOwnerEmail);
   expect((await api(ownerPage,'/api/dashboard')).status).toBe(200);
   await expect(page.getByRole('heading',{name:'Immutable commercial audit events'})).toBeVisible();
-  await expect(page.getByText('commercial.tenant.reactivated')).toBeVisible();
+  await expect(page.getByText('commercial.tenant.reactivated').first()).toBeVisible();
   await ownerContext.close();
 });
 
