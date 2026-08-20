@@ -4,7 +4,7 @@ Status values are restricted to: `CERTIFIED_PRODUCTION`, `IMPLEMENTED_PENDING_CE
 
 This matrix describes repository evidence as of 2026-08-20. Commercial vision is not implementation evidence.
 
-CF-1A2 — Module Entitlements + Seat Pools: **CERTIFIED_AND_MERGED**. CF-1A3A — Activation Licensing + Platform Admin Commercial Controls: **CERTIFIED_AND_MERGED** via PR #36. CF-1A3B — Platform Admin Commercial Management UI: **CERTIFIED_PREREQUISITE** on Draft PR #37, product head `0535e8c433226c167cca85ffefd83d50ee1d57db`, tree `2b72dce8956e940d93e6513567d19039c1609e8c`; CI/Runtime/Sprint #620/#385/#279 passed; Runtime/Sprint Playwright 51/51.
+CF-1A2 — Module Entitlements + Seat Pools: **CERTIFIED_AND_MERGED**. CF-1A3A — Activation Licensing + Platform Admin Commercial Controls: **CERTIFIED_AND_MERGED** via PR #36. CF-1A3B — Platform Admin Commercial Management UI: **CERTIFIED AND MERGED** via PR #37; product head `0535e8c433226c167cca85ffefd83d50ee1d57db`, tree `2b72dce8956e940d93e6513567d19039c1609e8c`, main merge `e03f85144f31533e8785588c5cf1514a92184ab1`; merged-main CI/Runtime/Sprint #622/#387/#281 passed; Runtime/Sprint Playwright 51/51.
 
 | Capability | Status | Evidence / boundary |
 |---|---|---|
@@ -21,7 +21,7 @@ CF-1A2 — Module Entitlements + Seat Pools: **CERTIFIED_AND_MERGED**. CF-1A3A �
 | True tenant isolation | CERTIFIED_PRODUCTION | CF-1A1 product head `fd8d0f5` / tree `7d4215f0` adds lifecycle/membership-aware trusted-context tenant-native repository access and cross-tenant read/write/delete/list/search/browser proofs; CI, Runtime, Sprint, deterministic, and Playwright gates are green |
 | Tenant-scoped staff, patients, cases, production, QC, shipping, billing, files, settings | CERTIFIED_PRODUCTION | Tenant-scoped operational repository and artifact metadata paths are certified by CF-1A1; commercial entitlements/seats remain later CF-1A work |
 | Activation credentials and lifecycle controls | CERTIFIED_PRODUCTION | CF-1A3A exact-head DB/security and merged-main workflow evidence: issue/verify/replay, revoke/rotation, raw-secret protection, suspension/reactivation, and cancellation/data preservation |\n| Platform Admin commercial control-plane services and operational boundary | CERTIFIED_PRODUCTION | CF-1A3A exact-head DB/security and merged-main workflow evidence; no Platform Admin management UI claim |\n| Tenant-scoped backups, restore, encryption, break-glass support | PLANNED | Design requirement only |
-| CADence Owner/Super Admin licensing dashboard | CERTIFIED_PRODUCTION | CF-1A3B Platform Admin commercial management UI is certified on Draft PR #37; merge remains subject to architectural review |
+| CADence Owner/Super Admin licensing dashboard | CERTIFIED_PRODUCTION | CF-1A3B Platform Admin commercial management UI is certified and merged via PR #37 |
 | Subscriptions, trials, billing, renewals, discounts, proration | PLANNED | No commercial billing evidence |
 | Server-side entitlements and independent module switches | CERTIFIED_PRODUCTION | CF-1A2/CF-1A3A entitlement and commercial activation regression evidence; NORTHSTAR_CORE and DESIGN_STUDIO registered with server-side enforcement |
 | Separate NorthStar and Design Studio seat pools | CERTIFIED_PRODUCTION | CF-1A2 entitlement/seat regression evidence with independent NorthStar and Design Studio pools |

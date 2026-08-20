@@ -1,17 +1,17 @@
-Warning: truncated output (original token count: 4665)
+Warning: truncated output (original token count: 4688)
 Total output lines: 122
 
 # Certification Ledger
 
 ## CF-1A3B Platform Admin Commercial Management UI
 
-- Status: **CERTIFIED_PREREQUISITE** on Draft PR #37; unmerged pending architectural review.
+- Status: **CERTIFIED AND MERGED** via PR #37. Main merge commit: `e03f85144f31533e8785588c5cf1514a92184ab1`; merged-main tree: `e30b3b43f74f4b32cbe729ef8188aaa5d596fb6e`.
 - Certified product head: `0535e8c433226c167cca85ffefd83d50ee1d57db`; product tree: `2b72dce8956e940d93e6513567d19039c1609e8c`.
 - Exact-head evidence: CI #620 PASS; Runtime Validation #385 PASS; Sprint 13A Validation #279 PASS; Runtime/Sprint Playwright 51/51.
 - Scope: Platform Admin-only lab directory and detail, activation issue/revoke/rotate with one-time secret display and clearing, server-backed entitlement and independent seat controls, lifecycle controls, commercial audit history, and tenant operational-data boundary.
 - Regression evidence: migrations through 0010, tenant-native security, CF-1A2 entitlement/seat, and CF-1A3A activation/licensing regressions PASS. Commercial UI fixtures provision and mutate unique tenants, preserving shared test-state isolation.
 - Explicit non-claims: subscription billing, GVM functionality, and white-labeling are not complete; GVM remains entitlement registration only. No CAD geometry changed and no private dental corpus was run.
-- Authorized next action: **Architectural review / merge decision for PR #37.** Recommended model: **GPT-5.6 Luna**. Do not merge automatically or begin CF-1B/Sprint 26 in this task.
+- Authorized next action: **VIS-1 — CADence NorthStar Owner Preview Deployment.** Recommended model: **GPT-5.6 Terra**. Do not configure `preview.cadencenorthstar.com` during this merge task.
 
 ## CF-1A3A activation licensing and Platform Admin commercial control plane
 
@@ -47,7 +47,21 @@ This ledger separates immutable product commits from later merge or continuity-o
 - Exact PR workflows: CI `32108187326` PASS; Runtime Validation `32108187313` PASS; Sprint 13A Validation `32108187317` PASS. Deterministic suite PASS; Playwright 47/47 in both Runtime and Sprint workflows.
 - Main merge commit: `1136a8382e1bc9b1bc045b744235f5dd5ae888fe`; main tree `f8e28f3192a333139b55bb10aa795b4f1c05bc3b`.
 - Post-merge exact-main workflows: CI `32110225019` PASS; Runtime Validation `32110225115` PASS; Sprint 13A Validation `32110225007` PASS. Deterministic regression remained PASS and Playwright remained 47/47. Private dental corpus was not rerun because no geometry changed.
-- Limitation: non-legacy commercial tenants intentionally fail closed at the legacy operational runtime until…1665 tokens truncated…ws passed, including 421/421 deterministic and 47/47 Playwright tests. This was an assertion correction, not a product, geometry, threshold, or acceptance-bound change.
+- Limitation: non-legacy commercial tenants intentionally fail closed at the legacy operational runtime until tenant-native operational repositories are implemented in CF-1A.
+- Outcome: **CERTIFIED AND MERGED** via PR #32. CF-1A is the next authorized product foundation.
+
+| Milestone | PR and immutable product head | Product tree / merge | Public deterministic and browser evidence | Private evidence | Workflow evidence | Outcome |
+|---|---|---|---|---|---|---|
+| Sprint 22 / 22A | PR #22, `1e66ec69deb005094a36d0f23764813a771b4b70` | Tree `db6ac43d9f8bda9d9ca0422e736fef0a82c4cb46`; merged as `eaed7d14b677987c73c035a08fecaeacae7d71b7` | 82/82 Design Studio; 34/34 Playwright | Historical PR evidence: v0.3 integrity 23/23, private 91/91, source immutable | CI: no run associated with the head was returned; Runtime `31253204043` pass; Sprint `31253204046` pass | Merged 2026-08-08. Certified scan registration, bite-evidence assembly, dental XYZ normalization, fallback, persistence/recovery, and fail-closed support classes. No direct upper/lower occlusion inference, clinical/manufacturing claim, or self-intersection claim. |
+| Sprint 23 / 23A | PR #23, `49fbbc321d85dbadd3865f8de412243c8a566b51` | Tree `b8534f58f800a47af07c3d064923ebca4a69d6de`; merged as `ec21d4fa62821736fce80db20502cb828b551eb0` | 224/224 across 24 suites; 40/40 Playwright; 84/84 production tools | Historical PR evidence: registration 91/91, source immutable | CI: no run associated with the head was returned; Runtime `31382810767` pass; Sprint `31382810790` pass | Merged 2026-08-11. Certified universal versioned geometry editing, exact intersection classification, projected closed-curve trim, commands/history/persistence/recovery. Adaptive floating-point tolerances; no performance SLA. |
+| Sprint 24 | PR #24, `4ee517a71dde834a4d31976c9d5a1dbd8797b00f` | Tree `2b34e58367bd53d1e51f7bd0247713d5216720de`; merged as `0465e049980415d41b8e28ff6d019a202c7f3de1` | 278/278; 44/44 Playwright; 138/138 production tools | Historical PR evi…688 tokens truncated…`31749154678`, Runtime `31749154663`, Sprint `31749154682`; post-merge: CI `31775108836`, Runtime `31775108814`, Sprint `31775108844`; all pass | Merged 2026-08-14. Reconciliation invalidated the full-certification claim because the proximal solver silently moved a locked margin. |
+| Sprint 25 post-merge correction | Draft PR #28, implementation commit `77b631f2b011c6ce8603e5de5aef12202f7f4d22`; product-certified head `2f8e7c410123386011bf94fbaeb8e147bec92953` | Implementation tree `9f9ef73811a5c04ea30cd017fcb07b57ead75e3c`; certified tree `03f5b445ff2c7f88daae8e247d23ddf01c77ce45`; not merged | 421/421 across 41 suites; 47/47 Playwright; supplemental public audit 143 crown tests across 11 suites | Exact-head private rerun: corpus v0.3 integrity 23/23; registration 91/91; preparation 4/4; crown robustness 4/4; supplemental PR #28 invariants 3/3; 24 margin and 145 intaglio vertices exact at `0 mm`; source immutable; four formats pass at `8.738665739279973e-7 mm`; persistence/recovery and privacy pass | CI `31850602483`; Runtime `31850602478`; Sprint `31850602487`; all pass on `2f8e7c4` | Public and private final gate passed. PR #28 is eligible for final architectural merge approval, remains Draft/unmerged, and Sprint 26 remains blocked. |
+
+### Corrective certification trace
+
+- Product head `77b631f` and first continuity head `46a3e03` each passed CI but failed Runtime/Sprint at 45/46 Playwright tests. The symmetric `±4.51 mm` posterior fixture could not satisfy distal contact without moving the locked margin; preserving it as a supposed success case would have recreated the defect.
+- Test head `a37418d` passed CI and all 421 deterministic tests. Runtime `31849326554` and Sprint `31849326581` reached 46/47 Playwright tests; the new fail-closed case correctly produced `QC_FAILED`, while its assertion incorrectly expected the earlier `QC_REQUIRED` state.
+- Certification-test head `05eea8a` asserts the real terminal state plus disabled approval/export. All three workflows passed, including 421/421 deterministic and 47/47 Playwright tests. This was an assertion correction, not a product, geometry, threshold, or acceptance-bound change.
 - Product-certified head `2f8e7c4`, tree `03f5b44`, retained those exact public gates in CI `31850602483`, Runtime `31850602478`, and Sprint `31850602487`; no later commit appeared before the private gate.
 - Restricted corpus v0.3 archive SHA-256 `f3f7ffe54c9644939b103fe3ee0bc99000413c32fc65212ab838d595bde352cb` passed all 23 integrity entries with confirmed owner attestation. Core private suites passed 99/99 (91 registration + 4 preparation + 4 crown); the supplemental corrective invariant suite passed 3/3.
 - Controlled private-derived proximal correction changed editable non-margin support while leaving all 24 margin and 145 intaglio vertices exact (`0 mm` maximum). Static-occlusion editing preserved the same protected regions. The infeasible input reported `constraint-conflict`, retained valid geometry, entered `QC_FAILED`, and blocked approval/release.
