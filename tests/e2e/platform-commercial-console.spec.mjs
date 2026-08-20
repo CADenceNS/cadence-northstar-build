@@ -88,8 +88,7 @@ test('Platform Admin manages commercial state through the server-backed console 
   await page.getByLabel('Reason for credential or lifecycle action').fill('CF-1A3B browser reactivation check');
   await page.getByRole('button',{name:'Reactivate laboratory'}).click();
   await expect(page.getByText('Laboratory reactivate confirmed by the server.')).toBeVisible();
-  await ownerPage.reload();
-  await login(ownerPage,tenantOwnerEmail);
+  await authenticateFixture(ownerPage,tenantOwnerEmail);
   expect((await api(ownerPage,'/api/dashboard')).status).toBe(200);
   await expect(page.getByRole('heading',{name:'Immutable commercial audit events'})).toBeVisible();
   await expect(page.getByText('commercial.tenant.reactivated')).toBeVisible();
