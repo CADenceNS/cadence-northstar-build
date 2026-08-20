@@ -8,11 +8,41 @@ const text=(value:unknown)=>typeof value==='string'?value.trim():'';
 const moduleKey=(value:string):ModuleKey=>{if(!(value in moduleCatalog))throw new CommercialAccessError(400,'Unknown commercial module.');return value as ModuleKey;};
 const actor=(req:SecurityRequest)=>({actorId:req.identity!.userId,actorName:req.identity!.name,platformRole:req.identity!.platformRole??'none'} as const);
 const control=(handler:(req:SecurityRequest,res:Response)=>Promise<void>)=>(req:SecurityRequest,res:Response,next:NextFunction)=>void handler(req,res).catch(next);
+const commercialAuditTypes=['commercial-licensing','commercial-entitlement','commercial-seat-pool','commercial-seat-assignment'] as const;
+const secretKey=/^(credential|rawcredential|secret|secrethash|token|csrftoken)$/i;
+function safeMetadata(value:unknown):unknown{
+  if(Array.isArray(value))return value.map(safeMetadata);
+  if(value&&typeof value==='object'){
+    const safe:Record<string,unknown>={};
+    for(const [key,item] of Object.entries(value as Record<string,unknown>))if(!secretKey.test(key))safe[key]=safeMetadata(item);
+    return safe;
+  }
+  return value;
+}
+function requirePlatform(req:SecurityRequest){if(actor(req).platformRole!=='platform-admin')throw new CommercialAccessError(403,'Platform commercial administration is required.');}
 
 export function installCommercialControlPlane(app:Express,services:{commercial:CommercialEntitlementService;licensing:CommercialLicensingService}){
   const {commercial,licensing}=services;
+  app.get('/api/commercial/tenants',control(async(req,res)=>{
+    requirePlatform(req);
+    const tenants=await commercial.repositories.tenants.list();
+    const rows=await Promise.all(tenants.map(async tenant=>({
+      tenant,
+      entitlements:await commercial.repositories.commercial.listEntitlements(tenant.id),
+      seatPools:await commercial.repositories.commercial.listSeatPools(tenant.id)
+    })));
+    res.json(rows);
+  }));
   app.post('/api/commercial/tenants',control(async(req,res)=>{const body=req.body as Record<string,unknown>;res.status(201).json(await licensing.provision(actor(req),{name:text(body.name),commercialAccountReference:text(body.commercialAccountReference)}));}));
   app.get('/api/commercial/tenants/:tenantId',control(async(req,res)=>{res.json(await licensing.inspect(actor(req),req.params.tenantId));}));
+  app.get('/api/commercial/tenants/:tenantId/audit',control(async(req,res)=>{
+    requirePlatform(req);
+    await licensing.inspect(actor(req),req.params.tenantId);
+    const events=(await Promise.all(commercialAuditTypes.map(type=>commercial.repositories.audit.list(req.params.tenantId,type)))).flat()
+      .sort((left,right)=>right.occurredAt.localeCompare(left.occurredAt))
+      .map(event=>({...event,metadata:safeMetadata(event.metadata) as Record<string,unknown>}));
+    res.json(events);
+  }));
   app.get('/api/commercial/tenants/:tenantId/activation-credentials',control(async(req,res)=>{res.json((await licensing.inspect(actor(req),req.params.tenantId)).credentials);}));
   app.post('/api/commercial/tenants/:tenantId/activation-credentials',control(async(req,res)=>{const body=req.body as Record<string,unknown>;res.status(201).json(await licensing.issue(actor(req),req.params.tenantId,{expiresAt:text(body.expiresAt)||undefined,reason:text(body.reason)||undefined}));}));
   app.post('/api/commercial/tenants/:tenantId/activate',control(async(req,res)=>{const body=req.body as Record<string,unknown>;res.json(await licensing.activate(actor(req),req.params.tenantId,text(body.credential)));}));
