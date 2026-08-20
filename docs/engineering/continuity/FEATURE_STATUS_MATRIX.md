@@ -2,9 +2,9 @@
 
 Status values are restricted to: `CERTIFIED_PRODUCTION`, `IMPLEMENTED_PENDING_CERTIFICATION`, `IN_PROGRESS`, `BLOCKED`, `PLANNED`, `NOT_STARTED`, `UNSUPPORTED`, `RESEARCH_ONLY`.
 
-This matrix describes repository evidence as of 2026-08-19. Commercial vision is not implementation evidence.
+This matrix describes repository evidence as of 2026-08-20. Commercial vision is not implementation evidence.
 
-CF-1A2 — Module Entitlements + Seat Pools: **CERTIFIED_AND_MERGED**. CF-1A3A — Activation Licensing + Platform Admin Commercial Controls: **CERTIFIED_AND_MERGED** via PR #36; product head `53b4773aaa9cfe807f12ff77c9da215eb39d6074`, tree `778d358c653200a5276434e00da59e41e6bfad48`, merge `55e34f983bf18cc8cd35660ed0b318e953b782d4`; merged-main CI/Runtime/Sprint #613/#378/#272 passed; deterministic 421/421 and Playwright 49/49.
+CF-1A2 — Module Entitlements + Seat Pools: **CERTIFIED_AND_MERGED**. CF-1A3A — Activation Licensing + Platform Admin Commercial Controls: **CERTIFIED_AND_MERGED** via PR #36. CF-1A3B — Platform Admin Commercial Management UI: **CERTIFIED_PREREQUISITE** on Draft PR #37, product head `0535e8c433226c167cca85ffefd83d50ee1d57db`, tree `2b72dce8956e940d93e6513567d19039c1609e8c`; CI/Runtime/Sprint #620/#385/#279 passed; Runtime/Sprint Playwright 51/51.
 
 | Capability | Status | Evidence / boundary |
 |---|---|---|
@@ -16,12 +16,12 @@ CF-1A2 — Module Entitlements + Seat Pools: **CERTIFIED_AND_MERGED**. CF-1A3A �
 | Fully reconciled Sprint 25 on main | CERTIFIED_PRODUCTION | Main `5cc2b4ab` / tree `f764f862`; all merged-main gates green |
 | Multi-unit and fixed restoration production system | NOT_STARTED | Previously planned Sprint 26 scope; requires Gate 1 commercial architecture sequencing |
 | Three-product CADence structure | IN_PROGRESS | Existing NorthStar, Design Studio, and Knowledge Platform direction is established; commercial boundary is planned |
-| CADence Commercial Platform layer | CERTIFIED_PRODUCTION | CF-1A0/CF-1A1 tenant boundaries, CF-1A2 entitlements/seats, and CF-1A3A activation/licensing plus commercial control-plane services are certified and merged; management UI and billing remain separate work |
+| CADence Commercial Platform layer | CERTIFIED_PRODUCTION | CF-1A0/CF-1A1 tenant boundaries, CF-1A2 entitlements/seats, CF-1A3A activation/licensing/control-plane services, and CF-1A3B Platform Admin commercial management UI are certified; subscription billing remains separate work |
 | Authenticated tenant-context propagation boundary | CERTIFIED_PRODUCTION | PR #32 merged as `1136a838`; certified product head `e60be1f`, tree `b4b3cddd`; post-merge CI/Runtime/Sprint green, deterministic PASS, Playwright 47/47 |
 | True tenant isolation | CERTIFIED_PRODUCTION | CF-1A1 product head `fd8d0f5` / tree `7d4215f0` adds lifecycle/membership-aware trusted-context tenant-native repository access and cross-tenant read/write/delete/list/search/browser proofs; CI, Runtime, Sprint, deterministic, and Playwright gates are green |
 | Tenant-scoped staff, patients, cases, production, QC, shipping, billing, files, settings | CERTIFIED_PRODUCTION | Tenant-scoped operational repository and artifact metadata paths are certified by CF-1A1; commercial entitlements/seats remain later CF-1A work |
 | Activation credentials and lifecycle controls | CERTIFIED_PRODUCTION | CF-1A3A exact-head DB/security and merged-main workflow evidence: issue/verify/replay, revoke/rotation, raw-secret protection, suspension/reactivation, and cancellation/data preservation |\n| Platform Admin commercial control-plane services and operational boundary | CERTIFIED_PRODUCTION | CF-1A3A exact-head DB/security and merged-main workflow evidence; no Platform Admin management UI claim |\n| Tenant-scoped backups, restore, encryption, break-glass support | PLANNED | Design requirement only |
-| CADence Owner/Super Admin licensing dashboard | PLANNED | No commercial administration evidence |
+| CADence Owner/Super Admin licensing dashboard | CERTIFIED_PRODUCTION | CF-1A3B Platform Admin commercial management UI is certified on Draft PR #37; merge remains subject to architectural review |
 | Subscriptions, trials, billing, renewals, discounts, proration | PLANNED | No commercial billing evidence |
 | Server-side entitlements and independent module switches | CERTIFIED_PRODUCTION | CF-1A2/CF-1A3A entitlement and commercial activation regression evidence; NORTHSTAR_CORE and DESIGN_STUDIO registered with server-side enforcement |
 | Separate NorthStar and Design Studio seat pools | CERTIFIED_PRODUCTION | CF-1A2 entitlement/seat regression evidence with independent NorthStar and Design Studio pools |

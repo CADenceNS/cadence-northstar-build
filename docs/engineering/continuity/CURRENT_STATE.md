@@ -1,11 +1,11 @@
 # CADence NorthStar Current State
 
-Last updated: 2026-08-19
+Last updated: 2026-08-20
 
 ## Authoritative status
 
 - Repository: `CADenceNS/cadence-northstar-build`
-- Current phase: CF-1A0, CF-1A1, CF-1A2, and CF-1A3A are **CERTIFIED AND MERGED** through main merge `55e34f983bf18cc8cd35660ed0b318e953b782d4` (tree `778d358c653200a5276434e00da59e41e6bfad48`).
+- Current phase: CF-1A0, CF-1A1, CF-1A2, and CF-1A3A are **CERTIFIED AND MERGED**; CF-1A3B is **CERTIFIED_PREREQUISITE** on Draft PR #37.
 - Sprint 25: **FULLY RECONCILED, CERTIFIED, AND MERGED**
 - Sprint 26: **PLANNED AFTER CF-1 / NOT STARTED**
 - Product-certified head: `53b4773aaa9cfe807f12ff77c9da215eb39d6074`; product tree: `778d358c653200a5276434e00da59e41e6bfad48`
@@ -17,6 +17,7 @@ Last updated: 2026-08-19
 - CF-1A0: **CERTIFIED AND MERGED** via PR #32. Original restored head `81dd130d369afaf431c479f28b72d74c054bbc50` was corrected as product head `e60be1f25cbccbae6770356bf532899a0065033b`, tree `b4b3cdddd1afc45aab1d525a7fcf46f3855d705b`. Main merge commit is `1136a8382e1bc9b1bc045b744235f5dd5ae888fe`, tree `f8e28f3192a333139b55bb10aa795b4f1c05bc3b`; post-merge CI `32110225019`, Runtime `32110225115`, and Sprint `32110225007` PASS. Deterministic regression and Playwright 47/47 remain green. No CAD geometry changed.
 - CF-1A1: **CERTIFIED AND MERGED** via PR #33. Product implementation head `fd8d0f55322acd16ccc3fa796a6e674564c899c7`, tree `7d4215f00a87743a0fe5d8c09fa163155b323a2a`; merge commit `7d63a55938e4f7a06a6e4219863520ceb716aaae`, merged-main tree `7a863d8985e52be0e0cba135a86fb4bd84f283fc`. Merged-main CI `32198072606`, Runtime `32198072651`, and Sprint `32198072542` PASS; deterministic PASS and Playwright 47/47. Tenant-native DB/UAT, auth/RBAC, migration, and isolation evidence remained green. No CAD geometry changed.
 - CF-1A3A: **CERTIFIED AND MERGED** via PR #36. Certified product head `53b4773aaa9cfe807f12ff77c9da215eb39d6074`, tree `778d358c653200a5276434e00da59e41e6bfad48`; main merge commit `55e34f983bf18cc8cd35660ed0b318e953b782d4`. Merged-main CI #613, Runtime Validation #378, and Sprint 13A Validation #272 passed; deterministic regression was 421/421 and Runtime/Sprint Playwright was 49/49. Migration 0010, tenant-native security, entitlement/seat, activation/licensing, sequential DB, and commercial-account uniqueness regressions passed. No CAD geometry changed.
+- CF-1A3B: **CERTIFIED_PREREQUISITE** on Draft PR #37. Certified product head `0535e8c433226c167cca85ffefd83d50ee1d57db`, tree `2b72dce8956e940d93e6513567d19039c1609e8c`; CI #620, Runtime Validation #385, and Sprint 13A Validation #279 passed. Runtime and Sprint Playwright each passed 51/51. Scope is the Platform Admin-only commercial management UI; product security, migration 0010, and commercial uniqueness remain unchanged. No CAD geometry changed.
 
 ## Continuity-state semantics
 
@@ -45,6 +46,6 @@ The correction observes durable `manufacturingState: EXPORTED` after export and 
 
 The next authorized action is:
 
-> **CF-1A3B — Platform Admin Commercial Management UI.**
+> **Architectural review / merge decision for PR #37.**
 
-Recommended next model: **GPT-5.6 Terra**. CF-1A3A is certified and merged via PR #36; its product implementation remains bound to certified product head `53b4773aaa9cfe807f12ff77c9da215eb39d6074` and main merge commit `55e34f983bf18cc8cd35660ed0b318e953b782d4`. The Platform Admin management UI, subscription billing, GVM functionality, and white-labeling are not complete. Do not begin CF-1A3B during this task or begin Sprint 26.
+Recommended next model: **GPT-5.6 Luna**. CF-1A3B is certified on Draft PR #37 but remains unmerged. Subscription billing, GVM functionality, and white-labeling are not complete. Do not begin CF-1B or Sprint 26.
