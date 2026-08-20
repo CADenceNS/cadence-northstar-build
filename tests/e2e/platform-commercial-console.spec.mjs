@@ -11,14 +11,26 @@ async function login(page,email){
   await page.getByRole('button',{name:'Sign in'}).click();
   await expect(page.getByRole('button',{name:'Sign in'})).toHaveCount(0);
 }
-async function api(page,url,options={}){
-  return page.evaluate(async({url,options})=>{
+async function authenticateFixture(page,email){
+  await page.goto('/');
+  await page.evaluate(()=>{localStorage.clear();sessionStorage.clear();});
+  const result=await page.evaluate(async({email,password})=>{
+    const response=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
+    const body=await response.json();
+    return {status:response.status,csrfToken:body.csrfToken??response.headers.get('X-CSRF-Token')??''};
+  },{email,password});
+  expect(result.status).toBe(200);
+  expect(result.csrfToken).not.toBe('');
+  return result.csrfToken;
+}
+async function api(page,url,options={},csrfToken=''){
+  return page.evaluate(async({url,options,csrfToken})=>{
     const headers=new Headers(options.headers);
-    if(!['GET','HEAD','OPTIONS'].includes((options.method??'GET').toUpperCase()))headers.set('X-CSRF-Token',sessionStorage.getItem('northstar.csrf')??'');
+    if(!['GET','HEAD','OPTIONS'].includes((options.method??'GET').toUpperCase()))headers.set('X-CSRF-Token',csrfToken);
     const response=await fetch(url,{...options,headers});
     let body=null;try{body=await response.json();}catch{}
     return {status:response.status,body};
-  },{url,options});
+  },{url,options,csrfToken});
 }
 const json=body=>({method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
 
@@ -31,7 +43,7 @@ test('Platform Admin manages commercial state through the server-backed console 
 
   const ownerContext=await browser.newContext({baseURL:'http://127.0.0.1:5173'});
   const ownerPage=await ownerContext.newPage();
-  await login(ownerPage,tenantOwnerEmail);
+  await authenticateFixture(ownerPage,tenantOwnerEmail);
   expect((await api(ownerPage,'/api/commercial/tenants')).status).toBe(403);
   await expect(ownerPage.getByRole('button',{name:'Commercial Management'})).toHaveCount(0);
 
@@ -85,10 +97,12 @@ test('Platform Admin manages commercial state through the server-backed console 
 });
 
 test('Platform Admin can cancel a separately provisioned laboratory from the commercial console',async({page})=>{
-  await login(page,platformEmail);
+  const csrfToken=await authenticateFixture(page,platformEmail);
   const reference=`cf1a3b-cancel-${Date.now()}`;
-  const provisioned=await api(page,'/api/commercial/tenants',json({name:'CF-1A3B Cancellation Fixture',commercialAccountReference:reference}));
+  const provisioned=await api(page,'/api/commercial/tenants',json({name:'CF-1A3B Cancellation Fixture',commercialAccountReference:reference}),csrfToken);
   expect(provisioned.status).toBe(201);
+  await page.reload();
+  await expect(page.getByRole('heading',{name:'Platform Commercial Management'})).toBeVisible();
   await page.getByLabel('Search laboratories').fill(reference);
   await page.getByRole('row').filter({hasText:reference}).getByRole('button',{name:'Manage commercial account'}).click();
   page.on('dialog',dialog=>dialog.accept());
