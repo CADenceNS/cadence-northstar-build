@@ -9,6 +9,7 @@ async function login(page,email){
   await page.getByLabel('Email').fill(email);
   await page.getByLabel('Password').fill(password);
   await page.getByRole('button',{name:'Sign in'}).click();
+  await expect(page.getByRole('button',{name:'Sign in'})).toHaveCount(0);
 }
 async function api(page,url,options={}){
   return page.evaluate(async({url,options})=>{
