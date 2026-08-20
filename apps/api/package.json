@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "tsx watch src/qc-gateway.ts",
     "build": "tsc -p tsconfig.json",
+    "start": "node dist/qc-gateway.js",
+    "migrate": "node dist/migrate.js",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
     "test:repositories": "tsx src/infrastructure/repository-contract.test.ts",
