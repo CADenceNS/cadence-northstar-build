@@ -2,6 +2,26 @@
 
 Last verified: 2026-08-21
 
+## Supplemental permanent requirement captured
+
+VIS-2C-F2 now includes the owner-approved Product & Pricing / Case Configuration foundation.
+The full, verbatim requirement and complete initial FIX/REM/IMP/ORT/SLP/DIA/SPL/AUX
+catalog are preserved in PRODUCT_PRICING_CASE_CONFIGURATION_REQUIREMENTS.md.
+Current statuses are:
+
+- PRODUCT_CATALOG=PARTIAL
+- PRICING_ENGINE=NOT STARTED
+- MULTI_PRODUCT_CASE_STACKING=PARTIAL
+- CATEGORY_FILTERING=NOT STARTED
+- ARCH_TOOTH_CONFIGURATION=PARTIAL
+- BUSINESS_DAY_TAT_ENGINE=PARTIAL
+- PRICE_VERSIONING=NOT STARTED
+- CASE_TO_BILLING_PRODUCT_LINEAGE=PARTIAL
+
+This is a permanent scope/reconciliation update only. It does not authorize Product &
+Pricing implementation, replace any existing requirement, alter the approved UI or Design
+Studio geometry, or authorize CF-1B/Sprint 26.
+
 ## Current authority
 
 The exact authorized next action is:

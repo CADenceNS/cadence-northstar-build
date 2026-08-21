@@ -2,7 +2,29 @@
 
 Status values are restricted to: `CERTIFIED_PRODUCTION`, `IMPLEMENTED_PENDING_CERTIFICATION`, `IN_PROGRESS`, `BLOCKED`, `PLANNED`, `NOT_STARTED`, `UNSUPPORTED`, `RESEARCH_ONLY`.
 
-This matrix describes repository evidence as of 2026-08-20. Commercial vision is not implementation evidence.
+This matrix describes repository evidence as of 2026-08-21. Commercial vision is not implementation evidence.
+
+## VIS-2C-F2 supplemental Product & Pricing / Case Configuration reconciliation
+
+The complete owner-approved requirement is preserved verbatim in
+PRODUCT_PRICING_CASE_CONFIGURATION_REQUIREMENTS.md. It is additive to all existing
+NorthStar CRM, laboratory operations, commercial-platform, v4.2-derived shell, and Design
+Studio requirements. The statuses below use the required supplemental vocabulary only:
+COMPLETE, PARTIAL, NOT STARTED, BLOCKED, CERTIFICATION REQUIRED.
+
+| Supplemental capability | Status | Current repository evidence / boundary |
+|---|---|---|
+| PRODUCT_CATALOG | PARTIAL | product-catalog-foundation.ts, product_catalog, tenant-scoped create and auto-resolution exist; full owner catalog, edit/deactivate/archive administration, complete category rules, and all supplied catalog records are not implemented/certified. |
+| PRICING_ENGINE | NOT STARTED | Pricing schedules can be administratively created/updated, but no complete server-backed price calculation, pricing basis, discounts, tax/fee, Rush pricing, or authoritative case total exists. |
+| MULTI_PRODUCT_CASE_STACKING | PARTIAL | Digital prescriptions and intake_product_resolutions can carry multiple restoration entries; the required independent line-item stacking, compatibility/dependency rules, totals, and committed snapshots are not complete. |
+| CATEGORY_FILTERING | NOT STARTED | Active catalog reads and product resolution exist, but category-filtered selection plus server-side rejection of incompatible category/product combinations is not implemented as required. |
+| ARCH_TOOTH_CONFIGURATION | PARTIAL | Existing prescription payloads carry arches and tooth numbers; dynamic category/product-specific NONE/SINGLE/MULTIPLE/PARTIAL/FULL/UPPER/LOWER/BOTH configuration and server validation are not complete. |
+| BUSINESS_DAY_TAT_ENGINE | PARTIAL | Existing durable helper logic distinguishes basic 10/14-day patterns and excludes weekends; tenant holidays/closure days, multi-product deterministic maxima, immutable manual overrides, and product-specific rules are not complete. |
+| PRICE_VERSIONING | NOT STARTED | No complete effective-dated/versioned price book, historical price snapshot, or customer/practice-specific price lineage is present. |
+| CASE_TO_BILLING_PRODUCT_LINEAGE | PARTIAL | Product resolution and Billing Review history exist, but authoritative case product line items with independent prices, allocations, snapshots, and downstream Production/QC/Shipping/Billing/analytics lineage are not complete. |
+
+These classifications are not claims of completion and do not authorize Product & Pricing
+implementation. The complete initial catalog is retained in the linked requirement record.
 
 CF-1A2 — Module Entitlements + Seat Pools: **CERTIFIED_AND_MERGED**. CF-1A3A — Activation Licensing + Platform Admin Commercial Controls: **CERTIFIED_AND_MERGED** via PR #36. CF-1A3B — Platform Admin Commercial Management UI: **CERTIFIED AND MERGED** via PR #37; product head `0535e8c433226c167cca85ffefd83d50ee1d57db`, tree `2b72dce8956e940d93e6513567d19039c1609e8c`, main merge `e03f85144f31533e8785588c5cf1514a92184ab1`; merged-main CI/Runtime/Sprint #622/#387/#281 passed; Runtime/Sprint Playwright 51/51. VIS-1B — Production Preview Runtime Readiness: **CERTIFIED AND MERGED** via PR #38; merge `d2f4d3e01cfd25ec95104f8e71f7795a8e9de889`, tree `616a00d409cf98ff64255c8545efbcfc13a4d143`; CI/Runtime/Sprint #625/#390/#284 passed; Runtime/Sprint Playwright 51/51. No deployment occurred.
 

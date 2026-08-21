@@ -1,6 +1,6 @@
 # CADence NorthStar Current State
 
-Last updated: 2026-08-20
+Last updated: 2026-08-21
 
 ## Authoritative status
 
@@ -28,6 +28,17 @@ Last updated: 2026-08-20
 `LAST_REPOSITORY_HEAD_VERIFIED` identifies the `main` HEAD inspected before the current continuity update. It is a verification checkpoint, not a self-referential SHA invariant.
 
 `CONTINUITY/DOCUMENTATION COMMITS` may advance `main` beyond `LAST_REPOSITORY_HEAD_VERIFIED` without invalidating product certification when the intervening delta is verified to contain only continuity, architecture, roadmap, ledger, or other clearly non-product documentation and `PRODUCT_CERTIFIED_HEAD` is unchanged. A future session must compare that delta before deciding whether to stop.
+
+## VIS-2C-F2 supplemental Product & Pricing / Case Configuration scope
+
+VIS-2C-F2 includes an OWNER-APPROVED PERMANENT REQUIREMENT — DOCUMENTED, NOT IMPLEMENTED.
+The complete verbatim requirement and initial FIX/REM/IMP/ORT/SLP/DIA/SPL/AUX catalog are
+preserved in PRODUCT_PRICING_CASE_CONFIGURATION_REQUIREMENTS.md. The eight statuses are:
+PRODUCT_CATALOG=PARTIAL; PRICING_ENGINE=NOT STARTED; MULTI_PRODUCT_CASE_STACKING=PARTIAL;
+CATEGORY_FILTERING=NOT STARTED; ARCH_TOOTH_CONFIGURATION=PARTIAL;
+BUSINESS_DAY_TAT_ENGINE=PARTIAL; PRICE_VERSIONING=NOT STARTED;
+CASE_TO_BILLING_PRODUCT_LINEAGE=PARTIAL. No Product & Pricing implementation or Design
+Studio geometry change occurred.
 
 ## Merged product certification
 
