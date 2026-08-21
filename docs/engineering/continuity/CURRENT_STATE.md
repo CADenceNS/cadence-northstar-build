@@ -1,6 +1,6 @@
 # CADence NorthStar Current State
 
-Last updated: 2026-08-20
+Last updated: 2026-08-21
 
 ## Authoritative status
 
@@ -29,6 +29,17 @@ Last updated: 2026-08-20
 
 `CONTINUITY/DOCUMENTATION COMMITS` may advance `main` beyond `LAST_REPOSITORY_HEAD_VERIFIED` without invalidating product certification when the intervening delta is verified to contain only continuity, architecture, roadmap, ledger, or other clearly non-product documentation and `PRODUCT_CERTIFIED_HEAD` is unchanged. A future session must compare that delta before deciding whether to stop.
 
+## VIS-2C-F2 supplemental Product & Pricing / Case Configuration scope
+
+VIS-2C-F2 includes an OWNER-APPROVED PERMANENT REQUIREMENT — DOCUMENTED, NOT IMPLEMENTED.
+The complete verbatim requirement and initial FIX/REM/IMP/ORT/SLP/DIA/SPL/AUX catalog are
+preserved in PRODUCT_PRICING_CASE_CONFIGURATION_REQUIREMENTS.md. The eight statuses are:
+PRODUCT_CATALOG=PARTIAL; PRICING_ENGINE=NOT STARTED; MULTI_PRODUCT_CASE_STACKING=PARTIAL;
+CATEGORY_FILTERING=NOT STARTED; ARCH_TOOTH_CONFIGURATION=PARTIAL;
+BUSINESS_DAY_TAT_ENGINE=PARTIAL; PRICE_VERSIONING=NOT STARTED;
+CASE_TO_BILLING_PRODUCT_LINEAGE=PARTIAL. No Product & Pricing implementation or Design
+Studio geometry change occurred.
+
 ## Merged product certification
 
 PR #29 corrected stale browser observation of export completion:
@@ -45,6 +56,14 @@ PR #29 corrected stale browser observation of export completion:
 The correction observes durable `manufacturingState: EXPORTED` after export and reopen. It changed no crown geometry, margin, intaglio, materials, registration, preparation, thresholds, or geometry algorithms. The protected private-corpus evidence remains the authoritative geometry evidence; no new private-corpus run is claimed for this UI/test-only correction.
 
 ## Current authority
+
+## Owner visual-reference authority
+
+The owner-supplied `CADence_NorthStar_v4_2_SCULPT_CUT_NAVIGATION_OPEN_FIRST.zip` is the
+visual, interaction, and workspace-architecture authority for the NorthStar restoration.
+Current main remains the functional, security, persistence, and commercial authority.
+PR #40 is rejected for visual acceptance and must not be used as a visual baseline.
+Any resulting UI branch requires live owner visual approval before it may be certified or merged.
 
 The next authorized action is:
 

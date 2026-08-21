@@ -22,6 +22,32 @@ The commercial layer governs access and commercial relationships; it does not re
 
 ## Current and near-term order
 
+### VIS-2C-F2 — Foundation Lock / Feature Coverage Reconciliation
+
+Status: IN_PROGRESS — DOCUMENTATION RECONCILIATION ONLY.
+
+The owner-approved supplemental Product & Pricing / Case Configuration requirement is a
+permanent additive NorthStar scope. Its complete, verbatim requirement text—including the
+entire FIX, REM, IMP, ORT, SLP, DIA, SPL, and AUX catalog—is preserved in
+docs/engineering/continuity/PRODUCT_PRICING_CASE_CONFIGURATION_REQUIREMENTS.md.
+This requirement supplements, and does not replace, the approved CRM, laboratory
+operations, commercial-platform, v4.2-derived NorthStar shell, or Design Studio scope.
+
+The future platform must provide tenant-owned Product Catalog administration, explicit
+compatibility/dependency validation, category-filtered product selection, dynamic
+arch/tooth case configuration, multi-product case stacking, product-specific business-day
+turnaround, authorized Rush handling, tenant closure calendars, effective-dated pricing
+versions, historical price snapshots, customer/practice pricing, and authoritative
+case-to-Production/QC/Shipping/Billing lineage. Product Catalog remains separate from
+Pricing Schedules; neither may be represented as complete from a simple dropdown or
+existing product-resolution record.
+
+Current reconciliation classifications are recorded in
+FEATURE_STATUS_MATRIX.md and REQUIREMENT_COMPLIANCE.md using only the supplemental
+status vocabulary required for this eight-part review:
+COMPLETE, PARTIAL, NOT STARTED, BLOCKED, CERTIFICATION REQUIRED.
+No Product & Pricing implementation is authorized by this documentation task.
+
 ### Gate 0 — Sprint 25 reconciliation
 
 Status: **COMPLETE**.

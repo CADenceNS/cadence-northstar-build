@@ -56,6 +56,8 @@ Existing optional runtime variables are `NORTHSTAR_TENANT_ID`, `DB_POOL_MAX`, `N
 
 `NORTHSTAR_PUBLIC_ORIGIN` must be the exact browser origin, including `https://` and no path. Production cookies are `Secure`, `HttpOnly`, and `SameSite=Strict`; mutations continue to require the current `X-CSRF-Token` and origin validation.
 
+On a fresh owner-preview database, migrations run before the durable runtime creates the designated initial laboratory owner. Startup therefore performs one idempotent legacy-owner reconciliation: it preserves the existing Design Studio entitlement and materializes one finite Design Studio seat for that active, non-platform initial owner only. It does not create a Platform Admin, grant any other tenant access, alter a commercially managed entitlement, or provide a runtime authorization fallback.
+
 ## Browser application contracts
 
 | Application | Root | Framework | Install / build | Output | API configuration |

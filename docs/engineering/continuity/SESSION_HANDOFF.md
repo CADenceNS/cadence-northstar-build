@@ -2,6 +2,23 @@
 
 Repository: `CADenceNS/cadence-northstar-build`
 
+## VIS-2C-F2 supplemental owner scope
+
+The attached Product & Pricing / Case Configuration requirement is now a permanent,
+owner-approved additive requirement. Its complete text and individual FIX, REM, IMP, ORT,
+SLP, DIA, SPL, and AUX catalog are preserved verbatim in
+PRODUCT_PRICING_CASE_CONFIGURATION_REQUIREMENTS.md.
+
+Reconciliation only (no implementation authorization):
+PRODUCT_CATALOG=PARTIAL; PRICING_ENGINE=NOT STARTED;
+MULTI_PRODUCT_CASE_STACKING=PARTIAL; CATEGORY_FILTERING=NOT STARTED;
+ARCH_TOOTH_CONFIGURATION=PARTIAL; BUSINESS_DAY_TAT_ENGINE=PARTIAL;
+PRICE_VERSIONING=NOT STARTED; CASE_TO_BILLING_PRODUCT_LINEAGE=PARTIAL.
+
+This scope is additive to the approved v4.2-derived NorthStar shell, current Design Studio,
+CRM, laboratory operations, and commercial platform. Do not simplify it to a dropdown and
+do not implement it unless NEXT_ACTION.md explicitly authorizes implementation.
+
 ## Read first
 
 1. `docs/engineering/continuity/CURRENT_STATE.md`

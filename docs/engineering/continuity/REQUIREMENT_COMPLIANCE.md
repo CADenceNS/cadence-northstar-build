@@ -1,5 +1,35 @@
 # Sprint 25 Requirement Compliance
 
+## VIS-2C-F2 supplemental Product & Pricing / Case Configuration requirement
+
+The owner-approved supplemental requirement is preserved in full, verbatim, at
+PRODUCT_PRICING_CASE_CONFIGURATION_REQUIREMENTS.md, including the complete initial
+catalog for FIX, REM, IMP, ORT, SLP, DIA, SPL, and AUX. It is additive to every previously
+approved NorthStar CRM, laboratory operations, commercial-platform, v4.2-derived shell,
+and Design Studio requirement.
+
+This is a documentation/reconciliation record, not an implementation claim. The current
+repository has a Product Catalog foundation, auto product resolution, and pricing-schedule
+administration, but does not yet satisfy the complete tenant-owned Product & Pricing /
+Case Configuration contract.
+
+### Required eight-part classification
+
+| Classification | Status | Evidence boundary |
+|---|---|---|
+| PRODUCT_CATALOG | PARTIAL | Tenant-scoped catalog foundation and create/auto-resolution exist; full catalog administration, lifecycle/archive behavior, and complete owner catalog are not complete. |
+| PRICING_ENGINE | NOT STARTED | Pricing schedule records exist, but complete price calculation, bases, discounts, tax/fees, Rush pricing, and totals do not. |
+| MULTI_PRODUCT_CASE_STACKING | PARTIAL | Multiple prescription/resolution entries exist; independent compatible line-item stacking and committed totals/snapshots do not. |
+| CATEGORY_FILTERING | NOT STARTED | No complete server-enforced category/product eligibility contract exists. |
+| ARCH_TOOTH_CONFIGURATION | PARTIAL | Arches/tooth numbers are carried by existing prescription payloads; dynamic product-specific configuration and validation are incomplete. |
+| BUSINESS_DAY_TAT_ENGINE | PARTIAL | Weekend exclusion and basic 10/14-day helpers exist; tenant closures, multi-product rules, and protected overrides are incomplete. |
+| PRICE_VERSIONING | NOT STARTED | No complete effective-dated price-book and historical snapshot contract exists. |
+| CASE_TO_BILLING_PRODUCT_LINEAGE | PARTIAL | Product resolution/Billing Review evidence exists; authoritative priced case line items and downstream lineage are incomplete. |
+
+The complete attachment requirements remain authoritative; no requirement is removed or
+collapsed into a dropdown-only interpretation. No Product & Pricing code is authorized by
+VIS-2C-F2 unless NEXT_ACTION.md explicitly changes.
+
 ## Authority and source identity
 
 The complete line-by-line ledger is `docs/design-studio/SPRINT_25_COMPLIANCE_MATRIX.json`:

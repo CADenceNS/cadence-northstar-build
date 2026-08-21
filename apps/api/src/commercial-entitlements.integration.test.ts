@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { CommercialAccessError, CommercialEntitlementService, LEGACY_NORTHSTAR_TENANT_ID, reconcileLegacyNorthstarCoreBootstrap } from './infrastructure/commercial-entitlements.js';
+import { CommercialAccessError, CommercialEntitlementService, LEGACY_NORTHSTAR_TENANT_ID, reconcileLegacyDesignStudioInitialOwnerBootstrap, reconcileLegacyNorthstarCoreBootstrap } from './infrastructure/commercial-entitlements.js';
 import { createPostgresPool, PostgresRegistry } from './infrastructure/postgres.js';
 import { DefaultPostgresRepositoryFactory } from './infrastructure/postgres-repositories.js';
 
@@ -74,6 +74,26 @@ try {
   await pool.query('DELETE FROM tenant_migration_ledger WHERE migration_key=$1',['0009_legacy_northstar_core_post_identity_bootstrap']);
   if(legacyEntitlement.rows[0])await pool.query('UPDATE tenant_module_entitlements SET state=$3,source=$4 WHERE tenant_id=$1 AND module_key=$2',[LEGACY_NORTHSTAR_TENANT_ID,'NORTHSTAR_CORE',legacyEntitlement.rows[0].state,legacyEntitlement.rows[0].source]);
   if(legacyPool.rows[0])await pool.query('UPDATE tenant_module_seat_pools SET purchased_seat_count=$3,source=$4 WHERE tenant_id=$1 AND module_key=$2',[LEGACY_NORTHSTAR_TENANT_ID,'NORTHSTAR_CORE',legacyPool.rows[0].purchased_seat_count,legacyPool.rows[0].source]);
+  const previewOwner=`preview-design-owner-${randomUUID()}`;
+  const designEntitlement=await pool.query<{state:string;source:string}>('SELECT state,source FROM tenant_module_entitlements WHERE tenant_id=$1 AND module_key=\'DESIGN_STUDIO\'',[LEGACY_NORTHSTAR_TENANT_ID]);
+  const designPool=await pool.query<{purchased_seat_count:number;source:string}>('SELECT purchased_seat_count,source FROM tenant_module_seat_pools WHERE tenant_id=$1 AND module_key=\'DESIGN_STUDIO\'',[LEGACY_NORTHSTAR_TENANT_ID]);
+  await registry.memberships.save({tenantId:LEGACY_NORTHSTAR_TENANT_ID,userId:previewOwner,laboratoryRole:'laboratory-administrator',platformRole:'none',status:'ACTIVE',locationIds:[],practiceIds:[],administrativeOverride:true});
+  await pool.query('DELETE FROM tenant_migration_ledger WHERE migration_key=$1',['preview_legacy_design_studio_initial_owner_bootstrap_v1']);
+  await pool.query(`UPDATE tenant_module_entitlements SET state='ACTIVE',source='legacy-migration' WHERE tenant_id=$1 AND module_key='DESIGN_STUDIO'`,[LEGACY_NORTHSTAR_TENANT_ID]);
+  await pool.query(`UPDATE tenant_module_seat_pools SET purchased_seat_count=0,source='legacy-migration' WHERE tenant_id=$1 AND module_key='DESIGN_STUDIO'`,[LEGACY_NORTHSTAR_TENANT_ID]);
+  assert.equal(await reconcileLegacyDesignStudioInitialOwnerBootstrap(pool,LEGACY_NORTHSTAR_TENANT_ID,previewOwner),true,'the initial legacy owner receives one preview Design Studio seat after identity bootstrap');
+  assert.equal((await registry.commercial.getEntitlement(LEGACY_NORTHSTAR_TENANT_ID,'DESIGN_STUDIO'))?.state,'ACTIVE','preview bootstrap preserves the active legacy Design Studio entitlement');
+  assert.deepEqual(await registry.commercial.getSeatPool(LEGACY_NORTHSTAR_TENANT_ID,'DESIGN_STUDIO'),{tenantId:LEGACY_NORTHSTAR_TENANT_ID,moduleKey:'DESIGN_STUDIO',purchasedSeatCount:1,assignedSeatCount:1,availableSeatCount:0},'preview bootstrap materializes one finite Design Studio seat');
+  assert.equal((await service.checkAccess(identity(LEGACY_NORTHSTAR_TENANT_ID,previewOwner),'DESIGN_STUDIO')).module,'DESIGN_STUDIO','the entitled initial owner is authorized through the normal module gate');
+  assert.equal(await reconcileLegacyDesignStudioInitialOwnerBootstrap(pool,LEGACY_NORTHSTAR_TENANT_ID,previewOwner),false,'the initial owner bootstrap is idempotent');
+  await pool.query('DELETE FROM tenant_module_seat_assignments WHERE tenant_id=$1 AND module_key=\'DESIGN_STUDIO\' AND user_id=$2',[LEGACY_NORTHSTAR_TENANT_ID,previewOwner]);
+  await pool.query('DELETE FROM tenant_migration_ledger WHERE migration_key=$1',['preview_legacy_design_studio_initial_owner_bootstrap_v1']);
+  await pool.query(`UPDATE tenant_module_entitlements SET state='DISABLED',source='commercial-control-plane' WHERE tenant_id=$1 AND module_key='DESIGN_STUDIO'`,[LEGACY_NORTHSTAR_TENANT_ID]);
+  assert.equal(await reconcileLegacyDesignStudioInitialOwnerBootstrap(pool,LEGACY_NORTHSTAR_TENANT_ID,previewOwner),false,'an explicit commercial entitlement decision is never changed by preview bootstrap');
+  assert.equal((await registry.commercial.activeAssignment(LEGACY_NORTHSTAR_TENANT_ID,'DESIGN_STUDIO',previewOwner)),null,'commercially controlled tenants receive no bootstrap Design Studio assignment');
+  await pool.query('DELETE FROM identity_memberships WHERE tenant_id=$1 AND user_id=$2',[LEGACY_NORTHSTAR_TENANT_ID,previewOwner]);
+  if(designEntitlement.rows[0])await pool.query('UPDATE tenant_module_entitlements SET state=$3,source=$4 WHERE tenant_id=$1 AND module_key=$2',[LEGACY_NORTHSTAR_TENANT_ID,'DESIGN_STUDIO',designEntitlement.rows[0].state,designEntitlement.rows[0].source]);
+  if(designPool.rows[0])await pool.query('UPDATE tenant_module_seat_pools SET purchased_seat_count=$3,source=$4 WHERE tenant_id=$1 AND module_key=$2',[LEGACY_NORTHSTAR_TENANT_ID,'DESIGN_STUDIO',designPool.rows[0].purchased_seat_count,designPool.rows[0].source]);
   const futureTenant=randomUUID();await registry.tenants.create({id:futureTenant,name:'No Automatic Core',status:'ACTIVE',activationState:'ACTIVATED',commercialAccountReference:'acct-commercial-entitlements-no-legacy',auditMetadata:{test:'no-legacy-bootstrap'}});
   assert.equal(await reconcileLegacyNorthstarCoreBootstrap(pool,futureTenant),false,'future tenants cannot inherit legacy bootstrap');
   assert.equal(await registry.commercial.getEntitlement(futureTenant,'NORTHSTAR_CORE'),null,'future tenant remains without automatic core entitlement');
