@@ -58,7 +58,7 @@ export function NorthStarCommandBar({
 export function NorthStarCommandRail({ navigation, active, onNavigate, isPlatformAdmin }: {
   navigation: NavigationItem[]; active: NorthStarWorkspace; onNavigate: (view: NorthStarWorkspace) => void; isPlatformAdmin: boolean;
 }) {
-  const primary = navigation.filter(item => !['commercial', 'uat', 'ecc', 'intake-admin', 'practices', 'doctors', 'patients'].includes(item.id));
+  const primary = navigation.filter(item => !['commercial', 'uat', 'ecc', 'practices', 'doctors', 'patients'].includes(item.id));
   const admin = navigation.filter(item => item.id === 'commercial');
   return <nav className="ns-command-rail" aria-label="Workspace navigation">
     {primary.map(item => <RailButton key={item.id} item={item} active={active === item.id} onNavigate={onNavigate} />)}
