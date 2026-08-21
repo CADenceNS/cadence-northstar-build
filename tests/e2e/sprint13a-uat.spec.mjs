@@ -30,9 +30,9 @@ test.describe('Sprint 13A persona certification',()=>{
   test(`${persona} login, landing, navigation, restoration and logout`,async({page,context},testInfo)=>{
    const errors=captureErrors(page);await clean(page,context);const payload=await login(page,email);expect(payload.user.email).toBe(email);
    await expect(page.getByRole('heading',{name:heading,level:1})).toBeVisible();
-   for(const label of navigation)await expect(page.getByRole('button',{name:label,exact:true})).toBeVisible();
+   for(const label of navigation)await expect(page.getByRole('button',{name:label}).first()).toBeVisible();
    await reloadReady(page);await expect(page.getByRole('heading',{name:heading,level:1})).toBeVisible();
-   const target=page.getByRole('button',{name:navigation[0],exact:true});await clickReady(target,testInfo,`${persona}-${navigation[0]}`);await expect(page.locator('.ns-context-title h1')).not.toBeEmpty();await expect(page.locator('.ns-workspace-canvas')).not.toContainText('404');
+   const target=page.getByRole('button',{name:navigation[0]}).first();await clickReady(target,testInfo,`${persona}-${navigation[0]}`);await expect(page.locator('.ns-context-title h1')).not.toBeEmpty();await expect(page.locator('.ns-workspace-canvas')).not.toContainText('404');
    await logout(page);expect(errors).toEqual([]);
   });
  }

@@ -5,7 +5,7 @@ const sampleTenant='00000000-0000-0000-0000-000000000002';
 const staff={one:'10000000-0000-0000-0000-000000000102',two:'10000000-0000-0000-0000-000000000103',three:'10000000-0000-0000-0000-000000000104'};
 let csrfToken='';
 
-async function login(page,email){const response=await page.request.post('/api/auth/login',{data:{email,password}});const body=await response.json();expect(response.status()).toBe(200);expect(body.csrfToken).not.toBe('');csrfToken=body.csrfToken;}
+async function login(page,email){await page.goto('/');await page.evaluate(()=>{localStorage.clear();sessionStorage.clear();});const response=await page.request.post('/api/auth/login',{data:{email,password}});const body=await response.json();expect(response.status()).toBe(200);expect(body.csrfToken).not.toBe('');csrfToken=body.csrfToken;await page.evaluate(token=>sessionStorage.setItem('northstar.csrf',token),csrfToken);}
 async function request(page,url,options={}){return page.evaluate(async({url,options,csrfToken})=>{const headers=new Headers(options.headers);if(!['GET','HEAD','OPTIONS'].includes((options.method??'GET').toUpperCase()))headers.set('X-CSRF-Token',csrfToken);const response=await fetch(url,{...options,headers});let body=null;try{body=await response.json();}catch{}return{status:response.status,body};},{url,options,csrfToken});}
 const json=(method,body)=>({method,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
 
