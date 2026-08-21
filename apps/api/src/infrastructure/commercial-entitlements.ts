@@ -128,3 +128,29 @@ export async function reconcileLegacyNorthstarCoreBootstrap(db:SqlExecutor,tenan
     await db.query(`INSERT INTO tenant_migration_ledger(migration_key,legacy_tenant_id,ownership_rule,metadata) VALUES($1,$2,'A one-time post-identity snapshot assigns finite NORTHSTAR_CORE seats only to active non-platform memberships of the designated legacy tenant.',$3::jsonb)`,[migrationKey,tenantId,JSON.stringify({idempotent:true,entitlement:'ON CONFLICT DO NOTHING',seatPool:'legacy sources only',runtimeFallback:false})]);
     return true;
 }
+
+/**
+ * The owner-preview database is created by applying migrations before the
+ * historical durable runtime seeds its first legitimate owner. Migration 0009
+ * therefore records the Design Studio entitlement but correctly sees zero
+ * members and creates no Design Studio seats. This is deliberately narrower
+ * than the legacy compatibility bridge: it is a one-time initial-owner
+ * bootstrap for the designated legacy tenant only. It never
+ * changes a commercial-control-plane decision, creates no platform access, and
+ * is not a general tenant or runtime fallback.
+ */
+export async function reconcileLegacyDesignStudioInitialOwnerBootstrap(db:SqlExecutor,tenantId:string,userId:string){
+  if(tenantId!==LEGACY_NORTHSTAR_TENANT_ID)return false;
+  const migrationKey='preview_legacy_design_studio_initial_owner_bootstrap_v1';
+  const applied=await db.query('SELECT 1 FROM tenant_migration_ledger WHERE migration_key=$1',[migrationKey]);
+  if(applied.rowCount)return false;
+  const member=await db.query<{user_id:string}>(`SELECT user_id FROM identity_memberships WHERE tenant_id=$1 AND user_id=$2 AND membership_status='ACTIVE' AND platform_role='none'`,[tenantId,userId]);
+  if(!member.rowCount)return false;
+  const existingEntitlement=await db.query<{source:string}>(`SELECT source FROM tenant_module_entitlements WHERE tenant_id=$1 AND module_key='DESIGN_STUDIO'`,[tenantId]);
+  if(existingEntitlement.rows[0]?.source==='commercial-control-plane')return false;
+  await db.query(`INSERT INTO tenant_module_entitlements(tenant_id,module_key,state,source,metadata) VALUES($1,'DESIGN_STUDIO','ACTIVE','preview-initial-owner-bootstrap',$2::jsonb) ON CONFLICT(tenant_id,module_key) DO NOTHING`,[tenantId,JSON.stringify({compatibility:'preview initial owner',migration:migrationKey})]);
+  await db.query(`INSERT INTO tenant_module_seat_pools(tenant_id,module_key,purchased_seat_count,source) VALUES($1,'DESIGN_STUDIO',1,'preview-initial-owner-bootstrap') ON CONFLICT(tenant_id,module_key) DO UPDATE SET purchased_seat_count=GREATEST(tenant_module_seat_pools.purchased_seat_count,EXCLUDED.purchased_seat_count),source='preview-initial-owner-bootstrap',updated_at=now() WHERE tenant_module_seat_pools.source IN ('legacy-migration','preview-initial-owner-bootstrap')`,[tenantId]);
+  await db.query(`INSERT INTO tenant_module_seat_assignments(tenant_id,module_key,user_id,assigned_by,metadata) SELECT $1,'DESIGN_STUDIO',$2,'preview-initial-owner-bootstrap',$3::jsonb WHERE EXISTS(SELECT 1 FROM tenant_module_seat_pools WHERE tenant_id=$1 AND module_key='DESIGN_STUDIO' AND source='preview-initial-owner-bootstrap') ON CONFLICT DO NOTHING`,[tenantId,userId,JSON.stringify({compatibility:'preview initial owner',migration:migrationKey})]);
+  await db.query(`INSERT INTO tenant_migration_ledger(migration_key,legacy_tenant_id,ownership_rule,metadata) VALUES($1,$2,'A one-time owner-preview bootstrap assigns one existing active non-platform owner a Design Studio seat for the designated legacy tenant only. It never changes commercial-control-plane state or grants tenant access to platform administrators.',$3::jsonb)`,[migrationKey,tenantId,JSON.stringify({idempotent:true,scope:'legacy tenant initial owner only',runtimeFallback:false})]);
+  return true;
+}
