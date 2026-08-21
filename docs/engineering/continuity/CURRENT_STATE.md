@@ -46,6 +46,14 @@ The correction observes durable `manufacturingState: EXPORTED` after export and 
 
 ## Current authority
 
+## Owner visual-reference authority
+
+The owner-supplied `CADence_NorthStar_v4_2_SCULPT_CUT_NAVIGATION_OPEN_FIRST.zip` is the
+visual, interaction, and workspace-architecture authority for the NorthStar restoration.
+Current main remains the functional, security, persistence, and commercial authority.
+PR #40 is rejected for visual acceptance and must not be used as a visual baseline.
+Any resulting UI branch requires live owner visual approval before it may be certified or merged.
+
 The next authorized action is:
 
 > **OWNER VISUAL REVIEW OF CORRECTED CADENCE NORTHSTAR PREVIEW.**
