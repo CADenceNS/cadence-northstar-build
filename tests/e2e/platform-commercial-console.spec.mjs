@@ -46,6 +46,7 @@ async function provisionFixture(page,name){
 test('Platform Admin manages commercial state through the server-backed console without retaining activation secrets',async({browser,page})=>{
   const reference=await provisionFixture(page,'Commercial Management');
   await expect(page.getByText('Commercial administration only')).toBeVisible();
+  await expect(page.getByText(/Keramos/i)).toHaveCount(0);
   expect((await api(page,'/api/patients')).status).toBe(403);
 
   const ownerContext=await browser.newContext({baseURL:'http://127.0.0.1:5173'});

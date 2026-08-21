@@ -16,7 +16,7 @@ async function login(page, context) {
   const loginResponse = page.waitForResponse(response => response.url().endsWith('/api/auth/login') && response.request().method() === 'POST');
   await page.getByRole('button', { name: 'Sign in' }).click();
   expect((await loginResponse).status()).toBe(200);
-  await expect(page.getByRole('heading', { name: 'Laboratory Status' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Operations Overview' })).toBeVisible();
   await expect.poll(() => page.evaluate(() => sessionStorage.getItem('northstar.csrf'))).not.toBeNull();
 }
 
@@ -84,7 +84,7 @@ test('practice and doctor management CRUD lifecycle', async ({ page, context }) 
   await expect(timelineEntries.nth(1)).toContainText(secondCommunication);
 
   await page.reload();
-  await expect(page.getByRole('heading', { name: 'Laboratory Status' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Operations Overview' })).toBeVisible();
   await page.getByRole('button', { name: 'Doctors' }).click();
   await page.getByLabel('Search doctors').fill('Jamie Rivera');
   await page.getByLabel('Status filter').selectOption('inactive');

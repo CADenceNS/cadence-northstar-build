@@ -15,7 +15,7 @@ test.beforeEach(async ({ page, context }) => {
 
 test('uses secure server sessions and protects the application shell', async ({ page, context }) => {
   await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Laboratory Status' })).not.toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Operations Overview' })).not.toBeVisible();
 
   await page.getByLabel('Email').fill(email);
   await page.getByLabel('Password').fill('incorrect');
@@ -26,7 +26,9 @@ test('uses secure server sessions and protects the application shell', async ({ 
   await page.getByLabel('Password').fill(password);
   await page.getByRole('button', { name: 'Sign in' }).click();
   expect((await loginResponse).status()).toBe(200);
-  await expect(page.getByRole('heading', { name: 'Laboratory Status' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Operations Overview' })).toBeVisible();
+  await expect(page.getByText(/Keramos/i)).toHaveCount(0);
+  await expect(page.getByText(/Sprint 13A|UAT Interactive Build|structured UAT/i)).toHaveCount(0);
 
   expect(await page.evaluate(() => localStorage.getItem('northstar.session'))).toBeNull();
   const sessionCookie = (await context.cookies()).find(cookie => cookie.name === 'northstar.sid');
@@ -35,7 +37,7 @@ test('uses secure server sessions and protects the application shell', async ({ 
   expect(sessionCookie?.sameSite).toBe('Strict');
 
   await page.reload();
-  await expect(page.getByRole('heading', { name: 'Laboratory Status' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Operations Overview' })).toBeVisible();
   await expect.poll(() => page.evaluate(() => sessionStorage.getItem('northstar.csrf'))).not.toBeNull();
 
   await page.getByRole('button', { name: 'Practices' }).click();
@@ -50,5 +52,5 @@ test('uses secure server sessions and protects the application shell', async ({ 
 
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Laboratory Status' })).not.toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Operations Overview' })).not.toBeVisible();
 });
