@@ -44,6 +44,12 @@ PR #29 corrected stale browser observation of export completion:
 
 The correction observes durable `manufacturingState: EXPORTED` after export and reopen. It changed no crown geometry, margin, intaglio, materials, registration, preparation, thresholds, or geometry algorithms. The protected private-corpus evidence remains the authoritative geometry evidence; no new private-corpus run is claimed for this UI/test-only correction.
 
+## Locked design authority
+
+`NORTHSTAR_DESIGN_LANGUAGE = NSDL v1.0`; `DESIGN_AUTHORITY = OWNER LOCKED`; `REFERENCE = CADence NorthStar v3.9 — NSDL First View`; `FOUNDATION_UI = FROZEN REFERENCE`; `NO_UNAUTHORIZED_REDESIGN = TRUE`.
+
+The rejected Sprint-era shell is not a future visual baseline. NSDL candidate work must remain unmerged until owner visual review is complete.
+
 ## Current authority
 
 The next authorized action is:
