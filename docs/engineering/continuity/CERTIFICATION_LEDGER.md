@@ -136,3 +136,15 @@ Additional governed values—global/cusp/fossa thickness, cement and marginal ra
 - Boundaries: no API semantics, authentication, session/CSRF/cookies, tenant isolation, Platform Admin operational-data boundary, entitlements, seats, licensing, lifecycle semantics, migrations, schema, private dental corpus, or Design Studio geometry changed.
 - Merged-main evidence: CI #629 PASS; Runtime Validation #394 PASS; Sprint 13A Validation #288 PASS; Runtime and Sprint complete Playwright 51/51.
 - `OWNER_PREVIEW_VISUAL_ACCEPTANCE = PENDING`; next authorized action is owner visual review at `https://cadence-northstar-preview.onrender.com`. No CF-1B or Sprint 26 authorization.
+
+## VIS-2C — Owner-approved NorthStar foundation lock
+
+- Owner-approved product source head: `fbddd1e557ede27a2e7e51ebba0b314a2a32d284`.
+- Documentation-only continuity tail: `bd897fccd808260dc6f91f3e0a977219ea6c442b`; comparison contains only seven continuity-document paths.
+- PR #41 merge commit: `bb50dfc8dc344b4e2cf173620c79bc342754c85f`; resulting product/runtime tree: `435117dc1bde03d0075dc1d93f9a7eaee19edcc1`.
+- Scope: owner-approved v4.2-derived NorthStar operational workspace, current CADence Design Studio, Design Studio entitlement/seat correction, and Intake Administration rail restoration.
+- Merged-main evidence: CI #638 PASS; Runtime Validation #403 PASS; Sprint 13A Validation #297 PASS; Runtime and Sprint complete Playwright 51/51.
+- Security/runtime evidence: production builds, API health, migrations 0001–0010, authentication/session, CSRF/cookies, tenant isolation, Platform Admin boundary, entitlements/seats, Design Studio access, and Intake Administration PASS.
+- `OWNER_VISUAL_ACCEPTANCE = PASS`; `NORTHSTAR_UI_FOUNDATION` is the v4.2-derived owner-approved workspace; `DESIGN_STUDIO_UI_FOUNDATION` is the current owner-approved CADence Design Studio.
+- `UI_POLICY = additive only; no foundational redesign without explicit owner approval`. No private dental corpus or geometry change was made.
+- Next authorized action: **PP-1A — PRODUCT CATALOG, PRICING FOUNDATION & CASE PRODUCT LINE-ITEM ARCHITECTURE**; recommended model GPT-5.6 Terra. CF-1B and Sprint 26 remain unauthorized.

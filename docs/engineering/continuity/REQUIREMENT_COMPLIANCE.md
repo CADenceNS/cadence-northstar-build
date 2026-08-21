@@ -30,6 +30,24 @@ The complete attachment requirements remain authoritative; no requirement is rem
 collapsed into a dropdown-only interpretation. No Product & Pricing code is authorized by
 VIS-2C-F2 unless NEXT_ACTION.md explicitly changes.
 
+## VIS-2C merged-main certification overlay
+
+PR #41 is **OWNER APPROVED / CERTIFIED / MERGED**. The owner-approved product source head
+is `fbddd1e557ede27a2e7e51ebba0b314a2a32d284`; the later
+`bd897fccd808260dc6f91f3e0a977219ea6c442b` commit is documentation/continuity-only. Merge
+commit: `bb50dfc8dc344b4e2cf173620c79bc342754c85f`; resulting tree:
+`435117dc1bde03d0075dc1d93f9a7eaee19edcc1`.
+
+Merged-main evidence: CI #638 PASS; Runtime #403 PASS; Sprint #297 PASS; Runtime and
+Sprint Playwright 51/51; production builds, API health, migrations 0001–0010, authentication,
+CSRF, tenant isolation, Platform Admin boundary, entitlements/seats, Design Studio access,
+and Intake Administration passed. No private dental corpus was run and Design Studio
+geometry was unchanged.
+
+The next authorized action is PP-1A — Product Catalog, Pricing Foundation & Case Product
+Line-Item Architecture, using the preserved Product & Pricing requirement file. PP-1A is not
+started in VIS-2C.
+
 ## Authority and source identity
 
 The complete line-by-line ledger is `docs/design-studio/SPRINT_25_COMPLIANCE_MATRIX.json`:

@@ -19,6 +19,17 @@ This scope is additive to the approved v4.2-derived NorthStar shell, current Des
 CRM, laboratory operations, and commercial platform. Do not simplify it to a dropdown and
 do not implement it unless NEXT_ACTION.md explicitly authorizes implementation.
 
+## VIS-2C final foundation lock
+
+VIS-2C is **OWNER APPROVED / CERTIFIED / MERGED** via PR #41. Owner-approved source:
+`fbddd1e557ede27a2e7e51ebba0b314a2a32d284`; docs-only tail:
+`bd897fccd808260dc6f91f3e0a977219ea6c442b`; merge `bb50dfc8dc344b4e2cf173620c79bc342754c85f`;
+tree `435117dc1bde03d0075dc1d93f9a7eaee19edcc1`. CI #638, Runtime #403, and Sprint #297
+passed, with 51/51 Playwright in Runtime and Sprint. Owner visual acceptance is PASS.
+The v4.2-derived NorthStar workspace and current CADence Design Studio are locked as the
+approved foundations; future foundational UI changes are additive-only and require explicit
+owner approval. No geometry, security, entitlement, seat, or API behavior changed.
+
 ## Read first
 
 1. `docs/engineering/continuity/CURRENT_STATE.md`
@@ -53,8 +64,10 @@ The last repository head is the commit inspected before a continuity update, not
 
 ## Exact next authorized action
 
-> **OWNER VISUAL REVIEW OF CORRECTED CADENCE NORTHSTAR PREVIEW**
+> **PP-1A — PRODUCT CATALOG, PRICING FOUNDATION & CASE PRODUCT LINE-ITEM ARCHITECTURE**
 
-Preview URL: `https://cadence-northstar-preview.onrender.com`. The existing Git-connected Render service may redeploy from merged `main`; do not manually alter Render, begin CF-1B, or begin Sprint 26 before visual acceptance.
+Recommended model: **GPT-5.6 Terra**. Use `PRODUCT_PRICING_CASE_CONFIGURATION_REQUIREMENTS.md`
+as the authoritative owner requirement. PP-1A is not started in VIS-2C. Do not begin CF-1B
+or Sprint 26.
 
 PR #32 and PR #33 are merged. Do not begin Sprint 26 or rerun protected private-corpus certification; CF-1A1 changes no geometry.

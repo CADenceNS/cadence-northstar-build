@@ -4,6 +4,8 @@ Status values are restricted to: `CERTIFIED_PRODUCTION`, `IMPLEMENTED_PENDING_CE
 
 This matrix describes repository evidence as of 2026-08-21. Commercial vision is not implementation evidence.
 
+| VIS-2C approved foundation | CERTIFIED_PRODUCTION | PR #41 merged as `bb50dfc8dc344b4e2cf173620c79bc342754c85f`; owner-approved v4.2-derived NorthStar workspace, current CADence Design Studio, Design Studio entitlement/seat correction, and Intake Administration rail restoration; owner visual acceptance PASS; CI/Runtime/Sprint #638/#403/#297 and 51/51 browser passes. Future foundational UI changes are additive-only with explicit owner approval. |
+
 ## VIS-2C-F2 supplemental Product & Pricing / Case Configuration reconciliation
 
 The complete owner-approved requirement is preserved verbatim in

@@ -40,6 +40,23 @@ BUSINESS_DAY_TAT_ENGINE=PARTIAL; PRICE_VERSIONING=NOT STARTED;
 CASE_TO_BILLING_PRODUCT_LINEAGE=PARTIAL. No Product & Pricing implementation or Design
 Studio geometry change occurred.
 
+## VIS-2C foundation lock
+
+VIS-2C is **OWNER APPROVED / CERTIFIED / MERGED** via PR #41. Owner-approved product
+source head: `fbddd1e557ede27a2e7e51ebba0b314a2a32d284`; documentation-only tail:
+`bd897fccd808260dc6f91f3e0a977219ea6c442b`; merge commit and resulting main:
+`bb50dfc8dc344b4e2cf173620c79bc342754c85f`; product/runtime tree:
+`435117dc1bde03d0075dc1d93f9a7eaee19edcc1`. CI #638, Runtime #403, and Sprint #297
+passed; both browser workflows passed 51/51. Production builds, migrations 0001–0010,
+authentication/session, CSRF, tenant isolation, Platform Admin boundary, entitlements,
+seats, Design Studio access, and Intake Administration passed. No private dental corpus
+was run and no Design Studio geometry changed.
+
+`OWNER_VISUAL_ACCEPTANCE = PASS`.
+`NORTHSTAR_UI_FOUNDATION = v4.2-derived owner-approved workspace`.
+`DESIGN_STUDIO_UI_FOUNDATION = current owner-approved CADence Design Studio`.
+`UI_POLICY = additive only; no foundational redesign without explicit owner approval`.
+
 ## Merged product certification
 
 PR #29 corrected stale browser observation of export completion:
@@ -67,6 +84,7 @@ Any resulting UI branch requires live owner visual approval before it may be cer
 
 The next authorized action is:
 
-> **OWNER VISUAL REVIEW OF CORRECTED CADENCE NORTHSTAR PREVIEW.**
+> **PP-1A — PRODUCT CATALOG, PRICING FOUNDATION & CASE PRODUCT LINE-ITEM ARCHITECTURE**
 
-Preview URL: `https://cadence-northstar-preview.onrender.com`. GitHub certification is complete, but owner visual acceptance is intentionally pending. Do not authorize CF-1B, Sprint 26, or another implementation phase before this review.
+Use `PRODUCT_PRICING_CASE_CONFIGURATION_REQUIREMENTS.md` as the authoritative owner
+requirement. PP-1A is not started inside VIS-2C. Do not begin CF-1B or Sprint 26.

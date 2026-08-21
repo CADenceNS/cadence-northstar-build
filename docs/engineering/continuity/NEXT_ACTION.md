@@ -22,13 +22,27 @@ This is a permanent scope/reconciliation update only. It does not authorize Prod
 Pricing implementation, replace any existing requirement, alter the approved UI or Design
 Studio geometry, or authorize CF-1B/Sprint 26.
 
+## VIS-2C final certification
+
+VIS-2C is **OWNER APPROVED / CERTIFIED / MERGED** via PR #41. Owner-approved product
+source head: `fbddd1e557ede27a2e7e51ebba0b314a2a32d284`; docs-only tail:
+`bd897fccd808260dc6f91f3e0a977219ea6c442b`; merge `bb50dfc8dc344b4e2cf173620c79bc342754c85f`;
+main/product-runtime tree `435117dc1bde03d0075dc1d93f9a7eaee19edcc1`.
+CI #638, Runtime #403, and Sprint #297 passed; Runtime/Sprint Playwright 51/51.
+Owner visual acceptance is PASS. The approved foundations are the v4.2-derived NorthStar
+workspace and current CADence Design Studio. Future foundational UI changes are additive
+only and require explicit owner approval.
+
 ## Current authority
 
 The exact authorized next action is:
 
-> **OWNER VISUAL REVIEW OF CORRECTED CADENCE NORTHSTAR PREVIEW**
+> **PP-1A — PRODUCT CATALOG, PRICING FOUNDATION & CASE PRODUCT LINE-ITEM ARCHITECTURE**
 
-Preview URL: `https://cadence-northstar-preview.onrender.com`.
+Recommended model: **GPT-5.6 Terra**.
+
+PP-1A must use `PRODUCT_PRICING_CASE_CONFIGURATION_REQUIREMENTS.md` as its authoritative
+owner requirement and is not started in this merge task. Do not begin CF-1B or Sprint 26.
 
 VIS-1B is **CERTIFIED AND MERGED** via PR #38. Runtime head `0033ecc7363274821e81806fa6b71bfd4d2fe7cb`, tree `616a00d409cf98ff64255c8545efbcfc13a4d143`; merge commit `d2f4d3e01cfd25ec95104f8e71f7795a8e9de889`. CI #625, Runtime #390, and Sprint #284 passed; Runtime/Sprint Playwright 51/51. Production API start/health, PORT handling, external migrations 0001–0010, security/UAT, tenant isolation, Platform Admin boundary, NorthStar build, and Design Studio build passed. No deployment or DNS action occurred.
 
@@ -53,6 +67,7 @@ VIS-1B is **CERTIFIED AND MERGED** via PR #38. Runtime head `0033ecc7363274821e8
 
 ## Explicit sequencing rule
 
-Owner visual review of the corrected CADence NorthStar preview is the next authorized action. Do not begin CF-1B or Sprint 26 before that review is complete.
+PP-1A is the next authorized implementation action. Product & Pricing implementation is
+not included in VIS-2C; no CF-1B or Sprint 26 work is authorized.
 
 This continuity repair does not implement CF-1, Sprint 26, or any product feature. It does not rerun private-corpus certification.

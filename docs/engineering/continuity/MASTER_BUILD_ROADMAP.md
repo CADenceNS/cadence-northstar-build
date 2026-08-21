@@ -24,7 +24,7 @@ The commercial layer governs access and commercial relationships; it does not re
 
 ### VIS-2C-F2 — Foundation Lock / Feature Coverage Reconciliation
 
-Status: IN_PROGRESS — DOCUMENTATION RECONCILIATION ONLY.
+Status: **OWNER APPROVED / CERTIFIED / MERGED** via PR #41; Product & Pricing implementation remains not started.
 
 The owner-approved supplemental Product & Pricing / Case Configuration requirement is a
 permanent additive NorthStar scope. Its complete, verbatim requirement text—including the
@@ -47,6 +47,12 @@ FEATURE_STATUS_MATRIX.md and REQUIREMENT_COMPLIANCE.md using only the supplement
 status vocabulary required for this eight-part review:
 COMPLETE, PARTIAL, NOT STARTED, BLOCKED, CERTIFICATION REQUIRED.
 No Product & Pricing implementation is authorized by this documentation task.
+
+The approved v4.2-derived NorthStar workspace and current CADence Design Studio are locked
+as additive-only foundations; foundational UI changes require explicit owner approval.
+Merged-main CI #638, Runtime #403, and Sprint #297 passed with 51/51 Playwright in each
+browser workflow. The next authorized action is PP-1A — Product Catalog, Pricing Foundation
+& Case Product Line-Item Architecture (GPT-5.6 Terra), using the preserved requirement file.
 
 ### Gate 0 — Sprint 25 reconciliation
 
