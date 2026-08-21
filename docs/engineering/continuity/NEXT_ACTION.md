@@ -1,14 +1,14 @@
 # Next Action
 
-Last verified: 2026-08-20
+Last verified: 2026-08-21
 
 ## Current authority
 
 The exact authorized next action is:
 
-> **VIS-1C — OWNER PREVIEW INFRASTRUCTURE DEPLOYMENT.**
+> **OWNER VISUAL REVIEW OF CORRECTED CADENCE NORTHSTAR PREVIEW**
 
-Recommended implementation model: **GPT-5.6 Terra**.
+Preview URL: `https://cadence-northstar-preview.onrender.com`.
 
 VIS-1B is **CERTIFIED AND MERGED** via PR #38. Runtime head `0033ecc7363274821e81806fa6b71bfd4d2fe7cb`, tree `616a00d409cf98ff64255c8545efbcfc13a4d143`; merge commit `d2f4d3e01cfd25ec95104f8e71f7795a8e9de889`. CI #625, Runtime #390, and Sprint #284 passed; Runtime/Sprint Playwright 51/51. Production API start/health, PORT handling, external migrations 0001–0010, security/UAT, tenant isolation, Platform Admin boundary, NorthStar build, and Design Studio build passed. No deployment or DNS action occurred.
 
@@ -25,6 +25,7 @@ VIS-1B is **CERTIFIED AND MERGED** via PR #38. Runtime head `0033ecc7363274821e8
 - No active Sprint 25 blocker remains
 - CF-1A0: CERTIFIED AND MERGED via PR #32.
 - CF-1A1: CERTIFIED AND MERGED via PR #33.
+- VIS-1D: CERTIFIED AND MERGED via PR #39; merge `ff70baa3bfbde7a928ca6b708a1de4e9b593fd69`, product/runtime tree `828fd6477a64810e1d32996f6672c564a8f1569a`; CI #629, Runtime #394, Sprint #288 PASS, with 51/51 Playwright in Runtime and Sprint. `OWNER_PREVIEW_VISUAL_ACCEPTANCE = PENDING`.
 
 ## Continuity-state semantics
 
@@ -32,6 +33,6 @@ VIS-1B is **CERTIFIED AND MERGED** via PR #38. Runtime head `0033ecc7363274821e8
 
 ## Explicit sequencing rule
 
-VIS-1C is the next authorized task. Deploy one persistent CADence Node gateway serving NorthStar and Design Studio with an isolated PostgreSQL preview database. Do not begin CF-1B or Sprint 26 before a separately authorized task permits it.
+Owner visual review of the corrected CADence NorthStar preview is the next authorized action. Do not begin CF-1B or Sprint 26 before that review is complete.
 
 This continuity repair does not implement CF-1, Sprint 26, or any product feature. It does not rerun private-corpus certification.

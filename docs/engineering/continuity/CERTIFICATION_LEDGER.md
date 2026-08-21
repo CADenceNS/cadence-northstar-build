@@ -127,3 +127,12 @@ Additional governed values—global/cusp/fossa thickness, cement and marginal ra
 - Merged-main evidence: CI #625 PASS; Runtime Validation #390 PASS; Sprint 13A Validation #284 PASS; complete Runtime/Sprint Playwright 51/51.
 - Runtime/security evidence: API build/start/health, PORT handling, migrations, authentication/session, CSRF, origin/cookie rules, tenant isolation, Platform Admin boundary, NorthStar build, and Design Studio build PASS.
 - Boundary: no deployment, DNS, private dental corpus, product feature, commercial behavior, authentication weakening, tenant-boundary weakening, or Design Studio geometry change.
+
+## VIS-1D — Corrected owner preview shell identity
+
+- Certified implementation head: `b87222b0888c1ac93833a2808bdd6a6ba574b76e`; product/runtime tree: `828fd6477a64810e1d32996f6672c564a8f1569a`.
+- Merge commit: `ff70baa3bfbde7a928ca6b708a1de4e9b593fd69`; merged-main product/runtime tree unchanged.
+- Scope: replace the active legacy Keramos/UAT/Sprint owner-facing shell labels with CADence NorthStar identity while preserving the existing server-backed Platform Admin commercial console and tenant-scoped operational routing.
+- Boundaries: no API semantics, authentication, session/CSRF/cookies, tenant isolation, Platform Admin operational-data boundary, entitlements, seats, licensing, lifecycle semantics, migrations, schema, private dental corpus, or Design Studio geometry changed.
+- Merged-main evidence: CI #629 PASS; Runtime Validation #394 PASS; Sprint 13A Validation #288 PASS; Runtime and Sprint complete Playwright 51/51.
+- `OWNER_PREVIEW_VISUAL_ACCEPTANCE = PENDING`; next authorized action is owner visual review at `https://cadence-northstar-preview.onrender.com`. No CF-1B or Sprint 26 authorization.

@@ -28,6 +28,7 @@ Repository: `CADenceNS/cadence-northstar-build`
 - CF-1A3A: **CERTIFIED AND MERGED** via PR #36. Product head `53b4773aaa9cfe807f12ff77c9da215eb39d6074`, tree `778d358c653200a5276434e00da59e41e6bfad48`; merge commit `55e34f983bf18cc8cd35660ed0b318e953b782d4`. Merged-main CI #613, Runtime #378, and Sprint #272 passed; deterministic 421/421 and Runtime/Sprint Playwright 49/49 passed. Migration 0010, tenant-native security, entitlements/seats, activation/licensing, sequential DB, and commercial-account uniqueness regressions passed. No CAD geometry changed.
 - CF-1A3B: **CERTIFIED AND MERGED** via PR #37. Product head `0535e8c433226c167cca85ffefd83d50ee1d57db`, tree `2b72dce8956e940d93e6513567d19039c1609e8c`; main merge `e03f85144f31533e8785588c5cf1514a92184ab1`, tree `e30b3b43f74f4b32cbe729ef8188aaa5d596fb6e`; CI #622, Runtime #387, and Sprint #281 PASS. Runtime/Sprint Playwright 51/51; commercial UI fixtures are tenant-isolated. Product/security implementation, migration 0010, commercial uniqueness, and CAD geometry are unchanged.
 - VIS-1B: **CERTIFIED AND MERGED** via PR #38. Runtime head `0033ecc7363274821e81806fa6b71bfd4d2fe7cb`, tree `616a00d409cf98ff64255c8545efbcfc13a4d143`; merge `d2f4d3e01cfd25ec95104f8e71f7795a8e9de889`; CI #625, Runtime #390, and Sprint #284 PASS. Runtime/Sprint Playwright 51/51; production start/health, PORT, migrations 0001–0010, security/UAT, tenant isolation, Platform Admin boundary, NorthStar, and Design Studio builds passed. No deployment or DNS action occurred.
+- VIS-1D: **CERTIFIED AND MERGED** via PR #39. Implementation head `b87222b0888c1ac93833a2808bdd6a6ba574b76e`, tree `828fd6477a64810e1d32996f6672c564a8f1569a`; merge `ff70baa3bfbde7a928ca6b708a1de4e9b593fd69`; CI #629, Runtime #394, and Sprint #288 PASS with 51/51 Playwright in each browser workflow. The owner shell now presents CADence NorthStar identity; existing commercial and tenant operational boundaries remain server-backed and unchanged. `OWNER_PREVIEW_VISUAL_ACCEPTANCE = PENDING` at `https://cadence-northstar-preview.onrender.com`.
 
 ## Continuity-state rule
 
@@ -35,8 +36,8 @@ The last repository head is the commit inspected before a continuity update, not
 
 ## Exact next authorized action
 
-> **VIS-1C — OWNER PREVIEW INFRASTRUCTURE DEPLOYMENT.**
+> **OWNER VISUAL REVIEW OF CORRECTED CADENCE NORTHSTAR PREVIEW**
 
-Recommended implementation model: **GPT-5.6 Terra**. Deploy one persistent Node gateway serving NorthStar and Design Studio with an isolated PostgreSQL preview database. Do not begin CF-1B or Sprint 26.
+Preview URL: `https://cadence-northstar-preview.onrender.com`. The existing Git-connected Render service may redeploy from merged `main`; do not manually alter Render, begin CF-1B, or begin Sprint 26 before visual acceptance.
 
 PR #32 and PR #33 are merged. Do not begin Sprint 26 or rerun protected private-corpus certification; CF-1A1 changes no geometry.
