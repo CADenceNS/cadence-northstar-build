@@ -144,3 +144,11 @@ GVM is an optional entitlement, not a required NorthStar Core feature. It will s
 - Planned commercial capabilities remain PLANNED or NOT_STARTED until repository evidence proves otherwise.
 - No sprint is selected from this roadmap alone.
 - Privacy, tenant isolation, human QC, immutable source lineage, fail-closed behavior, and no-secrets-in-GitHub are permanent gates.
+
+## VIS-2C-R1 remote reconciliation
+
+The owner-approved VIS-2C foundation is present on the actual remote `main` and is source-equivalent
+to the certified product head `fbddd1e557ede27a2e7e51ebba0b314a2a32d284`; remote merge head is
+`bb50dfc8dc344b4e2cf173620c79bc342754c85f`. The verified remote tip is
+`0a97ac83d860f264dcd3248134b20ce541140031` (tree `72c1abe673a3663ec2e446b83da6407aa984f078`).
+PP-1A remains the next authorized implementation; no Product & Pricing code is included here.

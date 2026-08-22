@@ -65,3 +65,11 @@ CF-1A2 â€” Module Entitlements + Seat Pools: **CERTIFIED_AND_MERGED**. CF-1A3A â
 | Automatic manufacturing approval without human QC | UNSUPPORTED | Human QC and fail-closed rules are mandatory |
 | Exact PR #29 private-corpus rerun | UNSUPPORTED | Not rerun because certified CAD geometry paths did not change; prior PR #28 evidence remains separately recorded |
 | Future Automation/AI and Manufacturing/CAM modules | RESEARCH_ONLY | Future direction only; no implementation claim |
+
+## VIS-2C-R1 remote reconciliation
+
+VIS-2C is **OWNER APPROVED / CERTIFIED / MERGED / REMOTE RECONCILED**. The owner-approved product
+head is `fbddd1e557ede27a2e7e51ebba0b314a2a32d284`; remote merge head is
+`bb50dfc8dc344b4e2cf173620c79bc342754c85f`; and verified remote `main` is
+`0a97ac83d860f264dcd3248134b20ce541140031` with tree `72c1abe673a3663ec2e446b83da6407aa984f078`.
+The Product & Pricing classifications remain unchanged and PP-1A is the next authorized implementation.

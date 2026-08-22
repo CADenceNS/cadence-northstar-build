@@ -88,3 +88,12 @@ The next authorized action is:
 
 Use `PRODUCT_PRICING_CASE_CONFIGURATION_REQUIREMENTS.md` as the authoritative owner
 requirement. PP-1A is not started inside VIS-2C. Do not begin CF-1B or Sprint 26.
+
+## VIS-2C-R1 remote reconciliation
+
+The local recovery source and actual remote repository are reconciled. `PRODUCT_CERTIFIED_HEAD` remains
+`fbddd1e557ede27a2e7e51ebba0b314a2a32d284`; `REMOTE_MERGE_HEAD` is
+`bb50dfc8dc344b4e2cf173620c79bc342754c85f`; and the verified remote `main` tip is
+`0a97ac83d860f264dcd3248134b20ce541140031` with tree `72c1abe673a3663ec2e446b83da6407aa984f078`.
+Local/remote product-source equivalence is PASS; post-merge changes are continuity documentation only.
+`VIS-2C = OWNER APPROVED / CERTIFIED / MERGED / REMOTE RECONCILED` and `OWNER_VISUAL_ACCEPTANCE = PASS`.

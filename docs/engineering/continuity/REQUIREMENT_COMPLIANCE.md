@@ -120,3 +120,12 @@ The three N/A rows are approval-override subrequirements. Hard corruption and ha
 - Private margin evidence checked 24 vertices at `0 mm` maximum displacement; intaglio evidence checked 145 vertices at `0 mm`. Preparation, adjacent, antagonist, and corpus-source geometry remained immutable. Controlled contacts reached governed pass with valid thickness/topology; infeasible geometry remained `constraint-conflict` / `QC_FAILED`, with approval and release blocked.
 - Binary STL, ASCII STL, OBJ, and PLY re-imported successfully at maximum surface deviation `8.738665739279973e-7 mm` under the unchanged `0.001 mm` tolerance. Save/reopen, auto-save, recovery, protected locks, contact/QC state, and lineage passed. The privacy sweep found no source copy in git, reports, or production build output.
 - No STL, OBJ, or PLY source geometry is tracked in git.
+
+## VIS-2C-R1 remote reconciliation
+
+Remote publication recovery preserves the owner-approved VIS-2C source. Product-certified head:
+`fbddd1e557ede27a2e7e51ebba0b314a2a32d284`; remote merge head:
+`bb50dfc8dc344b4e2cf173620c79bc342754c85f`; verified remote `main`:
+`0a97ac83d860f264dcd3248134b20ce541140031`, tree `72c1abe673a3663ec2e446b83da6407aa984f078`.
+Local/remote product-source equivalence is PASS. This is continuity reconciliation only; Product & Pricing
+requirements remain preserved and unimplemented.

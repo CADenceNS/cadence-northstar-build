@@ -148,3 +148,11 @@ Additional governed values—global/cusp/fossa thickness, cement and marginal ra
 - `OWNER_VISUAL_ACCEPTANCE = PASS`; `NORTHSTAR_UI_FOUNDATION` is the v4.2-derived owner-approved workspace; `DESIGN_STUDIO_UI_FOUNDATION` is the current owner-approved CADence Design Studio.
 - `UI_POLICY = additive only; no foundational redesign without explicit owner approval`. No private dental corpus or geometry change was made.
 - Next authorized action: **PP-1A — PRODUCT CATALOG, PRICING FOUNDATION & CASE PRODUCT LINE-ITEM ARCHITECTURE**; recommended model GPT-5.6 Terra. CF-1B and Sprint 26 remain unauthorized.
+
+### VIS-2C-R1 remote reconciliation
+
+- `PRODUCT_CERTIFIED_HEAD`: `fbddd1e557ede27a2e7e51ebba0b314a2a32d284`.
+- `REMOTE_MERGE_HEAD`: `bb50dfc8dc344b4e2cf173620c79bc342754c85f`.
+- `LAST_REPOSITORY_HEAD_VERIFIED`: remote `main` `0a97ac83d860f264dcd3248134b20ce541140031`; tree `72c1abe673a3663ec2e446b83da6407aa984f078`.
+- Local/remote product-source equivalence: **PASS**; remote publication and merged main preserve the owner-approved product/runtime source, with later changes limited to continuity documentation.
+- Outcome: **VIS-2C = OWNER APPROVED / CERTIFIED / MERGED / REMOTE RECONCILED**; `OWNER_VISUAL_ACCEPTANCE = PASS`.

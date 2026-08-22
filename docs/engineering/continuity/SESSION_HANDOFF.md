@@ -71,3 +71,11 @@ as the authoritative owner requirement. PP-1A is not started in VIS-2C. Do not b
 or Sprint 26.
 
 PR #32 and PR #33 are merged. Do not begin Sprint 26 or rerun protected private-corpus certification; CF-1A1 changes no geometry.
+
+## VIS-2C-R1 remote reconciliation
+
+Remote recovery is complete. The owner-approved product head is `fbddd1e557ede27a2e7e51ebba0b314a2a32d284`;
+the GitHub merge is `bb50dfc8dc344b4e2cf173620c79bc342754c85f`; and the verified remote `main` is
+`0a97ac83d860f264dcd3248134b20ce541140031` with tree `72c1abe673a3663ec2e446b83da6407aa984f078`.
+Local/remote product-source equivalence is PASS. `VIS-2C = OWNER APPROVED / CERTIFIED / MERGED /
+REMOTE RECONCILED`; `OWNER_VISUAL_ACCEPTANCE = PASS`.
