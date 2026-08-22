@@ -79,7 +79,7 @@ async function ensureLedger(client:SqlClient){
 async function checksum(directory:string,filename:string){return createHash('sha256').update(await readFile(resolve(directory,filename))).digest('hex');}
 
 async function record(client:SqlClient,migration:MigrationDefinition,hash:string,mode:'applied'|'legacy-adopted'){
-  await client.query('INSERT INTO schema_migrations(version,filename,checksum_sha256,execution_metadata) VALUES($1,$2,$3,jsonb_build_object(\'mode\',$4))',[migration.version,migration.filename,hash,mode]);
+  await client.query('INSERT INTO schema_migrations(version,filename,checksum_sha256,execution_metadata) VALUES($1,$2,$3,jsonb_build_object(\'mode\',$4::text))',[migration.version,migration.filename,hash,mode]);
 }
 
 export async function runMigrations(options:MigrationRunOptions):Promise<MigrationRunResult>{
