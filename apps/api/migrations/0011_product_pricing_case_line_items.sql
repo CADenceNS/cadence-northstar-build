@@ -130,7 +130,7 @@ INSERT INTO product_catalog_templates(sku,category_code,family_code,product_name
 ('SPL-KOIS','SPL','SPL-DEPR','Anterior Deprogrammer','Anterior Deprogrammer: Kois / Lucia Jig','Anterior Deprogrammer','splints','Splints','PER_PRODUCT',NULL,'{"selection":"UPPER","allowedArches":["upper"]}'),
 ('SPL-NTI','SPL','SPL-NTI','NTI-tss Tension Suppression Appliance','NTI-tss Tension Suppression Appliance','NTI-tss','splints','Splints','PER_PRODUCT',NULL,'{"selection":"UPPER","allowedArches":["upper"]}'),
 ('AUX-BLCH','AUX','AUX-SDR','Bleaching/Whitening Trays','Bleaching/Whitening Trays (Reservoir Style)','Bleaching Tray','auxiliaries','Auxiliaries','PER_ARCH',NULL,'{"selection":"FULL_ARCH","allowedArches":["upper","lower","both"]}'),
-('AUX-TRAY','AUX','AUX-SDR','Custom Impression Tray','Custom Impression Tray: Light Cured Resin','Impression Tray','Impression Tray','auxiliaries','Auxiliaries','PER_ARCH',NULL,'{"selection":"FULL_ARCH","allowedArches":["upper","lower","both"]}')
+('AUX-TRAY','AUX','AUX-SDR','Custom Impression Tray','Custom Impression Tray: Light Cured Resin','Impression Tray','auxiliaries','Auxiliaries','PER_ARCH',NULL,'{"selection":"FULL_ARCH","allowedArches":["upper","lower","both"]}')
 ON CONFLICT (sku) DO NOTHING;
 
 INSERT INTO product_catalog(tenant_id,sku,product_name,restoration_category,restoration_subtype,department,accounting_category,tax_status,turnaround_category,category_code,family_code,description,pricing_basis,default_turnaround_business_days,configuration_metadata,compatibility_metadata,metadata)
