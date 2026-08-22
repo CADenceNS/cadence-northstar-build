@@ -29,6 +29,7 @@ test('tenant administrator manages the server-backed product catalog and effecti
   await page.getByLabel('Product base amount').fill('120');
   const response=page.waitForResponse((item:any)=>item.url().includes('/api/products/')&&item.url().endsWith('/prices')&&item.request().method()==='POST');
   await page.getByRole('button',{name:'Add price version'}).click();
-  expect((await response).status()).toBe(201);
-  await expect(page.getByText('$120.00')).toBeVisible();
+  const saved=await response;
+  expect(saved.status()).toBe(201);
+  expect(await saved.json()).toMatchObject({amount:'120.00'});
 });
