@@ -196,6 +196,7 @@ CREATE TABLE product_compatibility_rules (
   CHECK (minimum_quantity IS NULL OR minimum_quantity > 0),
   CHECK (maximum_quantity IS NULL OR maximum_quantity > 0),
   CHECK (minimum_quantity IS NULL OR maximum_quantity IS NULL OR maximum_quantity >= minimum_quantity),
+  UNIQUE (tenant_id,source_product_id,target_product_id,rule_type),
   UNIQUE (tenant_id,id),
   FOREIGN KEY (tenant_id,source_product_id) REFERENCES product_catalog(tenant_id,id),
   FOREIGN KEY (tenant_id,target_product_id) REFERENCES product_catalog(tenant_id,id)
