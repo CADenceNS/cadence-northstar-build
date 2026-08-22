@@ -38,7 +38,7 @@ const requirements:Record<string,Requirement>={
 
 type SqlClient=Client|PoolClient;
 function quoteIdentifier(value:string){return `"${value.replaceAll('"','""')}"`;}
-async function exists(client:SqlClient,relation:string){return Boolean((await client.query<{name:string|null}>('SELECT to_regclass($1) AS name',[relation])).rows[0]?.name);}
+async function exists(client:SqlClient,relation:string){return Boolean((await client.query<{name:string|null}>('SELECT to_regclass(format(\'%I.%I\',current_schema(),$1)) AS name',[relation])).rows[0]?.name);}
 async function hasColumn(client:SqlClient,table:string,column:string){return Boolean((await client.query('SELECT 1 FROM information_schema.columns WHERE table_schema=current_schema() AND table_name=$1 AND column_name=$2',[table,column])).rowCount);}
 async function hasFunction(client:SqlClient,name:string){return Boolean((await client.query('SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname=current_schema() AND p.proname=$1',[name])).rowCount);}
 async function hasTrigger(client:SqlClient,name:string){return Boolean((await client.query('SELECT 1 FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname=current_schema() AND t.tgname=$1 AND NOT t.tgisinternal',[name])).rowCount);}
