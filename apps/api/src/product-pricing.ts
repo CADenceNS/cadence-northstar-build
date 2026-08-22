@@ -58,7 +58,7 @@ async function caseSummary(client:PoolClient,tenantId:string,caseId:string){cons
  if(!clinicalCase)return null;
  const maxDays=Math.max(0,...lines.rows.map(line=>line.turnaround_business_days??0));
  const calculatedDueDate=maxDays?addBusinessDays(dateKey(clinicalCase.received_date),maxDays,new Set(closures.rows.map(item=>dateKey(item.closure_date)))):null;
- return {caseId,total:lines.rows.reduce((sum,line)=>sum+Number(line.line_total),0),lineCount:lines.rowCount??0,turnaroundBusinessDays:maxDays||null,calculatedDueDate,authorizedDueDate:override.rows[0]?.revised_due_date??null,dueDateOverride:override.rows[0]??null};
+ return {caseId,total:lines.rows.reduce((sum,line)=>sum+Number(line.line_total),0),lineCount:lines.rowCount??0,turnaroundBusinessDays:maxDays||null,calculatedDueDate,authorizedDueDate:override.rows[0]?.revised_due_date?dateKey(override.rows[0].revised_due_date):null,dueDateOverride:override.rows[0]??null};
 }
 
 export function installProductPricing(app:Express,deps:{pool:Pool;audit:AuditRepository}){
