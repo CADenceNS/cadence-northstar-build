@@ -29,13 +29,16 @@ The API host must contain the repository build outputs for both browser applicat
 pnpm install --frozen-lockfile
 pnpm --filter @northstar/web build
 pnpm --filter @northstar/api build
-pnpm --filter @northstar/api migrate
 pnpm --filter @northstar/api start
 ```
 
-`migrate` is external and applies the existing migrations `0001` through `0011` in order using `DATABASE_URL`; startup never runs migrations. It fails immediately when a migration fails. Run it once per preview release as a controlled deployment step, not per request.
+`start` first runs the compiled, version-aware migration release step and starts the gateway only after it succeeds. The runner maintains the authoritative `schema_migrations` ledger (version, filename, SHA-256 checksum, timestamp, and execution mode), takes a PostgreSQL advisory lock, verifies applied-file checksums, and applies only ledger-missing migrations in order. A current database performs no DDL on restart; normal web requests never run migrations.
 
-`start` runs `node dist/qc-gateway.js`. The hosting platform supplies `PORT`; set `NORTHSTAR_INTERNAL_UPSTREAM_PORT` to a distinct local port (default `4001`). A collision between the two ports fails startup rather than silently binding the wrong listener. Verify `GET /health` through the public gateway after startup.
+For databases created before the ledger existed, the runner performs a fail-closed structural adoption. It records `0001` through `0010` only when their expected schema fingerprints are complete. It then applies `0011` exactly once when absent; it adopts an already-complete `0011` only after verifying all PP-1A tables, columns, indexes, constraint names, function, trigger, and the 87-row template. A partial or non-contiguous state fails startup with a bounded migration error and is never guessed or repaired by destructive DDL.
+
+`pnpm --filter @northstar/api migrate` remains the same safe, compiled release command for controlled infrastructure use. Do not use raw `psql` files or add migrations to a browser/API request path.
+
+After the guarded release step, `start` runs `node dist/qc-gateway.js`. The hosting platform supplies `PORT`; set `NORTHSTAR_INTERNAL_UPSTREAM_PORT` to a distinct local port (default `4001`). A collision between the two ports fails startup rather than silently binding the wrong listener. Verify `GET /health` through the public gateway after startup.
 
 ## API environment
 
@@ -69,6 +72,8 @@ Vercel can host the static `apps/web` build, but the current app has no separate
 
 ## First owner access and future DNS
 
-For an empty preview database, provision host secrets, run the migrations, start the gateway, then sign in at `https://preview.cadencenorthstar.com` as the existing seeded bootstrap administrator `dorianhabet@yahoo.com` using the host-provided `NORTHSTAR_BOOTSTRAP_PASSWORD`; the password is never placed in source or documentation. Remove the bootstrap variable after the credential is persisted. Confirm `/health`, session cookie issuance, a CSRF-protected mutation, tenant isolation, and Platform Admin commercial access through the single preview origin.
+For an empty preview database, provision host secrets and deploy the normal Git-connected release. The package start command performs the guarded migration release step before the gateway accepts traffic, then sign in at `https://preview.cadencenorthstar.com` as the existing seeded bootstrap administrator `dorianhabet@yahoo.com` using the host-provided `NORTHSTAR_BOOTSTRAP_PASSWORD`; the password is never placed in source or documentation. Remove the bootstrap variable after the credential is persisted. Confirm `/health`, session cookie issuance, a CSRF-protected mutation, tenant isolation, and Platform Admin commercial access through the single preview origin.
+
+For the existing Render owner preview, no owner shell or SQL action is required: after the corrected branch is available, use only Render's ordinary **Deploy latest commit** action if an automatic Git deployment has not already started. The existing start command safely adopts the pre-ledger preview state and applies missing `0011` once; it will refuse a partial state rather than modify data ambiguously.
 
 After a successful private preview deployment, Namecheap may map `preview.cadencenorthstar.com` to the single public gateway. Reserve `api-preview.cadencenorthstar.com` for a future reverse-proxy design only; do not add DNS or deploy it as part of this guide.

@@ -50,9 +50,10 @@ jobs:
         run: pnpm typecheck && pnpm build
       - name: Run Design Studio deterministic geometry suite
         run: pnpm --filter @cadence/design-studio test
-      - name: Apply migrations 0001 through 0011
-        run: |
-          for migration in apps/api/migrations/0001_infrastructure_core.sql apps/api/migrations/0002_repository_documents.sql apps/api/migrations/0003_identity_security.sql apps/api/migrations/0004_clinical_communications.sql apps/api/migrations/0005_digital_intake_platform.sql apps/api/migrations/0006_intake_administration.sql apps/api/migrations/0007_uat_foundation.sql apps/api/migrations/0008_tenant_native_operations.sql apps/api/migrations/0009_commercial_entitlements.sql apps/api/migrations/0010_commercial_activation_licensing.sql apps/api/migrations/0011_product_pricing_case_line_items.sql; do psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$migration"; done
+      - name: Apply versioned migrations 0001 through 0011
+        run: pnpm --filter @northstar/api migrate
+      - name: Validate versioned migration ledger matrix
+        run: pnpm --filter @northstar/api test:migration-runner
       - name: Run inherited persistence, security, communications, and intake contracts
         run: |
           pnpm --filter @northstar/api test:repositories
