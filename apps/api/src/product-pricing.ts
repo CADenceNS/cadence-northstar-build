@@ -45,6 +45,7 @@ function validateConfiguration(product:ProductRow,input:Record<string,unknown>){
   if(componentCount!==null&&(!Number.isFinite(componentCount)||componentCount<=0))return 'Component count must be positive.';
   return null;
 }
+function dateKey(value:unknown){const parsed=new Date(String(value));return Number.isNaN(parsed.getTime())?String(value).slice(0,10):parsed.toISOString().slice(0,10);}
 function addBusinessDays(receivedDate:string,days:number,closures:Set<string>){const result=new Date(`${receivedDate}T12:00:00Z`);let remaining=days;while(remaining>0){result.setUTCDate(result.getUTCDate()+1);const key=result.toISOString().slice(0,10);if(result.getUTCDay()!==0&&result.getUTCDay()!==6&&!closures.has(key))remaining--;}return result.toISOString().slice(0,10);}
 async function currentPrice(client:PoolClient,tenantId:string,productId:string,practiceId:string|null,at:string){const result=await client.query<{id:string;pricing_basis:PricingBasis;amount:string;effective_from:string;effective_until:string|null}>(`SELECT id,pricing_basis,amount,effective_from,effective_until FROM product_price_versions WHERE tenant_id=$1 AND product_id=$2 AND active=true AND effective_from <= $3 AND (effective_until IS NULL OR effective_until > $3) AND (practice_id IS NULL OR practice_id=$4) ORDER BY (practice_id IS NOT NULL) DESC,effective_from DESC LIMIT 1`,[tenantId,productId,at,practiceId]);return result.rows[0]??null;}
 async function assertCase(client:PoolClient,tenantId:string,caseId:string){const result=await client.query<{id:string;practice_id:string;received_date:string}>('SELECT id,practice_id,received_date FROM clinical_cases WHERE tenant_id=$1 AND id=$2 AND deleted_at IS NULL',[tenantId,caseId]);return result.rows[0]??null;}
@@ -56,7 +57,7 @@ async function caseSummary(client:PoolClient,tenantId:string,caseId:string){cons
  ]);
  if(!clinicalCase)return null;
  const maxDays=Math.max(0,...lines.rows.map(line=>line.turnaround_business_days??0));
- const calculatedDueDate=maxDays?addBusinessDays(String(clinicalCase.received_date).slice(0,10),maxDays,new Set(closures.rows.map(item=>String(item.closure_date).slice(0,10)))):null;
+ const calculatedDueDate=maxDays?addBusinessDays(dateKey(clinicalCase.received_date),maxDays,new Set(closures.rows.map(item=>dateKey(item.closure_date)))):null;
  return {caseId,total:lines.rows.reduce((sum,line)=>sum+Number(line.line_total),0),lineCount:lines.rowCount??0,turnaroundBusinessDays:maxDays||null,calculatedDueDate,authorizedDueDate:override.rows[0]?.revised_due_date??null,dueDateOverride:override.rows[0]??null};
 }
 
