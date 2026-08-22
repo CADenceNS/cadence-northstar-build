@@ -1,4 +1,5 @@
 import { ReactNode, useMemo } from 'react';
+import { ProductPricingAdministration } from './ProductPricingAdministration';
 
 export type NorthStarWorkspace =
   | 'dashboard'
@@ -6,6 +7,7 @@ export type NorthStarWorkspace =
   | 'uat'
   | 'intake'
   | 'intake-admin'
+  | 'product-pricing'
   | 'practices'
   | 'doctors'
   | 'patients'
@@ -19,14 +21,14 @@ export type NorthStarWorkspace =
 type NavigationItem = { id: NorthStarWorkspace; label: string; icon: string };
 
 export const workspaceIcons: Record<NorthStarWorkspace, string> = {
-  dashboard: '⌂', ecc: '◈', uat: '✓', intake: '⇩', 'intake-admin': '⌘',
+  dashboard: '⌂', ecc: '◈', uat: '✓', intake: '⇩', 'intake-admin': '⌘', 'product-pricing': '⌁',
   practices: '◫', doctors: '◉', patients: '◎', cases: '▤', production: '⇢',
   qc: '✓', shipping: '➤', billing: '$', commercial: '◌'
 };
 
 const workspaceGroups: Array<{ label: string; items: NorthStarWorkspace[] }> = [
   { label: 'Command Center', items: ['dashboard', 'ecc', 'uat'] },
-  { label: 'Cases / Intake', items: ['intake', 'intake-admin', 'practices', 'doctors', 'patients', 'cases'] },
+  { label: 'Cases / Intake', items: ['intake', 'intake-admin', 'product-pricing', 'practices', 'doctors', 'patients', 'cases'] },
   { label: 'Operations', items: ['production', 'qc', 'shipping', 'billing'] },
   { label: 'Administration', items: ['commercial'] }
 ];
@@ -79,6 +81,7 @@ export function WorkspaceToolPanel({ active, navigation, onNavigate, isPlatformA
   active: NorthStarWorkspace; navigation: NavigationItem[]; onNavigate: (view: NorthStarWorkspace) => void; isPlatformAdmin: boolean;
 }) {
   const group = useMemo(() => workspaceGroups.find(candidate => candidate.items.includes(active)) ?? workspaceGroups[0], [active]);
+  if(active==='product-pricing')return <aside className="ns-tool-panel ns-product-pricing-panel" aria-label="Product and pricing administration"><ProductPricingAdministration/></aside>;
   const items = [...new Set([...group.items, 'practices', 'doctors', 'patients', 'cases'] as NorthStarWorkspace[])]
     .map(id => navigation.find(item => item.id === id)).filter((item): item is NavigationItem => Boolean(item));
   const copy: Record<string, string> = {
@@ -108,7 +111,7 @@ export function WorkspaceToolPanel({ active, navigation, onNavigate, isPlatformA
 
 function workspaceHint(view: NorthStarWorkspace) {
   const hints: Record<NorthStarWorkspace, string> = {
-    dashboard: 'Operational telemetry', ecc: 'Executive analysis', uat: 'Operational checks', intake: 'Digital submissions', 'intake-admin': 'Rules and routing', practices: 'Laboratories & practices', doctors: 'Provider directory', patients: 'Patient records', cases: 'Clinical cases', production: 'Work queues', qc: 'Inspection & release', shipping: 'Dispatch readiness', billing: 'Accounts receivable', commercial: 'Commercial fleet control'
+    dashboard: 'Operational telemetry', ecc: 'Executive analysis', uat: 'Operational checks', intake: 'Digital submissions', 'intake-admin': 'Rules and routing', 'product-pricing': 'Catalog and price books', practices: 'Laboratories & practices', doctors: 'Provider directory', patients: 'Patient records', cases: 'Clinical cases', production: 'Work queues', qc: 'Inspection & release', shipping: 'Dispatch readiness', billing: 'Accounts receivable', commercial: 'Commercial fleet control'
   };
   return hints[view];
 }

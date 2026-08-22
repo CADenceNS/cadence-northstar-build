@@ -33,7 +33,7 @@ pnpm --filter @northstar/api migrate
 pnpm --filter @northstar/api start
 ```
 
-`migrate` is external and applies the existing migrations `0001` through `0010` in order using `DATABASE_URL`; startup never runs migrations. It fails immediately when a migration fails. Run it once per preview release as a controlled deployment step, not per request.
+`migrate` is external and applies the existing migrations `0001` through `0011` in order using `DATABASE_URL`; startup never runs migrations. It fails immediately when a migration fails. Run it once per preview release as a controlled deployment step, not per request.
 
 `start` runs `node dist/qc-gateway.js`. The hosting platform supplies `PORT`; set `NORTHSTAR_INTERNAL_UPSTREAM_PORT` to a distinct local port (default `4001`). A collision between the two ports fails startup rather than silently binding the wrong listener. Verify `GET /health` through the public gateway after startup.
 

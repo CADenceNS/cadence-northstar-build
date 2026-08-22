@@ -15,6 +15,7 @@ import { installCommunications } from './communications.js';
 import { installDigitalIntake } from './digital-intake.js';
 import { installIntakeAdministration } from './intake-administration.js';
 import { installProductCatalogFoundation } from './product-catalog-foundation.js';
+import { installProductPricing } from './product-pricing.js';
 import { installUatFoundation } from './uat.js';
 import { installUatAttachments } from './uat-attachments.js';
 import { installUatIdentityExperience, provisionUatIdentities } from './uat-identity.js';
@@ -58,6 +59,7 @@ const intakeWriters=new Set(['system-administrator','laboratory-administrator','
 app.use('/api/intake',(req:SecurityRequest,res,next)=>{if(!req.identity)return res.status(401).json({error:'Authentication required.'});if(!['GET','HEAD','OPTIONS'].includes(req.method)&&!intakeWriters.has(req.identity.role))return res.status(403).json({error:'Permission denied.'});return next()});
 installIntakeAdministration(app,{pool:durable.pool,audit:durable.repositories.audit});
 installProductCatalogFoundation(app,durable.pool,durable.repositories.audit);
+installProductPricing(app,{pool:durable.pool,audit:durable.repositories.audit});
 const legacyInternalHeaders=()=>({[internalTenantContextHeader]:issueInternalTenantContext({actorId:gatewayContext.actorId,actorName:gatewayContext.actorName,tenantId:gatewayContext.tenantId,laboratoryRole:gatewayContext.actorId==='system'?'system':'laboratory-user',platformRole:'none'})});
 async function createOperationalCase(input:Record<string,unknown>){const response=await fetch(`${upstream}/api/cases`,{method:'POST',headers:{'Content-Type':'application/json',...legacyInternalHeaders()},body:JSON.stringify(input)});if(!response.ok)throw new Error(`Operational case creation failed: ${await response.text()}`);return response.json() as Promise<{id:string;caseNumber:string}>}
 installDigitalIntake(app,{pool:durable.pool,objects:durable.objects,audit:durable.repositories.audit,context:gatewayContext,createOperationalCase});

@@ -17,7 +17,8 @@ const migrations=[
   '0007_uat_foundation.sql',
   '0008_tenant_native_operations.sql',
   '0009_commercial_entitlements.sql',
-  '0010_commercial_activation_licensing.sql'
+  '0010_commercial_activation_licensing.sql',
+  '0011_product_pricing_case_line_items.sql'
 ];
 
 const client=new Client({connectionString:databaseUrl});
@@ -27,7 +28,7 @@ try{
     console.log(`Applying ${migration}`);
     await client.query(await readFile(resolve(migrationDirectory,migration),'utf8'));
   }
-  console.log('Applied migrations 0001 through 0010.');
+  console.log('Applied migrations 0001 through 0011.');
 }finally{
   await client.end();
 }
