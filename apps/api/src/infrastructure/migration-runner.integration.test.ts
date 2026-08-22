@@ -74,7 +74,7 @@ await withSchema(async schema=>{
   await applyRaw(schema,10);
   const client=await clientFor(schema);try{await client.query('CREATE TABLE product_catalog_templates (id bigint PRIMARY KEY)');}finally{await client.end();}
   await assert.rejects(runMigrations({connectionString,schema}),/PARTIAL_0011/);
-  assert.deepEqual(await ledgerVersions(schema),migrations.slice(0,10).map(migration=>migration.version),'partial 0011 must never receive a ledger record');
+  assert.deepEqual(await ledgerVersions(schema),[],'partial 0011 must fail closed before any legacy ledger record is written');
 });
 
 await withSchema(async schema=>{
