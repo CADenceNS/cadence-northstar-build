@@ -38,7 +38,13 @@ async function request(path:string,method='GET',body?:unknown){const response=aw
 
 try {
   const bootstrap=await request('/api/products/bootstrap-template','POST',{});assert.equal(bootstrap.response.status,201);assert.equal(bootstrap.payload.created,87);
+  assert.equal((await pool.query('SELECT count(*)::int count FROM product_catalog_templates')).rows[0]?.count,87);
   const fixed=await request('/api/products?category=FIX');assert.equal(fixed.response.status,200);assert.equal(fixed.payload.length,27);assert.ok(fixed.payload.every((item:{categoryCode:string})=>item.categoryCode==='FIX'));
+  for(const [code,count] of Object.entries({FIX:27,REM:13,IMP:13,ORT:13,SLP:6,DIA:7,SPL:6,AUX:2})){const response=await request(`/api/products?category=${code}`);assert.equal(response.response.status,200);assert.equal(response.payload.length,count);assert.ok(response.payload.every((item:{categoryCode:string})=>item.categoryCode===code));}
+  const unrelatedFamily=await request('/api/products','POST',{sku:'SLP-REJECTED',productName:'Rejected sleep product',description:'Must not inherit a Fixed family.',categoryCode:'SLP',familyCode:'FIX-ZIR',pricingBasis:'PER_PRODUCT'});assert.equal(unrelatedFamily.response.status,400);
+  const tenantSleepFamily=await request('/api/products','POST',{sku:'SLP-CUSTOM',productName:'Tenant sleep product',description:'Tenant-specific sleep appliance.',categoryCode:'SLP',familyCode:'SLP-CUSTOM',pricingBasis:'PER_PRODUCT'});assert.equal(tenantSleepFamily.response.status,201);assert.equal(tenantSleepFamily.payload.categoryCode,'SLP');assert.equal(tenantSleepFamily.payload.familyCode,'SLP-CUSTOM');
+  const invalidFamilyEdit=await request(`/api/products/${tenantSleepFamily.payload.id}`,'PUT',{familyCode:'FIX-ZIR'});assert.equal(invalidFamilyEdit.response.status,400);
+  const validFamilyEdit=await request(`/api/products/${tenantSleepFamily.payload.id}`,'PUT',{familyCode:'SLP-CUSTOM-PLUS'});assert.equal(validFamilyEdit.response.status,200);assert.equal(validFamilyEdit.payload.familyCode,'SLP-CUSTOM-PLUS');
   activeTenant=otherTenant;assert.equal((await request('/api/products/bootstrap-template','POST',{})).response.status,201);const otherFixed=await request('/api/products?category=FIX');const otherZirconia=otherFixed.payload.find((item:{sku:string})=>item.sku==='ZIR-MONO');assert.ok(otherZirconia);activeTenant=tenantId;
   const removable=await request('/api/products?category=REM');assert.equal(removable.payload.length,13);assert.ok(removable.payload.some((item:{sku:string;configuration:Record<string,unknown>})=>item.sku==='PAR-FLP'&&item.configuration.maxTeeth===3));
   const zirconia=fixed.payload.find((item:{sku:string})=>item.sku==='ZIR-MONO');assert.ok(zirconia);
