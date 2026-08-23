@@ -17,10 +17,23 @@ test('tenant administrator manages the server-backed product catalog and effecti
   await login(page);
   await page.getByRole('button',{name:'Product & Pricing'}).click();
   await expect(page.getByRole('heading',{name:'Tenant Product Catalog'})).toBeVisible();
+  const category=page.getByLabel('Product category');
+  const family=page.getByLabel('Custom product family code');
+  for(const [from,to] of [['FIX','SLP'],['FIX','REM'],['REM','IMP'],['IMP','SLP'],['SLP','AUX']] as const){
+    await category.selectOption(from);
+    await family.fill(`${from}-CUSTOM`);
+    const loaded=page.waitForResponse((item:any)=>item.url().includes(`/api/products?category=${to}`));
+    await category.selectOption(to);
+    expect((await loaded).status()).toBe(200);
+    await expect(family).toHaveValue('');
+    await expect(family).toHaveAttribute('placeholder',`${to}-CUSTOM`);
+  }
+  await category.selectOption('FIX');
   const zirconia=page.getByRole('button',{name:/ZIR-MONO/});
   if(await zirconia.count()){await zirconia.click();}else{
     await page.getByLabel('Custom product SKU').fill('PP1A-BROWSER');
     await page.getByLabel('Custom product name').fill('PP-1A Browser Product');
+    await family.fill('FIX-BROWSER');
     await page.getByLabel('Custom product description').fill('Browser validation product.');
     await page.getByRole('button',{name:'Add tenant product'}).click();
     await expect(page.getByRole('button',{name:/PP1A-BROWSER/})).toBeVisible();
