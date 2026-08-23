@@ -21,7 +21,7 @@ export async function loadMigrations(directory=defaultMigrationDirectory):Promis
   }).sort((left,right)=>left.version.localeCompare(right.version)||left.filename.localeCompare(right.filename));
 }
 
-type Requirement={tables?:string[];columns?:Array<[string,string]>;indexes?:string[];functions?:string[];triggers?:string[];constraints?:string[];templateCount?:number};
+type Requirement={tables?:string[];columns?:Array<[string,string]>;indexes?:string[];functions?:string[];triggers?:string[];constraints?:string[];templateCount?:number;templateCopiesForExistingTenants?:boolean};
 const requirements:Record<string,Requirement>={
   '0001':{tables:['tenants','users','practices','doctors','patients','clinical_cases','production_work_items','qc_templates','qc_inspections','shipments','shipment_cases','invoices','invoice_shipments','invoice_lines','invoice_adjustments','payments','monthly_statements','object_records','audit_events'],indexes:['idx_doctors_practice','idx_patients_practice_doctor','idx_cases_status_due','idx_production_queue','idx_qc_case_outcome','idx_shipments_status','idx_invoices_practice_due','idx_audit_entity','idx_objects_owner'],functions:['prevent_audit_mutation'],triggers:['audit_events_no_update']},
   '0002':{tables:['repository_documents','object_payloads'],indexes:['idx_repository_documents_active','idx_repository_documents_payload']},
@@ -33,7 +33,7 @@ const requirements:Record<string,Requirement>={
   '0008':{tables:['tenant_migration_ledger'],columns:[['tenants','status'],['tenants','activation_state'],['tenants','commercial_account_reference'],['identity_memberships','membership_status'],['identity_memberships','platform_role'],['identity_sessions','platform_role']],indexes:['tenants_operational_access_idx','identity_memberships_operational_idx'],constraints:['tenants_status_check','tenants_activation_state_check','identity_memberships_status_check','identity_memberships_platform_role_check','identity_sessions_platform_role_check']},
   '0009':{tables:['tenant_module_entitlements','tenant_module_seat_pools','tenant_module_seat_assignments'],indexes:['tenant_module_active_seat_assignment_idx','tenant_module_seat_assignment_history_idx','tenant_module_entitlement_effective_idx']},
   '0010':{tables:['tenant_activation_credentials'],columns:[['tenants','commercial_activated_at'],['tenants','commercial_suspended_at'],['tenants','commercial_cancelled_at']],indexes:['tenants_commercial_account_reference_idx','tenant_activation_credentials_active_idx','tenant_activation_credentials_history_idx']},
-  '0011':{tables:['product_catalog_templates','product_price_versions','product_compatibility_rules','tenant_business_closure_days','case_product_lines','case_product_line_lineage','case_product_tat_overrides'],columns:[['product_catalog','category_code'],['product_catalog','family_code'],['product_catalog','description'],['product_catalog','pricing_basis'],['product_catalog','default_turnaround_business_days'],['product_catalog','configuration_metadata'],['product_catalog','compatibility_metadata'],['product_catalog','archived_at']],indexes:['product_price_versions_lookup_idx','product_compatibility_active_idx','case_product_lines_case_idx','case_product_tat_overrides_one_active_idx'],functions:['enforce_product_price_version_period'],triggers:['product_price_versions_period_guard'],constraints:['product_catalog_category_code_check','product_catalog_pricing_basis_check','product_catalog_turnaround_check','product_catalog_tenant_id_unique','clinical_cases_tenant_id_unique'],templateCount:87}
+  '0011':{tables:['product_catalog_templates','product_price_versions','product_compatibility_rules','tenant_business_closure_days','case_product_lines','case_product_line_lineage','case_product_tat_overrides'],columns:[['product_catalog','category_code'],['product_catalog','family_code'],['product_catalog','description'],['product_catalog','pricing_basis'],['product_catalog','default_turnaround_business_days'],['product_catalog','configuration_metadata'],['product_catalog','compatibility_metadata'],['product_catalog','archived_at']],indexes:['product_price_versions_lookup_idx','product_compatibility_active_idx','case_product_lines_case_idx','case_product_tat_overrides_one_active_idx'],functions:['enforce_product_price_version_period'],triggers:['product_price_versions_period_guard'],constraints:['product_catalog_category_code_check','product_catalog_pricing_basis_check','product_catalog_turnaround_check','product_catalog_tenant_id_unique','clinical_cases_tenant_id_unique'],templateCount:87,templateCopiesForExistingTenants:true}
 };
 
 type SqlClient=Client|PoolClient;
@@ -59,6 +59,18 @@ export async function inspectMigrationState(client:SqlClient,version:string):Pro
     if(await exists(client,'product_catalog_templates')){
       const row=await client.query<{count:string}>('SELECT count(*)::text AS count FROM product_catalog_templates');
       checks.push(Number(row.rows[0]?.count??0)===requirement.templateCount);
+    }else checks.push(false);
+  }
+  if(requirement.templateCopiesForExistingTenants){
+    if(await exists(client,'tenants')&&await exists(client,'product_catalog')&&await exists(client,'product_catalog_templates')){
+      const row=await client.query<{count:string}>(`SELECT count(*)::text AS count
+        FROM tenants t
+        WHERE t.deleted_at IS NULL
+          AND (SELECT count(DISTINCT p.sku)
+               FROM product_catalog p
+               JOIN product_catalog_templates template ON template.sku=p.sku
+               WHERE p.tenant_id=t.id)<>(SELECT count(*) FROM product_catalog_templates)`);
+      checks.push(Number(row.rows[0]?.count??0)===0);
     }else checks.push(false);
   }
   if(checks.every(Boolean))return 'complete';

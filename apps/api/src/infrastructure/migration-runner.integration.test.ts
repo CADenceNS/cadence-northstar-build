@@ -71,6 +71,13 @@ await withSchema(async schema=>{
 });
 
 await withSchema(async schema=>{
+  await applyRaw(schema,11);
+  const client=await clientFor(schema);try{await client.query("DELETE FROM product_catalog WHERE sku='ZIR-MONO'");}finally{await client.end();}
+  await assert.rejects(runMigrations({connectionString,schema}),/PARTIAL_0011/);
+  assert.deepEqual(await ledgerVersions(schema),[],'a complete-looking 0011 without every existing-tenant template copy must fail closed');
+});
+
+await withSchema(async schema=>{
   await applyRaw(schema,10);
   const client=await clientFor(schema);try{await client.query('CREATE TABLE product_catalog_templates (id bigint PRIMARY KEY)');}finally{await client.end();}
   await assert.rejects(runMigrations({connectionString,schema}),/PARTIAL_0011/);
