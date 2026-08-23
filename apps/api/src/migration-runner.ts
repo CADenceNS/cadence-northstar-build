@@ -62,7 +62,7 @@ export async function inspectMigrationState(client:SqlClient,version:string):Pro
     }else checks.push(false);
   }
   if(requirement.templateCopiesForExistingTenants){
-    if(await exists(client,'tenants')&&await exists(client,'product_catalog')&&await exists(client,'product_catalog_templates')){
+    if(await exists(client,'tenants')&&await exists(client,'product_catalog')&&await exists(client,'product_catalog_templates')&&await hasColumn(client,'product_catalog','sku')&&await hasColumn(client,'product_catalog_templates','sku')){
       const row=await client.query<{count:string}>(`SELECT count(*)::text AS count
         FROM tenants t
         WHERE t.deleted_at IS NULL
