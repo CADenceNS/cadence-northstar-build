@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { calendarDateInTimeZone } from '../../apps/web/src/business-date';
+import { patientIdentity } from '../../apps/web/src/patient-identity';
 
 const email='dorianhabet@yahoo.com';
 const password='NorthStar!2026';
@@ -20,6 +21,15 @@ test('uses calendar DATE values across local-evening and DST boundaries',()=>{
   expect(calendarDateInTimeZone(new Date('2026-03-08T07:30:00.000Z'),'America/Los_Angeles')).toBe('2026-03-07');
   expect(calendarDateInTimeZone(new Date('2026-03-08T10:30:00.000Z'),'America/Los_Angeles')).toBe('2026-03-08');
   expect(calendarDateInTimeZone(new Date('2026-11-01T08:30:00.000Z'),'America/Los_Angeles')).toBe('2026-11-01');
+});
+
+test('formats patient identity without duplicate legacy name references',()=>{
+  expect(patientIdentity({patientReference:'Monalisa Carter',firstName:'Monalisa',lastName:'Carter'})).toBe('Carter, Monalisa');
+  expect(patientIdentity({patientReference:'Carter Monalisa',firstName:'Monalisa',lastName:'Carter'})).toBe('Carter, Monalisa');
+  expect(patientIdentity({patientReference:'Carter, Monalisa',firstName:'Monalisa',lastName:'Carter'})).toBe('Carter, Monalisa');
+  expect(patientIdentity({patientReference:'15',firstName:'Jennifer',lastName:'Plan'})).toBe('15 — Plan, Jennifer');
+  expect(patientIdentity({patientReference:'ML-014',firstName:'Marissa',lastName:'Lugo'})).toBe('ML-014 — Lugo, Marissa');
+  expect(patientIdentity({patientReference:'',firstName:'Maria',lastName:'Lopez'})).toBe('Lopez, Maria');
 });
 
 test('tenant administrator manages the server-backed product catalog and effective price foundation',async({page})=>{
@@ -88,17 +98,29 @@ test('tenant administrator manages the server-backed product catalog and effecti
   }
   const effectiveFrom=page.getByLabel('Product price effective from');
   const localToday=await page.evaluate(()=>{const value=new Date();return `${value.getFullYear()}-${String(value.getMonth()+1).padStart(2,'0')}-${String(value.getDate()).padStart(2,'0')}`;});
+  const futureDate=await page.evaluate(()=>{const value=new Date();value.setDate(value.getDate()+14);return `${value.getFullYear()}-${String(value.getMonth()+1).padStart(2,'0')}-${String(value.getDate()).padStart(2,'0')}`;});
   await expect(effectiveFrom).toHaveValue(localToday);
   await page.getByLabel('Product base amount').fill('120');
-  await effectiveFrom.fill('2026-12-15');
+  await effectiveFrom.fill(localToday);
   const response=page.waitForResponse((item:any)=>item.url().includes('/api/products/')&&item.url().endsWith('/prices')&&item.request().method()==='POST');
   await page.getByRole('button',{name:'Preview price version'}).click();
   await page.getByRole('button',{name:'Confirm price version'}).click();
   const saved=await response;
   expect(saved.status()).toBe(201);
-  expect(await saved.json()).toMatchObject({amount:'120.00',effective_from:'2026-12-15T00:00:00.000Z'});
+  const current=await saved.json();
+  expect(current).toMatchObject({amount:'120.00',effective_from:`${localToday}T00:00:00.000Z`});
+  await expect(page.getByRole('button',{name:/ZIR-MONO|PP1A-BROWSER/})).toContainText(/Current: \$120\.00 \/ (tooth|product)/);
+  await page.getByRole('button',{name:'Create replacement / scheduled price'}).click();
+  await page.getByLabel('Product base amount').fill('135');
+  await effectiveFrom.fill(futureDate);
+  const scheduledResponse=page.waitForResponse((item:any)=>item.url().includes('/api/products/')&&item.url().endsWith('/prices')&&item.request().method()==='POST');
+  await page.getByRole('button',{name:'Preview price version'}).click();
+  await page.getByRole('button',{name:'Confirm price version'}).click();
+  expect((await scheduledResponse).status()).toBe(201);
+  await expect(page.getByRole('button',{name:/ZIR-MONO|PP1A-BROWSER/})).toContainText(/Current: \$120\.00 \/ (tooth|product)/);
+  await expect(page.getByRole('button',{name:/ZIR-MONO|PP1A-BROWSER/})).toContainText(new RegExp(`Scheduled: \\$135\\.00 / (tooth|product) effective ${futureDate}`));
   await page.reload();
   await page.getByRole('button',{name:'Product & Pricing'}).click();
   await page.getByRole('button',{name:/ZIR-MONO|PP1A-BROWSER/}).click();
-  await expect(page.getByText('2026-12-15 → open')).toBeVisible();
+  await expect(page.getByText(`${futureDate} → open`)).toBeVisible();
 });

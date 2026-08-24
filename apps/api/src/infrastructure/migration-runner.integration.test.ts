@@ -53,21 +53,21 @@ await withSchema(async schema=>{
   const products=await clientFor(schema);try{assert.equal((await products.query('SELECT count(*) FROM product_catalog')).rows[0].count,'87');}finally{await products.end();}
   const second=await runMigrations({connectionString,schema});
   assert.deepEqual(second.applied,[],'a second run must apply no DDL');
-  assert.equal(second.skipped.length,11);
+  assert.equal(second.skipped.length,migrations.length);
 });
 
 await withSchema(async schema=>{
   await applyRaw(schema,10);
   const result=await runMigrations({connectionString,schema});
   assert.deepEqual(result.adopted,migrations.slice(0,10).map(migration=>migration.version),'legacy 0001–0010 must be structurally adopted');
-  assert.deepEqual(result.applied,['0011'],'only missing 0011 may execute after legacy adoption');
+  assert.deepEqual(result.applied,['0011','0012'],'only missing post-legacy migrations may execute after legacy adoption');
 });
 
 await withSchema(async schema=>{
   await applyRaw(schema,11);
   const result=await runMigrations({connectionString,schema});
-  assert.deepEqual(result.applied,[]);
-  assert.deepEqual(result.adopted,migrations.map(migration=>migration.version),'a complete untracked 0011 must be adopted without duplicate DDL');
+  assert.deepEqual(result.applied,['0012']);
+  assert.deepEqual(result.adopted,migrations.slice(0,11).map(migration=>migration.version),'a complete untracked 0011 must be adopted before 0012 executes');
 });
 
 await withSchema(async schema=>{
@@ -88,7 +88,7 @@ await withSchema(async schema=>{
   await applyRaw(schema,10);
   await createLedgerThrough(schema,10);
   const result=await runMigrations({connectionString,schema});
-  assert.deepEqual(result.applied,['0011'],'an existing 0001–0010 ledger must execute only 0011');
+  assert.deepEqual(result.applied,['0011','0012'],'an existing 0001–0010 ledger must execute only the missing migrations');
 });
 
 await withSchema(async schema=>{
@@ -108,7 +108,7 @@ await withSchema(async schema=>{
 
 await withSchema(async schema=>{
   const [first,second]=await Promise.all([runMigrations({connectionString,schema}),runMigrations({connectionString,schema})]);
-  assert.deepEqual([first.applied.length,second.applied.length].sort((a,b)=>a-b),[0,11],'the advisory lock must allow exactly one concurrent DDL run');
+  assert.deepEqual([first.applied.length,second.applied.length].sort((a,b)=>a-b),[0,migrations.length],'the advisory lock must allow exactly one concurrent DDL run');
 });
 
 console.log('Versioned migration ledger fresh/repeat/legacy/partial/checksum/failure/concurrency matrix passed.');

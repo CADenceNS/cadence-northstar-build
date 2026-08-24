@@ -60,9 +60,35 @@ test('uses the authoritative patient name in Case Intake selectors', async ({ pa
   await page.getByRole('button', { name: 'Create patient' }).click();
   await expect((await createPatient).status()).toBe(201);
 
+  await page.getByLabel('Patient reference').fill('Monalisa Carter');
+  await page.getByLabel('Patient first name').fill('Monalisa');
+  await page.getByLabel('Patient last name').fill('Carter');
+  const createDuplicateReference = page.waitForResponse(response => response.url().endsWith('/api/patients') && response.request().method() === 'POST');
+  await page.getByRole('button', { name: 'Create patient' }).click();
+  await expect((await createDuplicateReference).status()).toBe(201);
+  await expect(page.getByText('Monalisa Carter — Carter, Monalisa')).toHaveCount(0);
+  await expect(page.getByText('Carter, Monalisa', { exact: true })).toBeVisible();
+
+  await page.getByLabel('Patient first name').fill('Maria');
+  await page.getByLabel('Patient last name').fill('Lopez');
+  const createBlankReference = page.waitForResponse(response => response.url().endsWith('/api/patients') && response.request().method() === 'POST');
+  await page.getByRole('button', { name: 'Create patient' }).click();
+  await expect((await createBlankReference).status()).toBe(201);
+  await expect(page.getByText('Lopez, Maria', { exact: true })).toBeVisible();
+
+  await page.getByLabel('Patient first name').fill('Elena');
+  await page.getByLabel('Patient last name').fill('Ruiz');
+  const createSecondBlankReference = page.waitForResponse(response => response.url().endsWith('/api/patients') && response.request().method() === 'POST');
+  await page.getByRole('button', { name: 'Create patient' }).click();
+  await expect((await createSecondBlankReference).status()).toBe(201);
+  await expect(page.getByText('Ruiz, Elena', { exact: true })).toBeVisible();
+
   await page.getByRole('button', { name: 'Cases' }).click();
   await expect(page.getByRole('heading', { name: 'Case Intake' })).toBeVisible();
   await expect(page.getByLabel('Case patient').locator('option')).toContainText('F7-IDENTITY — Lugo, Marissa');
+  await expect(page.getByLabel('Case patient').locator('option')).toContainText('Carter, Monalisa');
+  await expect(page.getByLabel('Case patient').locator('option')).not.toContainText('Monalisa Carter — Carter, Monalisa');
+  await expect(page.getByLabel('Case patient').locator('option')).toContainText('Lopez, Maria');
   await expect(page.getByLabel('Shade')).toHaveAttribute('placeholder', 'e.g., A2');
   await expect(page.getByLabel('Prescription notes')).toHaveAttribute('placeholder', 'e.g., Verify proximal contacts; return with model');
 
