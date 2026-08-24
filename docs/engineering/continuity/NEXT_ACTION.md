@@ -22,6 +22,17 @@ This is a permanent scope/reconciliation update only. It does not authorize Prod
 Pricing implementation, replace any existing requirement, alter the approved UI or Design
 Studio geometry, or authorize CF-1B/Sprint 26.
 
+## Supplemental permanent operations-chain requirement captured
+
+`END_TO_END_DENTAL_LAB_CRM_OPERATIONAL_CHAIN_REQUIREMENTS.md` is the authoritative capture
+of the owner-provided end-to-end dental laboratory CRM operational chain. It preserves the
+connected Logistics Intake → Doctor Prescription → Product Selection → Case Product → Production
+→ Accounting & Receivables → Reconciliation architecture and the parallel Clinic Supply process.
+All listed Logistics, NEW/REMAKE/REPAIR, PP-1B, Production/MES, PP-1C, accounting, reconciliation,
+credit-control, and Clinic Supply capabilities are PLANNED only. This record does not interrupt
+or broaden PP-1A-F6, modify its source/tests/migrations, change PR #42 or Render, or authorize
+implementation of any additional module.
+
 ## VIS-2C final certification
 
 VIS-2C is **OWNER APPROVED / CERTIFIED / MERGED** via PR #41. Owner-approved product
