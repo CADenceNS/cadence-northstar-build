@@ -63,8 +63,10 @@ test('tenant administrator manages the server-backed product catalog and effecti
   await configuration.selectOption('FULL_ARCH');
   await turnaround.fill('12');
   await description.fill('Must clear after successful creation.');
+  await page.getByRole('button',{name:'Preview product'}).click();
+  await expect(page.getByText('PP-1A reset validation product')).toBeVisible();
   const created=page.waitForResponse((item:any)=>item.url().endsWith('/api/products')&&item.request().method()==='POST');
-  await page.getByRole('button',{name:'Add tenant product'}).click();
+  await page.getByRole('button',{name:'Confirm & save'}).click();
   expect((await created).status()).toBe(201);
   await expect(sku).toHaveValue('');
   await expect(productName).toHaveValue('');
@@ -79,7 +81,8 @@ test('tenant administrator manages the server-backed product catalog and effecti
     await page.getByLabel('Custom product name').fill('PP-1A Browser Product');
     await family.fill('FIX-BROWSER');
     await page.getByLabel('Custom product description').fill('Browser validation product.');
-    await page.getByRole('button',{name:'Add tenant product'}).click();
+    await page.getByRole('button',{name:'Preview product'}).click();
+    await page.getByRole('button',{name:'Confirm & save'}).click();
     await expect(page.getByRole('button',{name:/PP1A-BROWSER/})).toBeVisible();
     await page.getByRole('button',{name:/PP1A-BROWSER/}).click();
   }
@@ -89,7 +92,8 @@ test('tenant administrator manages the server-backed product catalog and effecti
   await page.getByLabel('Product base amount').fill('120');
   await effectiveFrom.fill('2026-12-15');
   const response=page.waitForResponse((item:any)=>item.url().includes('/api/products/')&&item.url().endsWith('/prices')&&item.request().method()==='POST');
-  await page.getByRole('button',{name:'Add price version'}).click();
+  await page.getByRole('button',{name:'Preview price version'}).click();
+  await page.getByRole('button',{name:'Confirm price version'}).click();
   const saved=await response;
   expect(saved.status()).toBe(201);
   expect(await saved.json()).toMatchObject({amount:'120.00',effective_from:'2026-12-15T00:00:00.000Z'});
