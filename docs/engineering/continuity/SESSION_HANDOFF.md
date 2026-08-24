@@ -34,11 +34,22 @@ owner approval. No geometry, security, entitlement, seat, or API behavior change
 
 1. `docs/engineering/continuity/CURRENT_STATE.md`
 2. `docs/engineering/continuity/SESSION_HANDOFF.md`
-3. `docs/engineering/continuity/NEXT_ACTION.md`
-4. `docs/engineering/continuity/MASTER_BUILD_ROADMAP.md`
-5. `docs/engineering/continuity/FEATURE_STATUS_MATRIX.md`
-6. `docs/engineering/continuity/ENGINEERING_GUARDRAILS.md`
-7. `docs/engineering/continuity/CERTIFICATION_LEDGER.md`
+3. `docs/engineering/continuity/END_TO_END_DENTAL_LAB_CRM_OPERATIONAL_CHAIN_REQUIREMENTS.md`
+4. `docs/engineering/continuity/NEXT_ACTION.md`
+5. `docs/engineering/continuity/MASTER_BUILD_ROADMAP.md`
+6. `docs/engineering/continuity/FEATURE_STATUS_MATRIX.md`
+7. `docs/engineering/continuity/ENGINEERING_GUARDRAILS.md`
+8. `docs/engineering/continuity/CERTIFICATION_LEDGER.md`
+
+## Supplemental permanent operations-chain scope
+
+The owner-provided End-to-End Dental Lab CRM Operational Chain is permanently preserved in
+`END_TO_END_DENTAL_LAB_CRM_OPERATIONAL_CHAIN_REQUIREMENTS.md`. It is a PLANNED connected
+architecture only: logistics intake, immutable NEW/REMAKE/REPAIR lineage, prescription-driven
+tenant Product Catalog selection, PP-1B Case Product Lines, extensible production routing/MES,
+PP-1C billing lineage, separate linked invoices/shipments, derived statements/reconciliation,
+tenant-configurable credit policy, and an independent Clinic Supply workflow. Do not implement
+or fold this scope into PP-1A-F6 without a later explicit NEXT_ACTION authorization.
 
 ## Verified baseline
 
