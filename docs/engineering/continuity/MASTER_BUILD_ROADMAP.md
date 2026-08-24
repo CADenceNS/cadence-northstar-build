@@ -20,6 +20,17 @@ A fourth layer sits above them:
 
 The commercial layer governs access and commercial relationships; it does not replace tenant operational systems.
 
+## Permanent NorthStar operations-chain scope
+
+`END_TO_END_DENTAL_LAB_CRM_OPERATIONAL_CHAIN_REQUIREMENTS.md` preserves the owner-provided
+future operational chain: Logistics Intake → Doctor Prescription → Product Selection → Case
+Product → Production → Accounting & Receivables → Reconciliation, with Clinic Supply as a
+parallel workflow. It requires immutable NEW/REMAKE/REPAIR parent lineage; prescription-driven
+tenant product selection; one authoritative Case Product Line model; tenant/product-extensible
+manufacturing routing; separate-but-linked shipments and invoices; auditable accounting and
+reconciliation; configurable credit policy; and independent Clinic Supply records. All of this
+scope is PLANNED and does not authorize implementation or alter the current PP-1A-F6 task.
+
 ## Current and near-term order
 
 ### VIS-2C-F2 — Foundation Lock / Feature Coverage Reconciliation
