@@ -50,7 +50,7 @@ jobs:
         run: pnpm typecheck && pnpm build
       - name: Run Design Studio deterministic geometry suite
         run: pnpm --filter @cadence/design-studio test
-      - name: Apply versioned migrations 0001 through 0011
+      - name: Apply versioned migrations 0001 through 0012
         run: pnpm --filter @northstar/api migrate
       - name: Validate versioned migration ledger matrix
         run: pnpm --filter @northstar/api test:migration-runner
@@ -70,12 +70,14 @@ jobs:
         run: |
           pnpm --filter @northstar/api test:uat
           pnpm --filter @northstar/api test:uat-attachments
-      - name: Validate migrations 0010/0011 rollback and reapplication
+      - name: Validate migrations 0010/0011/0012 rollback and reapplication
         run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0012_patient_reference_optional.rollback.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0011_product_pricing_case_line_items.rollback.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0010_commercial_activation_licensing.rollback.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0010_commercial_activation_licensing.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0011_product_pricing_case_line_items.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0012_patient_reference_optional.sql
       - name: Start secure application services
         run: |
           pnpm --filter @northstar/api dev > /tmp/sprint13a-api.log 2>&1 &
@@ -92,7 +94,7 @@ jobs:
           set -euo pipefail
           LOGIN=$(curl -fsS -c /tmp/session-cookie -X POST http://127.0.0.1:4000/api/auth/login -H 'Content-Type: application/json' -d '{"email":"tenant.owner@keramos-uat.example","password":"NorthStar!2026-UAT","rememberMe":true}')
           CSRF=$(python -c 'import json,sys;print(json.load(sys.stdin)["csrfToken"])' <<<"$LOGIN")
-          curl -fsS -b /tmp/session-cookie http://127.0.0.1:4000/api/system/information | grep '"migrationVersion":"0011"'
+          curl -fsS -b /tmp/session-cookie http://127.0.0.1:4000/api/system/information | grep '"migrationVersion":"0012"'
           curl -fsS -b /tmp/session-cookie -X POST http://127.0.0.1:4000/api/uat/seed -H 'Content-Type: application/json' -H "X-CSRF-Token: $CSRF" -d '{}' | grep '240'
           curl -fsS -b /tmp/session-cookie http://127.0.0.1:4000/api/uat/readiness | grep 'buildVersion'
       - name: Install Chromium

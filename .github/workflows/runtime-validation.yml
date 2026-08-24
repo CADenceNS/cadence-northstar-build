@@ -50,7 +50,7 @@ jobs:
         run: pnpm typecheck && pnpm build
       - name: Run Design Studio deterministic geometry suite
         run: pnpm --filter @cadence/design-studio test
-      - name: Apply versioned migrations 0001 through 0011
+      - name: Apply versioned migrations 0001 through 0012
         run: pnpm --filter @northstar/api migrate
       - name: Validate versioned migration ledger matrix
         run: pnpm --filter @northstar/api test:migration-runner
