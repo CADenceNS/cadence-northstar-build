@@ -4,6 +4,24 @@ Status values are restricted to: `CERTIFIED_PRODUCTION`, `IMPLEMENTED_PENDING_CE
 
 This matrix describes repository evidence as of 2026-08-21. Commercial vision is not implementation evidence.
 
+## Supplemental End-to-End Dental Lab CRM operational chain
+
+The complete owner-provided scope is preserved in
+`END_TO_END_DENTAL_LAB_CRM_OPERATIONAL_CHAIN_REQUIREMENTS.md`. The following are future
+requirements, not implementation claims.
+
+| Operations-chain capability | Status | Evidence / boundary |
+|---|---|---|
+| Inbound logistics, pickup, carrier, barcode, physical/hybrid intake | PLANNED | No carrier or inbound SCM implementation is authorized by this capture. |
+| NEW / REMAKE / REPAIR parent-case lineage and reason codes | PLANNED | Original case must remain immutable; terminology and responsibility policies are tenant-configurable. |
+| Prescription → tenant product → Case Product Line integration | PLANNED | PP-1B must use the authoritative tenant catalog and must not create a duplicate case-product list. |
+| Product-specific digital/analog/hybrid manufacturing routing | PLANNED | Routing, stations, dependencies, release, and capacity must remain tenant/product-extensible. |
+| Production / MES stations, labor, barcode, QC release/history | PLANNED | No Production/MES expansion is authorized. |
+| PP-1B Case Builder | PLANNED | Category/product eligibility, configuration, compatible stacking, pricing, TAT, preview, then saved Case Product Lines. |
+| PP-1C billing, invoice/shipment, and accounting lineage | PLANNED | Product → Case Product Line → Production Case → Invoice Line → Invoice → Statement; shipment remains a separate linked entity. |
+| Statements, reconciliation, credit control | PLANNED | Statement balances derive from financial events; credit policy and financial responsibility are tenant-configurable. |
+| Clinic Supply parallel workflow | PLANNED | Supply Request → Allocation/Picking → Dispatch → Delivery; may consolidate shipment operationally without merging records. |
+
 | VIS-2C approved foundation | CERTIFIED_PRODUCTION | PR #41 merged as `bb50dfc8dc344b4e2cf173620c79bc342754c85f`; owner-approved v4.2-derived NorthStar workspace, current CADence Design Studio, Design Studio entitlement/seat correction, and Intake Administration rail restoration; owner visual acceptance PASS; CI/Runtime/Sprint #638/#403/#297 and 51/51 browser passes. Future foundational UI changes are additive-only with explicit owner approval. |
 
 ## VIS-2C-F2 supplemental Product & Pricing / Case Configuration reconciliation
