@@ -1,5 +1,19 @@
 # Sprint 25 Requirement Compliance
 
+## Supplemental End-to-End Dental Lab CRM operational-chain requirement
+
+The owner-provided operational chain is preserved in full in
+`END_TO_END_DENTAL_LAB_CRM_OPERATIONAL_CHAIN_REQUIREMENTS.md`. It is permanent future scope,
+not completion evidence: Logistics Intake → Doctor Prescription → Product Selection → Case
+Product → Production → Accounting & Receivables → Reconciliation, with Clinic Supply parallel.
+Its required authoritative lineage is Practice/Doctor → Prescription → Case → Case Product
+Line(s) → Production → QC → Shipment → Invoice Line(s) → Invoice → Statement → Payment /
+Reconciliation. Implementation must preserve separate but linked Logistics, Inventory, Supply,
+and Commercial domains; immutable historical records; tenant isolation; and auditability.
+
+This capture does not authorize PP-1B, PP-1C, Logistics, carrier, Production/MES, Clinic Supply,
+or accounting implementation. It does not broaden PP-1A-F6 source or change Design Studio.
+
 ## VIS-2C-F2 supplemental Product & Pricing / Case Configuration requirement
 
 The owner-approved supplemental requirement is preserved in full, verbatim, at
