@@ -33,11 +33,12 @@ export interface Patient { id:string; practiceId:string; doctorId:string; patien
 export type PatientInput = Omit<Patient,'id'|'createdAt'|'updatedAt'>;
 export interface CaseAttachment { id:string; caseId:string; kind:AttachmentKind; fileName:string; mimeType:string; size:number; contentBase64:string; uploadedAt:string; }
 export interface CaseJourneyResponsibility { responsibilityCategory:CaseResponsibility; clinicPercentage:string; labPercentage:string; confirmedBy:string; confirmedAt:string; notes:string; evidenceReferences:string[]; }
+export type CaseJourneyResponsibilityInput=Omit<CaseJourneyResponsibility,'confirmedBy'|'confirmedAt'>;
 export interface CaseJourneyReason { id:string; code:string; category:string; label:string; active:boolean; suggestedResponsibility:CaseResponsibility|null; }
 export interface ContinuationStage { id:string; code:string; label:string; active:boolean; }
 export interface ContinuationBillingPolicy { id:string; policyType:ContinuationBillingPolicyType; label:string; active:boolean; isDefault:boolean; metadata:Record<string,unknown>; }
 export interface ClinicalCase { id:string; caseNumber:string; patientId:string; practiceId:string; doctorId:string; status:CaseStatus; toothNumbers:number[]; arch:ArchSelection; restoration:string; material:string; shade:string; stumpShade:string; rushPriority:RushPriority; receivedDate:string; dueDate:string; prescriptionNotes:string; attachments:CaseAttachment[]; createdAt:string; updatedAt:string; caseRelationship?:CaseRelationship; rootCaseId?:string; parentCaseId?:string|null; remakeRepairReasonId?:string|null; continuationStageId?:string|null; continuationOperationalState?:ContinuationOperationalState|null; continuationBillingPolicyId?:string|null; responsibility?:CaseJourneyResponsibility|null; }
-export type ClinicalCaseInput = Omit<ClinicalCase,'id'|'caseNumber'|'dueDate'|'attachments'|'createdAt'|'updatedAt'>;
+export type ClinicalCaseInput = Omit<ClinicalCase,'id'|'caseNumber'|'dueDate'|'attachments'|'createdAt'|'updatedAt'|'responsibility'>&{responsibility?:CaseJourneyResponsibilityInput|null};
 export interface AttachmentInput { kind:AttachmentKind; fileName:string; mimeType:string; size:number; contentBase64:string; }
 export interface Technician { id:string; name:string; departments:ProductionDepartment[]; status:EntityStatus; }
 export interface ProductionHistoryEntry { id:string; workItemId:string; fromDepartment:ProductionDepartment|null; toDepartment:ProductionDepartment; status:ProductionStatus; technicianId:string|null; note:string; occurredAt:string; actorId:string; actorName:string; }
