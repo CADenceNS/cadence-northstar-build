@@ -137,3 +137,14 @@ Remote publication recovery preserves the owner-approved VIS-2C source. Product-
 `0a97ac83d860f264dcd3248134b20ce541140031`, tree `72c1abe673a3663ec2e446b83da6407aa984f078`.
 Local/remote product-source equivalence is PASS. This is continuity reconciliation only; Product & Pricing
 requirements remain preserved and unimplemented.
+
+## PP-1A-F9 final certification overlay
+
+PR #42 is **OWNER APPROVED / CERTIFIED / MERGED**. Approved product head/tree:
+`35f97b54cd9480f052f3f1606d538b4fee2a5a75` /
+`7ce5859d9bd746825ac0e4374a5ae313f15f2907`; merge/main:
+`396b2837176bcc86187457e3403a0f91b99f8d40` with the same tree. CI #672, Runtime
+#437, Sprint #331, and Runtime/Sprint Playwright 54/54 passed. Owner visual
+approval covers Patient Management, Case Intake identity, Product & Pricing
+visibility, and the approved shell; Design Studio is unchanged. The PP-1B
+handoff is future-only and is preserved in `PP-1A_F9_FINAL_CERTIFICATION.md`.

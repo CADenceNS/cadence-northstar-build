@@ -75,3 +75,14 @@ This continuity repair does not implement CF-1, Sprint 26, or any product featur
 VIS-2C-R1 confirms remote reconciliation: product-certified head `fbddd1e557ede27a2e7e51ebba0b314a2a32d284`,
 remote merge `bb50dfc8dc344b4e2cf173620c79bc342754c85f`, and verified remote tip
 `0a97ac83d860f264dcd3248134b20ce541140031` (tree `72c1abe673a3663ec2e446b83da6407aa984f078`).
+
+## PP-1A-F9 completed; PP-1B is next
+
+PP-1A is **OWNER APPROVED / CERTIFIED / MERGED** via PR #42. Approved product
+head/tree: `35f97b54cd9480f052f3f1606d538b4fee2a5a75` /
+`7ce5859d9bd746825ac0e4374a5ae313f15f2907`; merge/main:
+`396b2837176bcc86187457e3403a0f91b99f8d40` with the same tree. CI #672,
+Runtime #437, Sprint #331, and Runtime/Sprint Playwright 54/54 passed. Owner
+visual approval is PASS. PP-1B is the next authorized implementation and must
+use the PP-1A tenant Product Catalog as its sole product authority; handoff
+requirements are in `PP-1A_F9_FINAL_CERTIFICATION.md`.

@@ -97,3 +97,13 @@ The local recovery source and actual remote repository are reconciled. `PRODUCT_
 `0a97ac83d860f264dcd3248134b20ce541140031` with tree `72c1abe673a3663ec2e446b83da6407aa984f078`.
 Local/remote product-source equivalence is PASS; post-merge changes are continuity documentation only.
 `VIS-2C = OWNER APPROVED / CERTIFIED / MERGED / REMOTE RECONCILED` and `OWNER_VISUAL_ACCEPTANCE = PASS`.
+
+## PP-1A-F9 current certified state
+
+PP-1A is **OWNER APPROVED / CERTIFIED / MERGED**. PR #42 product head/tree:
+`35f97b54cd9480f052f3f1606d538b4fee2a5a75` /
+`7ce5859d9bd746825ac0e4374a5ae313f15f2907`; merge/main:
+`396b2837176bcc86187457e3403a0f91b99f8d40` with the same tree. CI #672, Runtime
+#437, Sprint #331, and Runtime/Sprint Playwright 54/54 passed. Owner visual
+approval is PASS; Design Studio is unchanged. PP-1B is next authorized future
+scope; no PP-1B or PP-1C implementation is present.

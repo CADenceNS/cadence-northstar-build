@@ -156,3 +156,16 @@ Additional governed values—global/cusp/fossa thickness, cement and marginal ra
 - `LAST_REPOSITORY_HEAD_VERIFIED`: remote `main` `0a97ac83d860f264dcd3248134b20ce541140031`; tree `72c1abe673a3663ec2e446b83da6407aa984f078`.
 - Local/remote product-source equivalence: **PASS**; remote publication and merged main preserve the owner-approved product/runtime source, with later changes limited to continuity documentation.
 - Outcome: **VIS-2C = OWNER APPROVED / CERTIFIED / MERGED / REMOTE RECONCILED**; `OWNER_VISUAL_ACCEPTANCE = PASS`.
+
+## PP-1A-F9 — final owner approval and merge
+
+- Owner-approved product source: `35f97b54cd9480f052f3f1606d538b4fee2a5a75`.
+- Product tree: `7ce5859d9bd746825ac0e4374a5ae313f15f2907`.
+- PR #42 normal merge: `396b2837176bcc86187457e3403a0f91b99f8d40`.
+- Resulting `origin/main` tree: `7ce5859d9bd746825ac0e4374a5ae313f15f2907`.
+- Exact-head evidence: CI #672 PASS; Runtime #437 PASS; Sprint #331 PASS;
+  Runtime Playwright 54/54; Sprint Playwright 54/54.
+- Owner visual approval: PASS; Design Studio unchanged.
+- Outcome: **PP-1A = OWNER APPROVED / CERTIFIED / MERGED**.
+- PP-1B handoff is future-only and is recorded in
+  `PP-1A_F9_FINAL_CERTIFICATION.md`.

@@ -79,3 +79,17 @@ the GitHub merge is `bb50dfc8dc344b4e2cf173620c79bc342754c85f`; and the verified
 `0a97ac83d860f264dcd3248134b20ce541140031` with tree `72c1abe673a3663ec2e446b83da6407aa984f078`.
 Local/remote product-source equivalence is PASS. `VIS-2C = OWNER APPROVED / CERTIFIED / MERGED /
 REMOTE RECONCILED`; `OWNER_VISUAL_ACCEPTANCE = PASS`.
+
+## PP-1A-F9 handoff
+
+PP-1A is **OWNER APPROVED / CERTIFIED / MERGED** via PR #42. Approved product
+head/tree: `35f97b54cd9480f052f3f1606d538b4fee2a5a75` /
+`7ce5859d9bd746825ac0e4374a5ae313f15f2907`; merge/main:
+`396b2837176bcc86187457e3403a0f91b99f8d40` with the same tree. CI #672,
+Runtime #437, Sprint #331, and Runtime/Sprint Playwright 54/54 passed. Owner
+visual approval is PASS; no PP-1B/PP-1C implementation was included.
+
+The next authorized implementation is **PP-1B — Intelligent Case Builder & Product
+Selection Workflow**. Preserve NEW/REMAKE/REPAIR/CONTINUATION parent/root lineage,
+tenant-configurable responsibility, and continuation billing. Full requirements
+are in `PP-1A_F9_FINAL_CERTIFICATION.md`.

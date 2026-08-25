@@ -80,3 +80,12 @@ The Product & Pricing classifications remain unchanged and PP-1A is the next aut
 |---|---|---|
 | Dynamic Pricing Engine | PLANNED | Advisory cost/margin/rush/market guidance only; approved tenant Product Price Version records remain the sole billing authority. |
 | Labor Efficiency Scoring | PLANNED | Future technician validation and operational analytics; no production scoring, payroll, or labor-authority implementation exists. |
+
+## PP-1A-F9 final certification
+
+PP-1A is **CERTIFIED_PRODUCTION / OWNER APPROVED / MERGED** via PR #42. Product
+head/tree: `35f97b54cd9480f052f3f1606d538b4fee2a5a75` /
+`7ce5859d9bd746825ac0e4374a5ae313f15f2907`; merge/main:
+`396b2837176bcc86187457e3403a0f91b99f8d40` with the same tree. CI #672, Runtime
+#437, Sprint #331, and Runtime/Sprint Playwright 54/54 passed. PP-1B remains
+future scope; see `PP-1A_F9_FINAL_CERTIFICATION.md`.

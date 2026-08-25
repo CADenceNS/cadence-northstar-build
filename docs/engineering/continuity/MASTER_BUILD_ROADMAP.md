@@ -166,3 +166,13 @@ not billing authority or implementation authorization for PP-1A-F7:
   training opportunities, and performance analysis by work type. This is future operational
   analytics and must not be introduced as production scoring or compensation authority without
   separately approved governance, privacy, and audit requirements.
+
+## PP-1A-F9 final certification and PP-1B handoff
+
+PP-1A is **OWNER APPROVED / CERTIFIED / MERGED** via PR #42. Approved source:
+`35f97b54cd9480f052f3f1606d538b4fee2a5a75`, tree
+`7ce5859d9bd746825ac0e4374a5ae313f15f2907`; merge/main:
+`396b2837176bcc86187457e3403a0f91b99f8d40` with the same tree. CI #672, Runtime
+#437, Sprint #331, and Runtime/Sprint Playwright 54/54 passed. See
+`PP-1A_F9_FINAL_CERTIFICATION.md` for the owner approval record and future-only
+PP-1B Case Relationship handoff.
