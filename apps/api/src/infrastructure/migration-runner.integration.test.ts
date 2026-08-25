@@ -77,6 +77,7 @@ await withSchema(async schema=>{
     await client.query("INSERT INTO tenants(id,name) VALUES($1,'Journey migration tenant')",[tenant]);
     await client.query("INSERT INTO repository_documents(tenant_id,entity_type,entity_id,payload) VALUES($1,'case','legacy-case',$2::jsonb)",[tenant,JSON.stringify({patientId:'legacy-patient',practiceId:'legacy-practice',doctorId:'legacy-doctor'})]);
   }finally{await client.end();}
+  await createLedgerThrough(schema,12);
   const result=await runMigrations({connectionString,schema});assert.deepEqual(result.applied,['0013']);
   const verified=await clientFor(schema);try{const row=await verified.query<{case_relationship:string;root_case_id:string;parent_case_id:string|null}>('SELECT case_relationship,root_case_id,parent_case_id FROM case_journey_cases WHERE case_id=$1',['legacy-case']);assert.deepEqual(row.rows[0],{case_relationship:'NEW',root_case_id:'legacy-case',parent_case_id:null});}finally{await verified.end();}
 });
