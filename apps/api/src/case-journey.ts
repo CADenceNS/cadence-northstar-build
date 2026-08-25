@@ -1,10 +1,10 @@
 import type { Express, Request, Response } from 'express';
-import type { CaseRelationship, CaseResponsibility, ClinicalCase, ClinicalCaseInput, ContinuationBillingPolicyType, ContinuationOperationalState } from '@northstar/shared';
+import type { CaseJourneyResponsibility, CaseRelationship, CaseResponsibility, ClinicalCase, ClinicalCaseInput, ContinuationBillingPolicyType, ContinuationOperationalState } from '@northstar/shared';
 import type { Pool } from 'pg';
 import type { RepositoryContext } from './infrastructure/contracts.js';
 
 type JourneyInput=Pick<ClinicalCaseInput,'caseRelationship'|'parentCaseId'|'remakeRepairReasonId'|'continuationStageId'|'continuationOperationalState'|'continuationBillingPolicyId'|'responsibility'>;
-type PreparedJourney={caseRelationship:CaseRelationship;rootCaseId:string;parentCaseId:string|null;remakeRepairReasonId:string|null;continuationStageId:string|null;continuationOperationalState:ContinuationOperationalState|null;continuationBillingPolicyId:string|null;responsibility:ClinicalCase['responsibility'];};
+type PreparedJourney={caseRelationship:CaseRelationship;rootCaseId:string;parentCaseId:string|null;remakeRepairReasonId:string|null;continuationStageId:string|null;continuationOperationalState:ContinuationOperationalState|null;continuationBillingPolicyId:string|null;responsibility:CaseJourneyResponsibility|null;};
 const relationships=new Set<CaseRelationship>(['NEW','REMAKE','REPAIR','CONTINUATION']);
 const responsibilityKinds=new Set<CaseResponsibility>(['LABORATORY','DOCTOR_PRACTICE','SHARED','PATIENT_EXTERNAL','OTHER_REQUIRES_REVIEW']);
 const continuationStates=new Set<ContinuationOperationalState>(['AWAITING_CLINICAL_TRY_IN','AWAITING_RETURN','CONTINUATION_RECEIVED','WORK_RESUMED']);
@@ -36,7 +36,7 @@ export async function prepareCaseJourney(pool:Pool,context:RepositoryContext,cas
   if(parent.rows[0]!.patient_id!==text(body.patientId))throw new Error('Parent case must belong to the selected patient.');
   if(parent.rows[0]!.practice_id!==text(body.practiceId)||parent.rows[0]!.doctor_id!==text(body.doctorId))throw new Error('Parent case must belong to the selected practice and doctor.');
   const rootCaseId=parent.rows[0]!.root_case_id;
-  let reasonId:string|null=null,stageId:string|null=null,state:ContinuationOperationalState|null=null,policyId:string|null=null,responsibility:ClinicalCase['responsibility']=null;
+  let reasonId:string|null=null,stageId:string|null=null,state:ContinuationOperationalState|null=null,policyId:string|null=null,responsibility:CaseJourneyResponsibility|null=null;
   if(relationship==='REMAKE'||relationship==='REPAIR'){
     reasonId=text(body.remakeRepairReasonId);if(!reasonId)throw new Error('A controlled remake/repair reason is required.');
     const reason=await pool.query('SELECT 1 FROM tenant_case_journey_reasons WHERE tenant_id=$1 AND id=$2 AND active=true',[context.tenantId,reasonId]);if(!reason.rowCount)throw new Error('Selected remake/repair reason is unavailable.');
