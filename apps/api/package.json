@@ -6,13 +6,14 @@
   "scripts": {
     "dev": "tsx watch src/qc-gateway.ts",
     "build": "tsc -p tsconfig.json",
-    "start": "node dist/qc-gateway.js",
+    "start": "node dist/migrate.js && node dist/qc-gateway.js",
     "migrate": "node dist/migrate.js",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
     "test:repositories": "tsx src/infrastructure/repository-contract.test.ts",
     "test:postgres-repositories": "tsx src/infrastructure/postgres-repository.integration.test.ts",
     "test:migrations": "tsx src/infrastructure/migration-contract.test.ts",
+    "test:migration-runner": "tsx src/infrastructure/migration-runner.integration.test.ts",
     "test:security": "tsx src/security.integration.test.ts",
     "test:tenant-context": "tsx src/trusted-tenant-context.test.ts",
     "test:tenant-native": "tsx src/tenant-native.integration.test.ts",
@@ -20,6 +21,7 @@
     "test:commercial-licensing": "tsx src/commercial-licensing.integration.test.ts",
     "test:communications": "tsx src/communications.integration.test.ts",
     "test:digital-intake": "tsx src/digital-intake.integration.test.ts",
+    "test:product-pricing": "tsx src/product-pricing.integration.test.ts",
     "test:uat": "tsx src/uat.integration.test.ts",
     "test:uat-attachments": "tsx src/uat-attachments.integration.test.ts"
   },

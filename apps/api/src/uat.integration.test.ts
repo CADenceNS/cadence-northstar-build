@@ -20,7 +20,7 @@ const server=app.listen(0);await once(server,'listening');const address=server.a
 async function request(path:string,init:RequestInit={}){const response=await fetch(`${base}${path}`,{...init,headers:{'Content-Type':'application/json',...(init.headers||{})}});const body=response.status===204?null:await response.json();return{response,body}}
 
 try{
- const information=await request('/api/system/information');assert.equal(information.response.status,200);assert.equal(information.body.migrationVersion,'0010');
+ const information=await request('/api/system/information');assert.equal(information.response.status,200);assert.equal(information.body.migrationVersion,'0012');
  const deniedInfo=await request('/api/system/information',{headers:{'x-test-role':'doctor'}});assert.equal(deniedInfo.response.status,403);
  const plan=await request('/api/uat/plans',{method:'POST',body:JSON.stringify({name:'Role Routing',module:'Authentication',description:'Validate landing routes.'})});assert.equal(plan.response.status,201);const planId=plan.body.id;
  const testCase=await request(`/api/uat/plans/${planId}/cases`,{method:'POST',body:JSON.stringify({title:'Doctor sees scoped case dashboard',expectedResult:'Doctor reaches the case workspace and cannot view another Practice.',relatedModule:'Authorization',priority:'critical',severity:'critical',steps:['Login','Open Cases']})});assert.equal(testCase.response.status,201);

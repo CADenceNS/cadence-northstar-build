@@ -73,3 +73,10 @@ head is `fbddd1e557ede27a2e7e51ebba0b314a2a32d284`; remote merge head is
 `bb50dfc8dc344b4e2cf173620c79bc342754c85f`; and verified remote `main` is
 `0a97ac83d860f264dcd3248134b20ce541140031` with tree `72c1abe673a3663ec2e446b83da6407aa984f078`.
 The Product & Pricing classifications remain unchanged and PP-1A is the next authorized implementation.
+
+## PP-1A-F7 future-planned owner requirements
+
+| Capability | Status | Boundary |
+|---|---|---|
+| Dynamic Pricing Engine | PLANNED | Advisory cost/margin/rush/market guidance only; approved tenant Product Price Version records remain the sole billing authority. |
+| Labor Efficiency Scoring | PLANNED | Future technician validation and operational analytics; no production scoring, payroll, or labor-authority implementation exists. |

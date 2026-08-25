@@ -48,6 +48,14 @@ The next authorized action is PP-1A — Product Catalog, Pricing Foundation & Ca
 Line-Item Architecture, using the preserved Product & Pricing requirement file. PP-1A is not
 started in VIS-2C.
 
+## PP-1A-F7 future-planned scope record
+
+Dynamic Pricing Engine and Labor Efficiency Scoring are recorded as PLANNED only. Dynamic
+Pricing may later provide advisory cost, margin, rush, and market guidance, but must not alter
+authoritative tenant Product Price Version billing records without explicit approval. Labor
+Efficiency Scoring is future technician validation and operational analytics scope; it is not
+implemented by PP-1A-F7.
+
 ## Authority and source identity
 
 The complete line-by-line ledger is `docs/design-studio/SPRINT_25_COMPLIANCE_MATRIX.json`:

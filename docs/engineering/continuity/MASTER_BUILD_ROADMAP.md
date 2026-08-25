@@ -152,3 +152,17 @@ to the certified product head `fbddd1e557ede27a2e7e51ebba0b314a2a32d284`; remote
 `bb50dfc8dc344b4e2cf173620c79bc342754c85f`. The verified remote tip is
 `0a97ac83d860f264dcd3248134b20ce541140031` (tree `72c1abe673a3663ec2e446b83da6407aa984f078`).
 PP-1A remains the next authorized implementation; no Product & Pricing code is included here.
+
+## PP-1A-F7 future-planned pricing and operations analytics
+
+The following owner-requested capabilities are permanently recorded as **PLANNED** and are
+not billing authority or implementation authorization for PP-1A-F7:
+
+- **Dynamic Pricing Engine**: advisory AI/rules-based cost calculation, material/labor/overhead
+  breakdowns, rush multipliers, margin analysis, market-range guidance, and suggested pricing.
+  The authoritative billing amount remains the approved tenant Product Price Version record
+  until an explicit later authorization changes that contract.
+- **Labor Efficiency Scoring**: technician validation tracking, efficiency indicators,
+  training opportunities, and performance analysis by work type. This is future operational
+  analytics and must not be introduced as production scoring or compensation authority without
+  separately approved governance, privacy, and audit requirements.
