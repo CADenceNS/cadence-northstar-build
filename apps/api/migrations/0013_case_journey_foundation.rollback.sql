@@ -1,0 +1,11 @@
+BEGIN;
+DROP TRIGGER IF EXISTS case_journey_cycle_guard ON case_journey_cases;
+DROP TRIGGER IF EXISTS case_journey_responsibility_guard ON case_journey_responsibilities;
+DROP FUNCTION IF EXISTS prevent_case_journey_cycle();
+DROP FUNCTION IF EXISTS prevent_case_journey_responsibility_mutation();
+DROP TABLE IF EXISTS case_journey_responsibilities;
+DROP TABLE IF EXISTS case_journey_cases;
+DROP TABLE IF EXISTS tenant_continuation_billing_policies;
+DROP TABLE IF EXISTS tenant_continuation_stages;
+DROP TABLE IF EXISTS tenant_case_journey_reasons;
+COMMIT;

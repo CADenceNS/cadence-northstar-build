@@ -72,6 +72,13 @@ not included in VIS-2C; no CF-1B or Sprint 26 work is authorized.
 
 This continuity repair does not implement CF-1, Sprint 26, or any product feature. It does not rerun private-corpus certification.
 
+## PP-1B-F1 active action
+
+PP-1B-F1 Case Journey Foundation is now the bounded active Draft-PR action. It is
+limited to persistent case lineage, tenant-controlled journey catalogs, explicit
+responsibility decisions, and the progressive Case Intake foundation. PP-1B-F2 and
+PP-1C remain unauthorized until owner approval.
+
 VIS-2C-R1 confirms remote reconciliation: product-certified head `fbddd1e557ede27a2e7e51ebba0b314a2a32d284`,
 remote merge `bb50dfc8dc344b4e2cf173620c79bc342754c85f`, and verified remote tip
 `0a97ac83d860f264dcd3248134b20ce541140031` (tree `72c1abe673a3663ec2e446b83da6407aa984f078`).

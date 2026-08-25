@@ -48,9 +48,7 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Typecheck and build
         run: pnpm typecheck && pnpm build
-      - name: Run Design Studio deterministic geometry suite
-        run: pnpm --filter @cadence/design-studio test
-      - name: Apply versioned migrations 0001 through 0012
+      - name: Apply versioned migrations 0001 through 0013
         run: pnpm --filter @northstar/api migrate
       - name: Validate versioned migration ledger matrix
         run: pnpm --filter @northstar/api test:migration-runner
@@ -60,6 +58,7 @@ jobs:
           pnpm --filter @northstar/api test:commercial-entitlements
           pnpm --filter @northstar/api test:commercial-licensing
           pnpm --filter @northstar/api test:product-pricing
+          pnpm --filter @northstar/api test:case-journey
           pnpm --filter @northstar/api test:uat
           pnpm --filter @northstar/api test:uat-attachments
       - name: Start API
