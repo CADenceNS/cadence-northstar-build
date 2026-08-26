@@ -9,6 +9,7 @@ const pool=new Pool({connectionString});
 const tenantId='00000000-0000-0000-0000-000000000016';
 const otherTenantId='00000000-0000-0000-0000-000000000017';
 const practiceId='00000000-0000-0000-0000-000000000116';
+const legacyRepositoryPracticeId='practice-1';
 const caseId=randomUUID();
 
 async function catalogProduct(tenant:string,sku:string){const result=await pool.query<{id:string;category_code:string}>('SELECT id,category_code FROM product_catalog WHERE tenant_id=$1 AND sku=$2',[tenant,sku]);assert.ok(result.rows[0],`Missing catalog product ${sku}.`);return result.rows[0]!;}
@@ -29,8 +30,9 @@ try{
   assert.deepEqual(await loadTenantClosureDates(pool,tenantId),['2026-08-10']);
   assert.throws(()=>calendarDate('2026-02-30','tenant closure date'),/valid YYYY-MM-DD/);
   const fixed=await prepareCaseProductLines(pool,tenantId,{practiceId,receivedDate:'2026-08-07',productLines:[{productId:zirconia.id,categoryCode:'FIX',quantity:1,arch:'upper',toothNumbers:[8],configuration:{shade:'A2'}}]});
+  const legacyPracticeFixed=await prepareCaseProductLines(pool,tenantId,{practiceId:legacyRepositoryPracticeId,receivedDate:'2026-08-07',productLines:[{productId:zirconia.id,categoryCode:'FIX',quantity:1,arch:'upper',toothNumbers:[8],configuration:{shade:'A2'}}]});
   await assert.rejects(prepareCaseProductLines(pool,tenantId,{practiceId,receivedDate:'2026-08-07',productLines:[{productId:unpriced.id,categoryCode:'FIX',quantity:1,arch:'upper',toothNumbers:[8]}]}),/PRICE NOT CONFIGURED/);
-  assert.equal(fixed.lines[0]?.unitPrice,99);assert.equal(fixed.lines[0]?.lineTotal,99);assert.equal(fixed.lines[0]?.familyCode,'FIX-ZIR');assert.equal(fixed.turnaroundBusinessDays,10);assert.equal(fixed.calculatedDueDate,'2026-08-24');
+  assert.equal(fixed.lines[0]?.unitPrice,99);assert.equal(legacyPracticeFixed.lines[0]?.unitPrice,99);assert.equal(fixed.lines[0]?.lineTotal,99);assert.equal(fixed.lines[0]?.familyCode,'FIX-ZIR');assert.equal(fixed.turnaroundBusinessDays,10);assert.equal(fixed.calculatedDueDate,'2026-08-24');
   const removable=await prepareCaseProductLines(pool,tenantId,{practiceId,receivedDate:'2026-08-07',productLines:[{productId:denture.id,categoryCode:'REM',quantity:1,arch:'both',configuration:{toothShadeMold:'A2'}},{productId:abutment.id,categoryCode:'IMP',quantity:1,arch:'upper',toothNumbers:[8],configuration:{implantSystem:'Megagen'}}]});
   assert.equal(removable.lines.length,2);assert.equal(removable.subtotal,975);assert.equal(removable.turnaroundBusinessDays,14);assert.equal(removable.calculatedDueDate,'2026-08-28');
   await pool.query('INSERT INTO tenant_business_closure_days(tenant_id,closure_date,label,created_by) VALUES($1,\'2026-08-20\',\'Second closure\',\'case-builder-test\'),($1,\'2026-08-21\',\'Due-date closure\',\'case-builder-test\')',[tenantId]);

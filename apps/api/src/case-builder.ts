@@ -34,7 +34,11 @@ function validateConfiguration(product:ProductRow,line:CaseProductLineInput){
 }
 function fallbackTat(category:ProductCategoryCode){return category==='FIX'?10:['REM','IMP','SLP'].includes(category)?14:null;}
 function addBusinessDays(receivedDate:string,days:number,closures:Set<string>){const result=new Date(`${calendarDate(receivedDate,'received date')}T12:00:00Z`);let remaining=days;while(remaining>0){result.setUTCDate(result.getUTCDate()+1);const key=result.toISOString().slice(0,10);if(result.getUTCDay()!==0&&result.getUTCDay()!==6&&!closures.has(key))remaining--;}return result.toISOString().slice(0,10);}
-async function currentPrice(db:Pool|PoolClient,tenantId:string,productId:string,practiceId:string,receivedDate:string){const result=await db.query<PriceRow>('SELECT id,pricing_basis,amount FROM product_price_versions WHERE tenant_id=$1 AND product_id=$2 AND active=true AND effective_from <= $3::date AND (effective_until IS NULL OR effective_until > $3::date) AND (practice_id IS NULL OR practice_id=$4) ORDER BY (practice_id IS NOT NULL) DESC,effective_from DESC LIMIT 1',[tenantId,productId,receivedDate,practiceId]);return result.rows[0]??null;}
+// Case Journey records may retain a repository-backed practice key while a price
+// override is stored against PostgreSQL's UUID practice identifier. Comparing the
+// nullable override as text preserves an exact UUID match when one exists and lets
+// a legacy key use the tenant-wide price without asking PostgreSQL to coerce it.
+async function currentPrice(db:Pool|PoolClient,tenantId:string,productId:string,practiceId:string,receivedDate:string){const result=await db.query<PriceRow>('SELECT id,pricing_basis,amount FROM product_price_versions WHERE tenant_id=$1 AND product_id=$2 AND active=true AND effective_from <= $3::date AND (effective_until IS NULL OR effective_until > $3::date) AND (practice_id IS NULL OR practice_id::text=$4) ORDER BY (practice_id IS NOT NULL) DESC,effective_from DESC LIMIT 1',[tenantId,productId,receivedDate,practiceId]);return result.rows[0]??null;}
 
 export async function loadTenantClosureDates(db:Pool|PoolClient,tenantId:string){
   // PostgreSQL DATE is a calendar day. Project it as text before it enters the
