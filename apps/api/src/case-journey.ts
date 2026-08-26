@@ -47,8 +47,8 @@ export async function prepareCaseJourney(pool:Pool,context:RepositoryContext,cas
     stageId=text(body.continuationStageId);if(!stageId)throw new Error('A continuation stage is required.');
     const stage=await pool.query('SELECT 1 FROM tenant_continuation_stages WHERE tenant_id=$1 AND id=$2 AND active=true',[context.tenantId,stageId]);if(!stage.rowCount)throw new Error('Selected continuation stage is unavailable.');
     const supplied=text(body.continuationOperationalState);if(!continuationStates.has(supplied as ContinuationOperationalState))throw new Error('A continuation operational state is required.');state=supplied as ContinuationOperationalState;
-    policyId=text(body.continuationBillingPolicyId);if(!policyId){const defaultPolicy=await pool.query<{id:string}>('SELECT id FROM tenant_continuation_billing_policies WHERE tenant_id=$1 AND active=true AND is_default=true',[context.tenantId]);policyId=defaultPolicy.rows[0]?.id??'';}
-    const policy=await pool.query('SELECT 1 FROM tenant_continuation_billing_policies WHERE tenant_id=$1 AND id=$2 AND active=true',[context.tenantId,policyId]);if(!policy.rowCount)throw new Error('A tenant continuation billing policy is required.');
+    const defaultPolicy=await pool.query<{id:string}>('SELECT id FROM tenant_continuation_billing_policies WHERE tenant_id=$1 AND active=true AND is_default=true LIMIT 1',[context.tenantId]);policyId=defaultPolicy.rows[0]?.id??'';
+    if(!policyId)throw new Error('Tenant continuation billing policy is not configured.');
   }
   return{caseRelationship:relationship,rootCaseId,parentCaseId:parentId,remakeRepairReasonId:reasonId,continuationStageId:stageId,continuationOperationalState:state,continuationBillingPolicyId:policyId||null,responsibility};
 }
