@@ -115,3 +115,18 @@ PP-1B implementation. Its status is **PARTIAL / awaiting exact-head validation a
 owner Render review**. It adds no PP-1B-F2 Product Catalog Case Builder, PP-1C,
 Logistics, MES, Clinic Supply, or Design Studio work. See
 `PP-1B_F1_IMPLEMENTATION_STATUS.md`.
+
+
+## PP-1B-F1 final state and F2A handoff
+
+PP-1B-F1 Case Journey Foundation is OWNER APPROVED / CERTIFIED / MERGED via PR #44.
+Owner-approved product head/tree: b55348ea8d0822ff1e23d40a97d6e54176e7d760 /
+d7425b1fee5ee2aee374b68727c913f0177d0a94. Merge/main product commit:
+c38d404ee87131fa49166b77d9f9e24c0f1c8cfa; the merged product tree is unchanged.
+Pre-merge CI #692, Runtime #457, Sprint #351, and Playwright 55/55 passed. Owner
+visual approval is PASS; Design Studio is unchanged.
+
+The next authorized future scope is PP-1B-F2A — Authoritative Product Catalog Case
+Builder, Dynamic Product Configuration, Multi-Product Stacking, TAT, and Case
+Lifecycle Foundation. It is not implemented here. See
+PP-1B_F2A_AUTHORIZED_HANDOFF.md for the permanent requirements and exclusions.

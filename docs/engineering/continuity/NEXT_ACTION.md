@@ -93,3 +93,17 @@ Runtime #437, Sprint #331, and Runtime/Sprint Playwright 54/54 passed. Owner
 visual approval is PASS. PP-1B is the next authorized implementation and must
 use the PP-1A tenant Product Catalog as its sole product authority; handoff
 requirements are in `PP-1A_F9_FINAL_CERTIFICATION.md`.
+
+
+## PP-1B-F1 merged; PP-1B-F2A is next
+
+PP-1B-F1 is OWNER APPROVED / CERTIFIED / MERGED via PR #44. The owner-approved
+product head is b55348ea8d0822ff1e23d40a97d6e54176e7d760 with product tree
+d7425b1fee5ee2aee374b68727c913f0177d0a94. The normal merge commit is
+c38d404ee87131fa49166b77d9f9e24c0f1c8cfa. CI #692, Runtime #457, Sprint #351,
+and Playwright 55/55 passed before merge; owner visual approval is PASS.
+
+The exact next authorized scope is PP-1B-F2A — Authoritative Product Catalog Case
+Builder, Dynamic Product Configuration, Multi-Product Stacking, TAT, and Case
+Lifecycle Foundation. The complete scope lock is recorded in
+PP-1B_F2A_AUTHORIZED_HANDOFF.md. Do not begin F2A or PP-1C in the F1 merge task.

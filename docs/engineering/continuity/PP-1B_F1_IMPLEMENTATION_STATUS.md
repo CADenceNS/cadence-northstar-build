@@ -44,3 +44,18 @@ responsibility. PR status and owner preview approval remain external evidence.
   Production, QC, Shipment, Invoice Line, Invoice, Statement, and Payment /
   Reconciliation. Product value remains distinct from warranty/remake responsibility
   adjustments; no invoice or statement automation is introduced here.
+
+
+## Final F1 certification
+
+PP-1B-F1 is OWNER APPROVED / CERTIFIED / MERGED via PR #44. Owner-approved product
+head/tree: b55348ea8d0822ff1e23d40a97d6e54176e7d760 /
+d7425b1fee5ee2aee374b68727c913f0177d0a94. Merge commit:
+c38d404ee87131fa49166b77d9f9e24c0f1c8cfa. CI #692, Runtime #457, Sprint #351,
+and Playwright 55/55 passed; owner visual approval is PASS.
+
+F2A is not implemented by this commit. Its complete authorized scope, including the
+single Product Catalog authority, cascading builder, configuration metadata, stacked
+Case Product Lines, arch/tooth semantics, TAT, hold/release, cancellation, future Case
+Number, Doctor Account, tax profile, and PP-1C billing lineage, is recorded in
+PP-1B_F2A_AUTHORIZED_HANDOFF.md.

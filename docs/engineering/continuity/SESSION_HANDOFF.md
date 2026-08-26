@@ -93,3 +93,18 @@ The next authorized implementation is **PP-1B — Intelligent Case Builder & Pro
 Selection Workflow**. Preserve NEW/REMAKE/REPAIR/CONTINUATION parent/root lineage,
 tenant-configurable responsibility, and continuation billing. Full requirements
 are in `PP-1A_F9_FINAL_CERTIFICATION.md`.
+
+
+## PP-1B-F1 final certification and PP-1B-F2A handoff
+
+PR #44 is OWNER APPROVED / CERTIFIED / MERGED. Exact owner-approved product head/tree:
+b55348ea8d0822ff1e23d40a97d6e54176e7d760 /
+d7425b1fee5ee2aee374b68727c913f0177d0a94. Normal merge commit:
+c38d404ee87131fa49166b77d9f9e24c0f1c8cfa. CI #692, Runtime #457, Sprint #351,
+and Playwright 55/55 passed on the approved product head; no private corpus or
+geometry certification was run. No code outside the approved F1 tree was added.
+
+Next Action is PP-1B-F2A — Authoritative Product Catalog Case Builder, Dynamic Product
+Configuration, Multi-Product Stacking, TAT, and Case Lifecycle Foundation. The full
+permanent scope is in PP-1B_F2A_AUTHORIZED_HANDOFF.md. F2A and PP-1C remain unstarted
+until separately authorized.
