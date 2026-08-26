@@ -5,17 +5,18 @@ const password='NorthStar!2026';
 
 async function login(page:any){
   await page.goto('/');await page.getByLabel('Email').fill(email);await page.getByLabel('Password').fill(password);
-  const response=page.waitForResponse((item:any)=>item.url().endsWith('/api/auth/login')&&item.request().method()==='POST');await page.getByRole('button',{name:'Sign in'}).click();expect((await response).status()).toBe(200);
+  const response=page.waitForResponse((item:any)=>item.url().endsWith('/api/auth/login')&&item.request().method()==='POST');await page.getByRole('button',{name:'Sign in'}).click();expect((await response).status()).toBe(200);await expect.poll(()=>page.evaluate(()=>sessionStorage.getItem('northstar.csrf')??'')).not.toBe('');
 }
 
 async function configureCaseBuilderProduct(page:any){
   const sku=`F2A1-E2E-${Date.now()}`;
-  return page.evaluate(async (productSku:string)=>{
-    const request=async(url:string,body:Record<string,unknown>)=>{const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});if(!response.ok)throw new Error(await response.text());return response.json();};
-    const product=await request('/api/products',{sku:productSku,productName:'F2A1 Browser Zirconia',description:'Case Builder browser validation product.',categoryCode:'FIX',familyCode:'FIX-E2E',pricingBasis:'PER_TOOTH',defaultTurnaroundBusinessDays:10,configuration:{selection:'SINGLE_TOOTH',allowedArches:['upper','lower']}});
-    await request(`/api/products/${product.id}/prices`,{pricingBasis:'PER_TOOTH',amount:'99.00',effectiveFrom:'2000-01-01',effectiveUntil:null,versionNote:'Case Builder browser test price'});
-    return product.id as string;
-  },sku);
+  const csrfToken=await page.evaluate(()=>sessionStorage.getItem('northstar.csrf')??'');expect(csrfToken).not.toBe('');
+  const requestUrl=(path:string)=>new URL(path,page.url()).toString();
+  const productInput={sku,productName:'F2A1 Browser Zirconia',description:'Case Builder browser validation product.',categoryCode:'FIX',familyCode:'FIX-E2E',pricingBasis:'PER_TOOTH',defaultTurnaroundBusinessDays:10,configuration:{selection:'SINGLE_TOOTH',allowedArches:['upper','lower']}};
+  const missingToken=await page.context().request.post(requestUrl('/api/products'),{data:productInput});expect(missingToken.status()).toBe(403);
+  const created=await page.context().request.post(requestUrl('/api/products'),{headers:{'X-CSRF-Token':csrfToken},data:productInput});expect(created.status()).toBe(201);const product=await created.json() as {id:string};
+  const price=await page.context().request.post(requestUrl(`/api/products/${product.id}/prices`),{headers:{'X-CSRF-Token':csrfToken},data:{pricingBasis:'PER_TOOTH',amount:'99.00',effectiveFrom:'2000-01-01',effectiveUntil:null,versionNote:'Case Builder browser test price'}});expect(price.status()).toBe(201);
+  return product.id;
 }
 
 async function addCaseProductLine(page:any,productId:string){
