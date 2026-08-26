@@ -6,6 +6,10 @@ export type EntityStatus = 'active' | 'inactive';
 export type CommunicationType = 'call' | 'email' | 'meeting' | 'note';
 export type ArchSelection = 'maxillary' | 'mandibular' | 'both' | 'not-applicable';
 export type RushPriority = 'standard' | 'rush';
+export type CaseRelationship = 'NEW' | 'REMAKE' | 'REPAIR' | 'CONTINUATION';
+export type CaseResponsibility = 'LABORATORY' | 'DOCTOR_PRACTICE' | 'SHARED' | 'PATIENT_EXTERNAL' | 'OTHER_REQUIRES_REVIEW';
+export type ContinuationOperationalState = 'AWAITING_CLINICAL_TRY_IN' | 'AWAITING_RETURN' | 'CONTINUATION_RECEIVED' | 'WORK_RESUMED';
+export type ContinuationBillingPolicyType = 'BILL_AT_FINAL_COMPLETION' | 'BILL_BY_MILESTONE' | 'BILL_EVERY_CONTINUATION' | 'HYBRID';
 export type AttachmentKind = 'stl' | 'obj' | 'ply' | 'dicom-cbct' | 'rx' | 'photo';
 export type ProductionDepartment = 'receiving' | 'case-review' | 'model' | 'cad' | 'manufacturing' | 'ceramics' | 'qc' | 'shipping';
 export type ProductionStatus = 'queued' | 'in-progress' | 'blocked' | 'completed';
@@ -28,8 +32,13 @@ export type DoctorInput = Omit<Doctor,'id'|'communicationHistory'|'createdAt'|'u
 export interface Patient { id:string; practiceId:string; doctorId:string; patientReference:string; firstName:string; lastName:string; dateOfBirth:string; status:EntityStatus; notes:string; createdAt:string; updatedAt:string; }
 export type PatientInput = Omit<Patient,'id'|'createdAt'|'updatedAt'>;
 export interface CaseAttachment { id:string; caseId:string; kind:AttachmentKind; fileName:string; mimeType:string; size:number; contentBase64:string; uploadedAt:string; }
-export interface ClinicalCase { id:string; caseNumber:string; patientId:string; practiceId:string; doctorId:string; status:CaseStatus; toothNumbers:number[]; arch:ArchSelection; restoration:string; material:string; shade:string; stumpShade:string; rushPriority:RushPriority; receivedDate:string; dueDate:string; prescriptionNotes:string; attachments:CaseAttachment[]; createdAt:string; updatedAt:string; }
-export type ClinicalCaseInput = Omit<ClinicalCase,'id'|'caseNumber'|'dueDate'|'attachments'|'createdAt'|'updatedAt'>;
+export interface CaseJourneyResponsibility { responsibilityCategory:CaseResponsibility; clinicPercentage:string; labPercentage:string; confirmedBy:string; confirmedAt:string; notes:string; evidenceReferences:string[]; }
+export type CaseJourneyResponsibilityInput=Omit<CaseJourneyResponsibility,'confirmedBy'|'confirmedAt'>;
+export interface CaseJourneyReason { id:string; code:string; category:string; label:string; active:boolean; suggestedResponsibility:CaseResponsibility|null; }
+export interface ContinuationStage { id:string; code:string; label:string; active:boolean; }
+export interface ContinuationBillingPolicy { id:string; policyType:ContinuationBillingPolicyType; label:string; active:boolean; isDefault:boolean; metadata:Record<string,unknown>; }
+export interface ClinicalCase { id:string; caseNumber:string; patientId:string; practiceId:string; doctorId:string; status:CaseStatus; toothNumbers:number[]; arch:ArchSelection; restoration:string; material:string; shade:string; stumpShade:string; rushPriority:RushPriority; receivedDate:string; dueDate:string; prescriptionNotes:string; attachments:CaseAttachment[]; createdAt:string; updatedAt:string; caseRelationship?:CaseRelationship; journeyAvailable?:boolean; rootCaseId?:string; parentCaseId?:string|null; remakeRepairReasonId?:string|null; continuationStageId?:string|null; continuationOperationalState?:ContinuationOperationalState|null; continuationBillingPolicyId?:string|null; responsibility?:CaseJourneyResponsibility|CaseJourneyResponsibilityInput|null; }
+export type ClinicalCaseInput = Omit<ClinicalCase,'id'|'caseNumber'|'dueDate'|'attachments'|'createdAt'|'updatedAt'|'responsibility'|'journeyAvailable'>&{responsibility?:CaseJourneyResponsibilityInput|null};
 export interface AttachmentInput { kind:AttachmentKind; fileName:string; mimeType:string; size:number; contentBase64:string; }
 export interface Technician { id:string; name:string; departments:ProductionDepartment[]; status:EntityStatus; }
 export interface ProductionHistoryEntry { id:string; workItemId:string; fromDepartment:ProductionDepartment|null; toDepartment:ProductionDepartment; status:ProductionStatus; technicianId:string|null; note:string; occurredAt:string; actorId:string; actorName:string; }

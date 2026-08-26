@@ -60,14 +60,26 @@ await withSchema(async schema=>{
   await applyRaw(schema,10);
   const result=await runMigrations({connectionString,schema});
   assert.deepEqual(result.adopted,migrations.slice(0,10).map(migration=>migration.version),'legacy 0001–0010 must be structurally adopted');
-  assert.deepEqual(result.applied,['0011','0012'],'only missing post-legacy migrations may execute after legacy adoption');
+  assert.deepEqual(result.applied,['0011','0012','0013'],'only missing post-legacy migrations may execute after legacy adoption');
 });
 
 await withSchema(async schema=>{
   await applyRaw(schema,11);
   const result=await runMigrations({connectionString,schema});
-  assert.deepEqual(result.applied,['0012']);
+  assert.deepEqual(result.applied,['0012','0013']);
   assert.deepEqual(result.adopted,migrations.slice(0,11).map(migration=>migration.version),'a complete untracked 0011 must be adopted before 0012 executes');
+});
+
+await withSchema(async schema=>{
+  await applyRaw(schema,12);
+  const client=await clientFor(schema);try{
+    const tenant='00000000-0000-0000-0000-000000000099';
+    await client.query("INSERT INTO tenants(id,name) VALUES($1,'Journey migration tenant')",[tenant]);
+    await client.query("INSERT INTO repository_documents(tenant_id,entity_type,entity_id,payload) VALUES($1,'case','legacy-case',$2::jsonb)",[tenant,JSON.stringify({patientId:'legacy-patient',practiceId:'legacy-practice',doctorId:'legacy-doctor'})]);
+  }finally{await client.end();}
+  await createLedgerThrough(schema,12);
+  const result=await runMigrations({connectionString,schema});assert.deepEqual(result.applied,['0013']);
+  const verified=await clientFor(schema);try{const row=await verified.query<{case_relationship:string;root_case_id:string;parent_case_id:string|null}>('SELECT case_relationship,root_case_id,parent_case_id FROM case_journey_cases WHERE case_id=$1',['legacy-case']);assert.deepEqual(row.rows[0],{case_relationship:'NEW',root_case_id:'legacy-case',parent_case_id:null});}finally{await verified.end();}
 });
 
 await withSchema(async schema=>{
@@ -88,7 +100,7 @@ await withSchema(async schema=>{
   await applyRaw(schema,10);
   await createLedgerThrough(schema,10);
   const result=await runMigrations({connectionString,schema});
-  assert.deepEqual(result.applied,['0011','0012'],'an existing 0001–0010 ledger must execute only the missing migrations');
+  assert.deepEqual(result.applied,['0011','0012','0013'],'an existing 0001–0010 ledger must execute only the missing migrations');
 });
 
 await withSchema(async schema=>{

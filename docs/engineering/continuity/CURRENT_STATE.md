@@ -107,3 +107,11 @@ PP-1A is **OWNER APPROVED / CERTIFIED / MERGED**. PR #42 product head/tree:
 #437, Sprint #331, and Runtime/Sprint Playwright 54/54 passed. Owner visual
 approval is PASS; Design Studio is unchanged. PP-1B is next authorized future
 scope; no PP-1B or PP-1C implementation is present.
+
+## PP-1B-F1 Case Journey Foundation — in progress
+
+The `feature/pp-1b-case-journey-foundation` Draft-PR work is the only authorized
+PP-1B implementation. Its status is **PARTIAL / awaiting exact-head validation and
+owner Render review**. It adds no PP-1B-F2 Product Catalog Case Builder, PP-1C,
+Logistics, MES, Clinic Supply, or Design Studio work. See
+`PP-1B_F1_IMPLEMENTATION_STATUS.md`.

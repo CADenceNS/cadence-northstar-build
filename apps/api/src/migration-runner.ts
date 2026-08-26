@@ -10,7 +10,7 @@ export interface MigrationRunOptions { connectionString:string; migrationDirecto
 
 const defaultMigrationDirectory=resolve(dirname(fileURLToPath(import.meta.url)),'../migrations');
 export const migrations:MigrationDefinition[]=[
-  ['0001','0001_infrastructure_core.sql'],['0002','0002_repository_documents.sql'],['0003','0003_identity_security.sql'],['0004','0004_clinical_communications.sql'],['0005','0005_digital_intake_platform.sql'],['0006','0006_intake_administration.sql'],['0007','0007_uat_foundation.sql'],['0008','0008_tenant_native_operations.sql'],['0009','0009_commercial_entitlements.sql'],['0010','0010_commercial_activation_licensing.sql'],['0011','0011_product_pricing_case_line_items.sql'],['0012','0012_patient_reference_optional.sql']
+  ['0001','0001_infrastructure_core.sql'],['0002','0002_repository_documents.sql'],['0003','0003_identity_security.sql'],['0004','0004_clinical_communications.sql'],['0005','0005_digital_intake_platform.sql'],['0006','0006_intake_administration.sql'],['0007','0007_uat_foundation.sql'],['0008','0008_tenant_native_operations.sql'],['0009','0009_commercial_entitlements.sql'],['0010','0010_commercial_activation_licensing.sql'],['0011','0011_product_pricing_case_line_items.sql'],['0012','0012_patient_reference_optional.sql'],['0013','0013_case_journey_foundation.sql']
 ].map(([version,filename])=>({version,filename}));
 
 export async function loadMigrations(directory=defaultMigrationDirectory):Promise<MigrationDefinition[]>{
@@ -21,7 +21,7 @@ export async function loadMigrations(directory=defaultMigrationDirectory):Promis
   }).sort((left,right)=>left.version.localeCompare(right.version)||left.filename.localeCompare(right.filename));
 }
 
-type Requirement={tables?:string[];columns?:Array<[string,string]>;indexes?:string[];functions?:string[];triggers?:string[];constraints?:string[];templateCount?:number;templateCopiesForExistingTenants?:boolean};
+type Requirement={tables?:string[];columns?:Array<[string,string]>;indexes?:string[];functions?:string[];triggers?:string[];constraints?:string[];templateCount?:number;templateCopiesForExistingTenants?:boolean;caseJourneyCopiesForExistingCases?:boolean};
 const requirements:Record<string,Requirement>={
   '0001':{tables:['tenants','users','practices','doctors','patients','clinical_cases','production_work_items','qc_templates','qc_inspections','shipments','shipment_cases','invoices','invoice_shipments','invoice_lines','invoice_adjustments','payments','monthly_statements','object_records','audit_events'],indexes:['idx_doctors_practice','idx_patients_practice_doctor','idx_cases_status_due','idx_production_queue','idx_qc_case_outcome','idx_shipments_status','idx_invoices_practice_due','idx_audit_entity','idx_objects_owner'],functions:['prevent_audit_mutation'],triggers:['audit_events_no_update']},
   '0002':{tables:['repository_documents','object_payloads'],indexes:['idx_repository_documents_active','idx_repository_documents_payload']},
@@ -34,7 +34,8 @@ const requirements:Record<string,Requirement>={
   '0009':{tables:['tenant_module_entitlements','tenant_module_seat_pools','tenant_module_seat_assignments'],indexes:['tenant_module_active_seat_assignment_idx','tenant_module_seat_assignment_history_idx','tenant_module_entitlement_effective_idx']},
   '0010':{tables:['tenant_activation_credentials'],columns:[['tenants','commercial_activated_at'],['tenants','commercial_suspended_at'],['tenants','commercial_cancelled_at']],indexes:['tenants_commercial_account_reference_idx','tenant_activation_credentials_active_idx','tenant_activation_credentials_history_idx']},
   '0011':{tables:['product_catalog_templates','product_price_versions','product_compatibility_rules','tenant_business_closure_days','case_product_lines','case_product_line_lineage','case_product_tat_overrides'],columns:[['product_catalog','category_code'],['product_catalog','family_code'],['product_catalog','description'],['product_catalog','pricing_basis'],['product_catalog','default_turnaround_business_days'],['product_catalog','configuration_metadata'],['product_catalog','compatibility_metadata'],['product_catalog','archived_at']],indexes:['product_price_versions_lookup_idx','product_compatibility_active_idx','case_product_lines_case_idx','case_product_tat_overrides_one_active_idx'],functions:['enforce_product_price_version_period'],triggers:['product_price_versions_period_guard'],constraints:['product_catalog_category_code_check','product_catalog_pricing_basis_check','product_catalog_turnaround_check','product_catalog_tenant_id_unique','clinical_cases_tenant_id_unique'],templateCount:87,templateCopiesForExistingTenants:true},
-  '0012':{indexes:['patients_tenant_practice_reference_nonblank_unique']}
+  '0012':{indexes:['patients_tenant_practice_reference_nonblank_unique']},
+  '0013':{tables:['case_journey_cases','tenant_case_journey_reasons','tenant_continuation_stages','tenant_continuation_billing_policies','case_journey_responsibilities'],columns:[['case_journey_cases','case_relationship'],['case_journey_cases','root_case_id'],['case_journey_cases','parent_case_id'],['case_journey_cases','patient_id'],['case_journey_cases','continuation_operational_state'],['case_journey_responsibilities','clinic_percentage'],['case_journey_responsibilities','lab_percentage']],indexes:['case_journey_root_idx','case_journey_parent_idx','case_journey_reason_active_idx','continuation_stage_active_idx','tenant_continuation_policy_one_default_idx'],functions:['prevent_case_journey_cycle','prevent_case_journey_responsibility_mutation'],triggers:['case_journey_cycle_guard','case_journey_responsibility_guard'],constraints:['case_journey_reason_tenant_fk','case_journey_stage_tenant_fk','case_journey_policy_tenant_fk'],caseJourneyCopiesForExistingCases:true}
 };
 
 type SqlClient=Client|PoolClient;
@@ -71,6 +72,14 @@ export async function inspectMigrationState(client:SqlClient,version:string):Pro
                FROM product_catalog p
                JOIN product_catalog_templates template ON template.sku=p.sku
                WHERE p.tenant_id=t.id)<>(SELECT count(*) FROM product_catalog_templates)`);
+      checks.push(Number(row.rows[0]?.count??0)===0);
+    }else checks.push(false);
+  }
+  if(requirement.caseJourneyCopiesForExistingCases){
+    if(await exists(client,'repository_documents')&&await exists(client,'case_journey_cases')){
+      const row=await client.query<{count:string}>(`SELECT count(*)::text AS count FROM repository_documents document
+        WHERE document.entity_type='case' AND document.deleted_at IS NULL
+          AND NOT EXISTS(SELECT 1 FROM case_journey_cases journey WHERE journey.tenant_id=document.tenant_id AND journey.case_id=document.entity_id)`);
       checks.push(Number(row.rows[0]?.count??0)===0);
     }else checks.push(false);
   }
