@@ -28,6 +28,7 @@ async function addCaseProductLine(page:any,productId:string){
   await page.getByRole('button',{name:'Add Case Product Line'}).click();
   await expect(page.getByText('1 selected')).toBeVisible();
   await expect(page.getByLabel('Restoration category')).toHaveValue('');
+  await expect(page.getByLabel('Restoration category')).not.toHaveAttribute('required','');
   await expect(page.getByLabel('Catalog product')).toHaveCount(0);
 }
 
