@@ -7,7 +7,12 @@ const text=(value:unknown)=>typeof value==='string'?value.trim():'';
 const object=(value:unknown)=>value&&typeof value==='object'&&!Array.isArray(value)?value as Record<string,unknown>:{};
 const list=(value:unknown)=>Array.isArray(value)?value:[];
 const numeric=(value:unknown)=>typeof value==='number'?value:Number(value);
-const dateKey=(value:string)=>new Date(`${value.slice(0,10)}T12:00:00Z`).toISOString().slice(0,10);
+export function calendarDate(value:unknown,label='calendar date'){
+  if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))throw new Error(`${label} must be a canonical YYYY-MM-DD calendar date.`);
+  const parsed=new Date(`${value}T12:00:00Z`);
+  if(Number.isNaN(parsed.getTime())||parsed.toISOString().slice(0,10)!==value)throw new Error(`${label} must be a valid YYYY-MM-DD calendar date.`);
+  return value;
+}
 
 type ProductRow={id:string;sku:string;product_name:string;description:string;category_code:ProductCategoryCode;family_code:string;pricing_basis:ProductPricingBasis;default_turnaround_business_days:number|null;configuration_metadata:Record<string,unknown>;active:boolean;archived_at:string|null};
 type PriceRow={id:string;pricing_basis:ProductPricingBasis;amount:string};
@@ -28,13 +33,21 @@ function validateConfiguration(product:ProductRow,line:CaseProductLineInput){
   return null;
 }
 function fallbackTat(category:ProductCategoryCode){return category==='FIX'?10:['REM','IMP','SLP'].includes(category)?14:null;}
-function addBusinessDays(receivedDate:string,days:number,closures:Set<string>){const result=new Date(`${receivedDate}T12:00:00Z`);let remaining=days;while(remaining>0){result.setUTCDate(result.getUTCDate()+1);const key=result.toISOString().slice(0,10);if(result.getUTCDay()!==0&&result.getUTCDay()!==6&&!closures.has(key))remaining--;}return result.toISOString().slice(0,10);}
+function addBusinessDays(receivedDate:string,days:number,closures:Set<string>){const result=new Date(`${calendarDate(receivedDate,'received date')}T12:00:00Z`);let remaining=days;while(remaining>0){result.setUTCDate(result.getUTCDate()+1);const key=result.toISOString().slice(0,10);if(result.getUTCDay()!==0&&result.getUTCDay()!==6&&!closures.has(key))remaining--;}return result.toISOString().slice(0,10);}
 async function currentPrice(db:Pool|PoolClient,tenantId:string,productId:string,practiceId:string,receivedDate:string){const result=await db.query<PriceRow>('SELECT id,pricing_basis,amount FROM product_price_versions WHERE tenant_id=$1 AND product_id=$2 AND active=true AND effective_from <= $3::date AND (effective_until IS NULL OR effective_until > $3::date) AND (practice_id IS NULL OR practice_id=$4) ORDER BY (practice_id IS NOT NULL) DESC,effective_from DESC LIMIT 1',[tenantId,productId,receivedDate,practiceId]);return result.rows[0]??null;}
 
+export async function loadTenantClosureDates(db:Pool|PoolClient,tenantId:string){
+  // PostgreSQL DATE is a calendar day. Project it as text before it enters the
+  // business-day domain so node-postgres cannot apply Date-object semantics.
+  const closures=await db.query<{closure_date:string}>('SELECT closure_date::text AS closure_date FROM tenant_business_closure_days WHERE tenant_id=$1 ORDER BY closure_date',[tenantId]);
+  return closures.rows.map(item=>calendarDate(item.closure_date,'tenant closure date'));
+}
+
 export async function quoteCaseBuilderProduct(db:Pool|PoolClient,tenantId:string,productId:string,practiceId:string,receivedDate:string){
+  const canonicalReceivedDate=calendarDate(receivedDate,'received date');
   const productResult=await db.query<ProductRow>('SELECT id,sku,product_name,description,category_code,family_code,pricing_basis,default_turnaround_business_days,configuration_metadata,active,archived_at FROM product_catalog WHERE tenant_id=$1 AND id=$2 AND active=true AND archived_at IS NULL',[tenantId,productId]);
   const product=productResult.rows[0];if(!product)throw new Error('Active product not found in this tenant.');
-  const price=await currentPrice(db,tenantId,productId,practiceId,receivedDate);
+  const price=await currentPrice(db,tenantId,productId,practiceId,canonicalReceivedDate);
   const tat=product.default_turnaround_business_days??fallbackTat(product.category_code);
   return {product:{id:product.id,sku:product.sku,productName:product.product_name,description:product.description,categoryCode:product.category_code,familyCode:product.family_code,pricingBasis:product.pricing_basis,configuration:product.configuration_metadata,defaultTurnaroundBusinessDays:tat},price:price?{id:price.id,amount:Number(price.amount),pricingBasis:price.pricing_basis}:null,priceConfigured:Boolean(price),turnaroundBusinessDays:tat};
 }
@@ -57,9 +70,9 @@ export async function prepareCaseProductLines(db:Pool|PoolClient,tenantId:string
     const result=await db.query('SELECT 1 FROM product_compatibility_rules WHERE tenant_id=$1 AND active=true AND rule_type IN (\'BLOCKED\',\'MUTUALLY_EXCLUSIVE\') AND ((source_product_id=$2 AND target_product_id=$3) OR (source_product_id=$3 AND target_product_id=$2)) LIMIT 1',[tenantId,lines[i]!.productId,lines[j]!.productId]);
     if(result.rowCount)throw new Error('Selected Case Product Lines contain an incompatible product stack.');
   }
-  const closures=await db.query<{closure_date:string}>('SELECT closure_date FROM tenant_business_closure_days WHERE tenant_id=$1',[tenantId]);
+  const closureDates=await loadTenantClosureDates(db,tenantId);
   const turnaroundBusinessDays=Math.max(...lines.map(line=>line.turnaroundBusinessDays??0));
-  return {lines,subtotal:lines.reduce((total,line)=>total+line.lineTotal,0),turnaroundBusinessDays,calculatedDueDate:addBusinessDays(dateKey(body.receivedDate),turnaroundBusinessDays,new Set(closures.rows.map(item=>dateKey(item.closure_date))))} satisfies PreparedCaseProductLines;
+  return {lines,subtotal:lines.reduce((total,line)=>total+line.lineTotal,0),turnaroundBusinessDays,calculatedDueDate:addBusinessDays(calendarDate(body.receivedDate,'received date'),turnaroundBusinessDays,new Set(closureDates))} satisfies PreparedCaseProductLines;
 }
 
 export async function savePreparedCaseProductLines(client:PoolClient,tenantId:string,caseId:string,lines:CaseProductLineSnapshot[],actorId:string){

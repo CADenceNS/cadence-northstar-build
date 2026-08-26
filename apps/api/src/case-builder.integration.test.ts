@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { Pool } from 'pg';
-import { prepareCaseProductLines, savePreparedCaseProductLines } from './case-builder.js';
+import { calendarDate, loadTenantClosureDates, prepareCaseProductLines, savePreparedCaseProductLines } from './case-builder.js';
 
 const connectionString=process.env.DATABASE_URL;
 if(!connectionString)throw new Error('DATABASE_URL is required.');
@@ -24,11 +24,27 @@ try{
   const zirconia=await catalogProduct(tenantId,'ZIR-MONO'),unpriced=await catalogProduct(tenantId,'ZIR-ESTH'),denture=await catalogProduct(tenantId,'DEN-PREM'),abutment=await catalogProduct(tenantId,'ABT-TI'),otherZirconia=await catalogProduct(otherTenantId,'ZIR-MONO');
   for(const [product,amount] of [[zirconia,'99.00'],[denture,'850.00'],[abutment,'125.00']] as const)await pool.query('INSERT INTO product_price_versions(tenant_id,product_id,pricing_basis,amount,effective_from,created_by) SELECT $1,$2,pricing_basis,$3,\'2000-01-01\',$4 FROM product_catalog WHERE tenant_id=$1 AND id=$2',[tenantId,product.id,amount,'case-builder-test']);
   await pool.query('INSERT INTO tenant_business_closure_days(tenant_id,closure_date,label,created_by) VALUES($1,\'2026-08-10\',\'Tenant closure\',\'case-builder-test\')',[tenantId]);
+  const rawClosure=await pool.query<{closure_date:unknown}>('SELECT closure_date FROM tenant_business_closure_days WHERE tenant_id=$1',[tenantId]);
+  assert.ok(rawClosure.rows[0]?.closure_date instanceof Date||typeof rawClosure.rows[0]?.closure_date==='string','PostgreSQL DATE must remain explicitly normalized at the repository boundary.');
+  assert.deepEqual(await loadTenantClosureDates(pool,tenantId),['2026-08-10']);
+  assert.throws(()=>calendarDate('2026-02-30','tenant closure date'),/valid YYYY-MM-DD/);
   const fixed=await prepareCaseProductLines(pool,tenantId,{practiceId,receivedDate:'2026-08-07',productLines:[{productId:zirconia.id,categoryCode:'FIX',quantity:1,arch:'upper',toothNumbers:[8],configuration:{shade:'A2'}}]});
   await assert.rejects(prepareCaseProductLines(pool,tenantId,{practiceId,receivedDate:'2026-08-07',productLines:[{productId:unpriced.id,categoryCode:'FIX',quantity:1,arch:'upper',toothNumbers:[8]}]}),/PRICE NOT CONFIGURED/);
   assert.equal(fixed.lines[0]?.unitPrice,99);assert.equal(fixed.lines[0]?.lineTotal,99);assert.equal(fixed.lines[0]?.familyCode,'FIX-ZIR');assert.equal(fixed.turnaroundBusinessDays,10);assert.equal(fixed.calculatedDueDate,'2026-08-24');
   const removable=await prepareCaseProductLines(pool,tenantId,{practiceId,receivedDate:'2026-08-07',productLines:[{productId:denture.id,categoryCode:'REM',quantity:1,arch:'both',configuration:{toothShadeMold:'A2'}},{productId:abutment.id,categoryCode:'IMP',quantity:1,arch:'upper',toothNumbers:[8],configuration:{implantSystem:'Megagen'}}]});
   assert.equal(removable.lines.length,2);assert.equal(removable.subtotal,975);assert.equal(removable.turnaroundBusinessDays,14);assert.equal(removable.calculatedDueDate,'2026-08-28');
+  await pool.query('INSERT INTO tenant_business_closure_days(tenant_id,closure_date,label,created_by) VALUES($1,\'2026-08-20\',\'Second closure\',\'case-builder-test\'),($1,\'2026-08-21\',\'Due-date closure\',\'case-builder-test\')',[tenantId]);
+  const multipleClosures=await prepareCaseProductLines(pool,tenantId,{practiceId,receivedDate:'2026-08-07',productLines:[{productId:zirconia.id,categoryCode:'FIX',quantity:1,arch:'upper',toothNumbers:[8]}]});
+  assert.equal(multipleClosures.calculatedDueDate,'2026-08-26');
+  await pool.query('DELETE FROM tenant_business_closure_days WHERE tenant_id=$1',[tenantId]);
+  await pool.query('INSERT INTO tenant_business_closure_days(tenant_id,closure_date,label,created_by) VALUES($1,\'2026-08-10\',\'Other tenant closure\',\'case-builder-test\')',[otherTenantId]);
+  const noClosures=await prepareCaseProductLines(pool,tenantId,{practiceId,receivedDate:'2026-08-07',productLines:[{productId:zirconia.id,categoryCode:'FIX',quantity:1,arch:'upper',toothNumbers:[8]}]});
+  assert.equal(noClosures.calculatedDueDate,'2026-08-21');
+  const dstBoundary=await prepareCaseProductLines(pool,tenantId,{practiceId,receivedDate:'2026-10-23',productLines:[{productId:zirconia.id,categoryCode:'FIX',quantity:1,arch:'upper',toothNumbers:[8]}]});
+  assert.equal(dstBoundary.calculatedDueDate,'2026-11-06');
+  await pool.query('INSERT INTO tenant_business_closure_days(tenant_id,closure_date,label,created_by) VALUES($1,\'2026-12-25\',\'Year-end closure\',\'case-builder-test\'),($1,\'2027-01-01\',\'New year closure\',\'case-builder-test\')',[tenantId]);
+  const yearBoundary=await prepareCaseProductLines(pool,tenantId,{practiceId,receivedDate:'2026-12-18',productLines:[{productId:zirconia.id,categoryCode:'FIX',quantity:1,arch:'upper',toothNumbers:[8]}]});
+  assert.equal(yearBoundary.calculatedDueDate,'2027-01-05');
   await assert.rejects(prepareCaseProductLines(pool,tenantId,{practiceId,receivedDate:'2026-08-07',productLines:[{productId:zirconia.id,categoryCode:'REM',quantity:1,arch:'upper',toothNumbers:[8]}]}),/selected restoration category/);
   await assert.rejects(prepareCaseProductLines(pool,tenantId,{practiceId,receivedDate:'2026-08-07',productLines:[{productId:otherZirconia.id,categoryCode:'FIX',quantity:1,arch:'upper',toothNumbers:[8]}]}),/Active product not found/);
   await pool.query('INSERT INTO product_compatibility_rules(tenant_id,source_product_id,target_product_id,rule_type,created_by) VALUES($1,$2,$3,\'BLOCKED\',\'case-builder-test\')',[tenantId,zirconia.id,denture.id]);
@@ -38,4 +54,4 @@ try{
   await pool.query('UPDATE product_catalog SET active=false WHERE tenant_id=$1 AND id=$2',[tenantId,zirconia.id]);
   await assert.rejects(prepareCaseProductLines(pool,tenantId,{practiceId,receivedDate:'2026-08-07',productLines:[{productId:zirconia.id,categoryCode:'FIX',quantity:1,arch:'upper',toothNumbers:[8]}]}),/Active product not found/);
   console.log('PP-1B-F2A1 Case Builder integration tests passed.');
-}finally{try{await pool.query('DELETE FROM case_product_line_lineage WHERE tenant_id=$1',[tenantId]);await pool.query('DELETE FROM case_product_lines WHERE tenant_id=$1 AND case_id=$2',[tenantId,caseId]);await pool.query('DELETE FROM case_product_tat_overrides WHERE tenant_id=$1 AND case_id=$2',[tenantId,caseId]);await pool.query(`DELETE FROM case_product_line_case_entities WHERE tenant_id=$1 AND case_entity_type='case' AND case_id=$2`,[tenantId,caseId]);await pool.query(`DELETE FROM repository_documents WHERE tenant_id=$1 AND entity_type='case' AND entity_id=$2`,[tenantId,caseId]);}finally{await pool.end();}}
+}finally{try{await pool.query('DELETE FROM case_product_line_lineage WHERE tenant_id=$1',[tenantId]);await pool.query('DELETE FROM case_product_lines WHERE tenant_id=$1 AND case_id=$2',[tenantId,caseId]);await pool.query('DELETE FROM case_product_tat_overrides WHERE tenant_id=$1 AND case_id=$2',[tenantId,caseId]);await pool.query('DELETE FROM tenant_business_closure_days WHERE tenant_id IN ($1,$2)',[tenantId,otherTenantId]);await pool.query(`DELETE FROM case_product_line_case_entities WHERE tenant_id=$1 AND case_entity_type='case' AND case_id=$2`,[tenantId,caseId]);await pool.query(`DELETE FROM repository_documents WHERE tenant_id=$1 AND entity_type='case' AND entity_id=$2`,[tenantId,caseId]);}finally{await pool.end();}}
