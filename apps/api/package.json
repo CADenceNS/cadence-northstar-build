@@ -24,6 +24,7 @@
     "test:product-pricing": "tsx src/product-pricing.integration.test.ts",
     "test:case-builder": "tsx src/case-builder.integration.test.ts",
     "test:case-journey": "tsx src/case-journey.integration.test.ts",
+    "test:case-operations": "tsx src/case-operations.integration.test.ts",
     "test:uat": "tsx src/uat.integration.test.ts",
     "test:uat-attachments": "tsx src/uat-attachments.integration.test.ts"
   },
