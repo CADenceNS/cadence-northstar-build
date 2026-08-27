@@ -16,7 +16,7 @@ CREATE TABLE case_intake_submission_links (
   linked_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (tenant_id,case_id,submission_id),
   UNIQUE (tenant_id,submission_id),
-  FOREIGN KEY (tenant_id,case_entity_type,case_id) REFERENCES repository_documents(tenant_id,entity_type,entity_id) DEFERRABLE INITIALLY DEFERRED,
+  FOREIGN KEY (tenant_id,case_entity_type,case_id) REFERENCES repository_documents(tenant_id,entity_type,entity_id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   FOREIGN KEY (tenant_id,submission_id) REFERENCES intake_submissions(tenant_id,id) ON DELETE RESTRICT
 );
 CREATE INDEX case_intake_submission_links_case_idx ON case_intake_submission_links(tenant_id,case_id,linked_at);
