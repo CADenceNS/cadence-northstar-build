@@ -33,6 +33,7 @@ CREATE TABLE tenant_case_hold_reasons (
   created_by text NOT NULL DEFAULT 'system',
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(tenant_id,id),
   UNIQUE(tenant_id,code)
 );
 CREATE INDEX tenant_case_hold_reasons_active_idx ON tenant_case_hold_reasons(tenant_id,category,display_order) WHERE active;
@@ -48,6 +49,7 @@ CREATE TABLE tenant_case_cancellation_reasons (
   created_by text NOT NULL DEFAULT 'system',
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(tenant_id,id),
   UNIQUE(tenant_id,code)
 );
 CREATE INDEX tenant_case_cancellation_reasons_active_idx ON tenant_case_cancellation_reasons(tenant_id,category,display_order) WHERE active;
