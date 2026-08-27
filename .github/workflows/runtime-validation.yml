@@ -48,7 +48,7 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Typecheck and build
         run: pnpm typecheck && pnpm build
-      - name: Apply versioned migrations 0001 through 0014
+      - name: Apply versioned migrations 0001 through 0015
         run: pnpm --filter @northstar/api migrate
       - name: Validate versioned migration ledger matrix
         run: pnpm --filter @northstar/api test:migration-runner
