@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { CaseProductLineInput, CaseProductLineSnapshot, ClinicalCaseInput, ProductCategoryCode, ProductPricingBasis } from '@northstar/shared';
 import type { Pool, PoolClient } from 'pg';
+import { normalizeConfiguration, subtypeForProduct } from './case-configuration.js';
 
 const categories=new Set<ProductCategoryCode>(['FIX','REM','IMP','ORT','SLP','DIA','SPL','AUX']);
 const text=(value:unknown)=>typeof value==='string'?value.trim():'';
@@ -32,6 +33,21 @@ function validateConfiguration(product:ProductRow,line:CaseProductLineInput){
   if(line.componentCount!==undefined&&line.componentCount!==null&&(!Number.isFinite(componentCount)||componentCount<=0))return 'Component count must be positive.';
   return null;
 }
+function derivedArch(teeth:number[]){if(!teeth.length)return null;const upper=teeth.some(tooth=>tooth>=1&&tooth<=16),lower=teeth.some(tooth=>tooth>=17&&tooth<=32);return upper&&lower?'both':upper?'upper':lower?'lower':null;}
+function normalizedLine(product:ProductRow,line:CaseProductLineInput){
+  const teeth=list(line.toothNumbers).map(Number).filter(Number.isInteger),selection=text(product.configuration_metadata.selection),sourceArch=text(line.arch).toLowerCase();
+  const arch=selection==='SINGLE_TOOTH'&&derivedArch(teeth)?derivedArch(teeth)!:sourceArch;
+  const componentCount=numeric(line.componentCount),stageCount=numeric(line.stageCount),unitCount=numeric(line.unitCount);
+  let quantity=numeric(line.quantity);
+  if(product.pricing_basis==='PER_TOOTH'){if(!teeth.length)throw new Error('Select billable tooth numbers for this product.');quantity=teeth.length;}
+  if(product.pricing_basis==='PER_ARCH'){if(!arch)throw new Error('Select an arch for this product.');quantity=arch==='both'?2:1;}
+  if(product.pricing_basis==='PER_COMPONENT'){if(!Number.isFinite(componentCount)||componentCount<=0)throw new Error('Enter the required component quantity.');quantity=componentCount;}
+  if(product.pricing_basis==='PER_STAGE'){if(!Number.isFinite(stageCount)||stageCount<=0)throw new Error('Enter the required stage quantity.');quantity=stageCount;}
+  if(product.pricing_basis==='PER_UNIT'&&Number.isFinite(unitCount)&&unitCount>0)quantity=unitCount;
+  if(['PER_PRODUCT','PER_CASE'].includes(product.pricing_basis))quantity=1;
+  if(!Number.isFinite(quantity)||quantity<=0)throw new Error('A positive billable quantity is required.');
+  return {...line,arch:arch||null,toothNumbers:teeth,quantity};
+}
 function fallbackTat(category:ProductCategoryCode){return category==='FIX'?10:['REM','IMP','SLP'].includes(category)?14:null;}
 function addBusinessDays(receivedDate:string,days:number,closures:Set<string>){const result=new Date(`${calendarDate(receivedDate,'received date')}T12:00:00Z`);let remaining=days;while(remaining>0){result.setUTCDate(result.getUTCDate()+1);const key=result.toISOString().slice(0,10);if(result.getUTCDay()!==0&&result.getUTCDay()!==6&&!closures.has(key))remaining--;}return result.toISOString().slice(0,10);}
 // Case Journey records may retain a repository-backed practice key while a price
@@ -61,14 +77,19 @@ export async function prepareCaseProductLines(db:Pool|PoolClient,tenantId:string
   if(!supplied.length)throw new Error('At least one authoritative Case Product Line is required.');
   const lines:CaseProductLineSnapshot[]=[];
   for(const [index,raw] of supplied.entries()){
-    const line=raw as CaseProductLineInput,productId=text(line.productId),category=text(line.categoryCode).toUpperCase() as ProductCategoryCode,quantity=numeric(line.quantity);
-    if(!productId||!categories.has(category)||!Number.isFinite(quantity)||quantity<=0)throw new Error('Each Case Product Line requires a tenant product, category, and positive quantity.');
+    const line=raw as CaseProductLineInput,productId=text(line.productId),category=text(line.categoryCode).toUpperCase() as ProductCategoryCode;
+    if(!productId||!categories.has(category))throw new Error('Each Case Product Line requires a tenant product and category.');
     const quote=await quoteCaseBuilderProduct(db,tenantId,productId,body.practiceId,body.receivedDate);
     if(quote.product.categoryCode!==category)throw new Error('Product is not permitted for the selected restoration category.');
-    const configError=validateConfiguration({id:quote.product.id,sku:quote.product.sku,product_name:quote.product.productName,description:quote.product.description,category_code:quote.product.categoryCode,family_code:quote.product.familyCode,pricing_basis:quote.product.pricingBasis,default_turnaround_business_days:quote.product.defaultTurnaroundBusinessDays,configuration_metadata:quote.product.configuration,active:true,archived_at:null},line);if(configError)throw new Error(configError);
+    const product={id:quote.product.id,sku:quote.product.sku,product_name:quote.product.productName,description:quote.product.description,category_code:quote.product.categoryCode,family_code:quote.product.familyCode,pricing_basis:quote.product.pricingBasis,defaultTurnaroundBusinessDays:quote.product.defaultTurnaroundBusinessDays,default_turnaround_business_days:quote.product.defaultTurnaroundBusinessDays,configuration_metadata:quote.product.configuration,active:true,archived_at:null};
+    const normalized=normalizedLine(product,line),configError=validateConfiguration(product,normalized);if(configError)throw new Error(configError);
+    const subtypeId=text(object(line.options).restorationSubtypeId),subtype=await subtypeForProduct(db,tenantId,product.id,subtypeId);
+    if(!subtype)throw new Error('Select an active restoration subtype that is eligible for this product.');
+    if(subtype.category_code!==category)throw new Error('Restoration subtype is not permitted for the selected product category.');
+    const configuration=await normalizeConfiguration(db,tenantId,product.id,normalized.configuration);
     if(!quote.price)throw new Error(`PRICE NOT CONFIGURED for ${quote.product.productName}.`);
     if(!quote.turnaroundBusinessDays)throw new Error(`Turnaround is not configured for ${quote.product.productName}.`);
-    lines.push({id:randomUUID(),lineNumber:index+1,productId,categoryCode:category,productSku:quote.product.sku,productName:quote.product.productName,productDescription:quote.product.description,familyCode:quote.product.familyCode,pricingBasis:quote.price.pricingBasis,unitPrice:quote.price.amount,lineTotal:Math.round(quote.price.amount*quantity*100)/100,priceVersionId:quote.price.id,quantity,arch:text(line.arch)||null,toothNumbers:list(line.toothNumbers).map(Number).filter(Number.isInteger),unitCount:line.unitCount??null,stageCount:line.stageCount??null,componentCount:line.componentCount??null,configuration:object(line.configuration),options:object(line.options),notes:text(line.notes),turnaroundBusinessDays:quote.turnaroundBusinessDays});
+    lines.push({id:randomUUID(),lineNumber:index+1,productId,categoryCode:category,productSku:quote.product.sku,productName:quote.product.productName,productDescription:quote.product.description,familyCode:quote.product.familyCode,pricingBasis:quote.price.pricingBasis,unitPrice:quote.price.amount,lineTotal:Math.round(quote.price.amount*normalized.quantity*100)/100,priceVersionId:quote.price.id,quantity:normalized.quantity,arch:normalized.arch,toothNumbers:normalized.toothNumbers,unitCount:normalized.unitCount??null,stageCount:normalized.stageCount??null,componentCount:normalized.componentCount??null,configuration,options:{...object(line.options),restorationSubtype:{id:subtype.id,code:subtype.code,label:subtype.label}},notes:text(line.notes),turnaroundBusinessDays:quote.turnaroundBusinessDays});
   }
   for(let i=0;i<lines.length;i++)for(let j=i+1;j<lines.length;j++){
     const result=await db.query('SELECT 1 FROM product_compatibility_rules WHERE tenant_id=$1 AND active=true AND rule_type IN (\'BLOCKED\',\'MUTUALLY_EXCLUSIVE\') AND ((source_product_id=$2 AND target_product_id=$3) OR (source_product_id=$3 AND target_product_id=$2)) LIMIT 1',[tenantId,lines[i]!.productId,lines[j]!.productId]);

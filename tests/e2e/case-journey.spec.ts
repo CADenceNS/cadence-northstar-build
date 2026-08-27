@@ -21,6 +21,7 @@ async function configureCaseBuilderProduct(page:any){
 
 async function addCaseProductLine(page:any,productId:string){
   await page.getByLabel('Restoration category').selectOption('FIX');
+  await page.getByLabel('Restoration subtype').selectOption({label:'Single Crown'});
   await page.getByLabel('Catalog product').selectOption(productId);
   await expect(page.getByText('Tenant-authoritative current price')).toBeVisible();
   await page.getByLabel('Product line arch').selectOption('upper');
@@ -29,6 +30,7 @@ async function addCaseProductLine(page:any,productId:string){
   await expect(page.getByText('1 selected')).toBeVisible();
   await expect(page.getByLabel('Restoration category')).toHaveValue('');
   await expect(page.getByLabel('Restoration category')).not.toHaveAttribute('required','');
+  await expect(page.getByLabel('Restoration subtype')).toHaveCount(0);
   await expect(page.getByLabel('Catalog product')).toHaveCount(0);
 }
 
