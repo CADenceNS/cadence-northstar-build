@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { Client } from 'pg';
 import { migrations, runMigrations } from '../migration-runner.js';
+import { appliedMigrationVersion } from '../uat.js';
 
 const connectionString=process.env.DATABASE_URL;
 if(!connectionString)throw new Error('DATABASE_URL is required.');
@@ -50,10 +51,12 @@ async function ledgerVersions(schema:string){
 await withSchema(async schema=>{
   const first=await runMigrations({connectionString,schema});
   assert.deepEqual(first.applied,migrations.map(migration=>migration.version),'fresh database must apply every migration once');
+  const fresh=await clientFor(schema);try{assert.equal(await appliedMigrationVersion(fresh),'0016','fresh migration runner state must report the authoritative current schema version');}finally{await fresh.end();}
   const products=await clientFor(schema);try{assert.equal((await products.query('SELECT count(*) FROM product_catalog')).rows[0].count,'87');}finally{await products.end();}
   const second=await runMigrations({connectionString,schema});
   assert.deepEqual(second.applied,[],'a second run must apply no DDL');
   assert.equal(second.skipped.length,migrations.length);
+  const repeated=await clientFor(schema);try{assert.equal(await appliedMigrationVersion(repeated),'0016','repeat migration execution must preserve current version reporting');}finally{await repeated.end();}
 });
 
 await withSchema(async schema=>{
@@ -79,7 +82,7 @@ await withSchema(async schema=>{
   }finally{await client.end();}
   await createLedgerThrough(schema,12);
   const result=await runMigrations({connectionString,schema});assert.deepEqual(result.applied,['0013','0014','0015','0016']);
-  const verified=await clientFor(schema);try{const row=await verified.query<{case_relationship:string;root_case_id:string;parent_case_id:string|null}>('SELECT case_relationship,root_case_id,parent_case_id FROM case_journey_cases WHERE case_id=$1',['legacy-case']);assert.deepEqual(row.rows[0],{case_relationship:'NEW',root_case_id:'legacy-case',parent_case_id:null});}finally{await verified.end();}
+  const verified=await clientFor(schema);try{const row=await verified.query<{case_relationship:string;root_case_id:string;parent_case_id:string|null}>('SELECT case_relationship,root_case_id,parent_case_id FROM case_journey_cases WHERE case_id=$1',['legacy-case']);assert.deepEqual(row.rows[0],{case_relationship:'NEW',root_case_id:'legacy-case',parent_case_id:null});assert.equal(await appliedMigrationVersion(verified),'0016','0013 through 0016 upgrade state must report the current applied schema version');}finally{await verified.end();}
 });
 
 await withSchema(async schema=>{
