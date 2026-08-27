@@ -20,6 +20,9 @@ async function configureCaseBuilderProduct(page:any){
 }
 
 async function addCaseProductLine(page:any,productId:string){
+  await expect(page.getByLabel('Case Intake Method')).toHaveAttribute('required','');
+  await expect(page.getByLabel('Case Intake Method')).toContainText('Digital');await expect(page.getByLabel('Case Intake Method')).toContainText('Physical');await expect(page.getByLabel('Case Intake Method')).toContainText('Hybrid');
+  await page.getByLabel('Case Intake Method').selectOption('DIGITAL');
   await page.getByLabel('Restoration category').selectOption('FIX');
   await page.getByLabel('Restoration subtype').selectOption({label:'Single Crown'});
   await page.getByLabel('Catalog product').selectOption(productId);
