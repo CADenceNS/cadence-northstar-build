@@ -77,6 +77,10 @@ jobs:
           # those ephemeral fixtures before proving the historical 0011 rollback.
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "DELETE FROM case_product_line_lineage; DELETE FROM case_product_tat_overrides WHERE case_entity_type='case'; DELETE FROM case_product_lines WHERE case_entity_type='case'; DELETE FROM case_product_line_case_entities WHERE case_entity_type='case';"
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0016_operational_case_intake_foundation.rollback.sql
+          # 0016's immutable-event fixtures use repository Case documents without
+          # F1 patient identity.  Remove only those test documents after its
+          # tables are gone, before reapplying the F1 journey migration.
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "DELETE FROM repository_documents WHERE entity_type='case' AND payload->>'patientId' IS NULL;"
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0015_case_builder_structured_configuration.rollback.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0014_case_builder_product_line_authority.rollback.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0013_case_journey_foundation.rollback.sql
