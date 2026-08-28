@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import type { Express, Response } from 'express';
 import type { Pool } from 'pg';
 import type { AuditRepository } from './infrastructure/contracts.js';
+import { migrations } from './migration-runner.js';
 import type { SecurityRequest } from './security.js';
 import { uatCredentialManifest } from './uat-identity.js';
 
@@ -11,9 +12,17 @@ const text=(value:unknown)=>typeof value==='string'?value.trim():'';const param=
 const environment=()=>text(process.env.NORTHSTAR_ENVIRONMENT)||(process.env.NODE_ENV==='production'?'production':'development');const build=()=>text(process.env.NORTHSTAR_BUILD_VERSION)||'0.13.0-uat';const commit=()=>text(process.env.GIT_COMMIT_SHA)||'development';
 function requireIdentity(req:SecurityRequest,res:Response){if(!req.identity){res.status(401).json({error:'Authentication required.'});return null;}return req.identity;}
 function requireRole(req:SecurityRequest,res:Response,roles:Set<string>){const identity=requireIdentity(req,res);if(!identity)return null;if(!roles.has(identity.role)){res.status(403).json({error:'Permission denied.'});return null;}return identity;}
+type MigrationLedgerReader={query(query:string):Promise<{rows:Array<{version:string;filename:string}>}>};
+export async function appliedMigrationVersion(reader:MigrationLedgerReader){
+ const ledger=await reader.query('SELECT version,filename FROM schema_migrations ORDER BY version');
+ if(ledger.rows.length!==migrations.length||!ledger.rows.every((entry,index)=>entry.version===migrations[index]?.version&&entry.filename===migrations[index]?.filename))throw new Error('Migration ledger is unavailable, incomplete, or inconsistent.');
+ const current=migrations.at(-1)?.version;
+ if(!current)throw new Error('Migration registry is empty.');
+ return current;
+}
 
 export function installUatFoundation(app:Express,deps:{pool:Pool;audit:AuditRepository}){const{pool,audit}=deps;const record=async(req:SecurityRequest,action:string,entityType:string,entityId:string,metadata:Record<string,unknown>={})=>{const actor=req.identity!;await audit.append({tenantId:actor.tenantId,actorId:actor.userId,actorName:actor.name,action,entityType,entityId,occurredAt:new Date().toISOString(),metadata});};
- app.get('/api/system/information',async(req:SecurityRequest,res)=>{const identity=requireRole(req,res,adminRoles);if(!identity)return;return res.json({environment:environment(),applicationVersion:'0.13.0',apiVersion:'v1',buildVersion:build(),gitCommit:commit(),migrationVersion:'0013',buildTimestamp:text(process.env.BUILD_TIMESTAMP)||new Date().toISOString(),tenantId:identity.tenantId});});
+ app.get('/api/system/information',async(req:SecurityRequest,res)=>{const identity=requireRole(req,res,adminRoles);if(!identity)return;try{return res.json({environment:environment(),applicationVersion:'0.14.0',apiVersion:'v1',buildVersion:build(),gitCommit:commit(),migrationVersion:await appliedMigrationVersion(pool),buildTimestamp:text(process.env.BUILD_TIMESTAMP)||new Date().toISOString(),tenantId:identity.tenantId});}catch{return res.status(503).json({error:'Schema migration ledger is unavailable or incomplete.'});}});
  app.get('/api/uat/credentials',(req:SecurityRequest,res)=>{if(!requireRole(req,res,adminRoles))return;if(!['development','uat'].includes(environment()))return res.status(404).json({error:'Not found.'});return res.json({passwordPolicy:'Deterministic UAT credentials only. Rotate before external use.',accounts:uatCredentialManifest()});});
  app.get('/api/feature-flags',async(req:SecurityRequest,res)=>{const identity=requireIdentity(req,res);if(!identity)return;const result=await pool.query(`SELECT id,flag_key AS "key",description,enabled,environments,roles,expires_at AS "expiresAt" FROM feature_flags WHERE tenant_id IS NULL OR tenant_id=$1 ORDER BY flag_key`,[identity.tenantId]);return res.json(result.rows.map(row=>({...row,effective:row.enabled&&(row.environments.length===0||row.environments.includes(environment()))&&(row.roles.length===0||row.roles.includes(identity.role))&&(!row.expiresAt||new Date(row.expiresAt)>new Date())})));});
  app.put('/api/feature-flags/:key',async(req:SecurityRequest,res)=>{const identity=requireRole(req,res,adminRoles);if(!identity)return;const key=param(req.params.key);if(!key)return res.status(400).json({error:'Flag key is required.'});const result=await pool.query(`INSERT INTO feature_flags(tenant_id,flag_key,description,enabled,environments,roles,expires_at,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(tenant_id,flag_key) DO UPDATE SET description=EXCLUDED.description,enabled=EXCLUDED.enabled,environments=EXCLUDED.environments,roles=EXCLUDED.roles,expires_at=EXCLUDED.expires_at,updated_at=now() RETURNING *`,[identity.tenantId,key,text(req.body?.description),Boolean(req.body?.enabled),Array.isArray(req.body?.environments)?req.body.environments:[],Array.isArray(req.body?.roles)?req.body.roles:[],req.body?.expiresAt||null,identity.userId]);await record(req,'feature-flag.updated','feature-flag',key,{enabled:Boolean(req.body?.enabled)});return res.json(result.rows[0]);});

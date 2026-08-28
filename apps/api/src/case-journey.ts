@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from 'express';
 import type { CaseJourneyResponsibility, CaseRelationship, CaseResponsibility, ClinicalCase, ClinicalCaseInput, ContinuationBillingPolicyType, ContinuationOperationalState } from '@northstar/shared';
-import type { Pool } from 'pg';
+import type { Pool, PoolClient } from 'pg';
 import type { RepositoryContext } from './infrastructure/contracts.js';
 
 type JourneyInput=Pick<ClinicalCaseInput,'caseRelationship'|'parentCaseId'|'remakeRepairReasonId'|'continuationStageId'|'continuationOperationalState'|'continuationBillingPolicyId'|'responsibility'>;
@@ -53,8 +53,12 @@ export async function prepareCaseJourney(pool:Pool,context:RepositoryContext,cas
   return{caseRelationship:relationship,rootCaseId,parentCaseId:parentId,remakeRepairReasonId:reasonId,continuationStageId:stageId,continuationOperationalState:state,continuationBillingPolicyId:policyId||null,responsibility};
 }
 
+export async function saveCaseJourneyWithClient(client:PoolClient,context:RepositoryContext,item:ClinicalCase,journey:PreparedJourney){
+  await client.query(`INSERT INTO case_journey_cases(tenant_id,case_id,case_relationship,root_case_id,parent_case_id,patient_id,practice_id,doctor_id,continuation_operational_state,continuation_billing_policy_id,remake_repair_reason_id,continuation_stage_id,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,[context.tenantId,item.id,journey.caseRelationship,journey.rootCaseId,journey.parentCaseId,item.patientId,item.practiceId,item.doctorId,journey.continuationOperationalState,journey.continuationBillingPolicyId,journey.remakeRepairReasonId,journey.continuationStageId,context.actorId]);
+  if(journey.responsibility)await client.query(`INSERT INTO case_journey_responsibilities(tenant_id,case_id,responsibility_category,clinic_percentage,lab_percentage,confirmed_by,confirmed_at,notes,evidence_references) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb)`,[context.tenantId,item.id,journey.responsibility.responsibilityCategory,journey.responsibility.clinicPercentage,journey.responsibility.labPercentage,journey.responsibility.confirmedBy,journey.responsibility.confirmedAt,journey.responsibility.notes,JSON.stringify(journey.responsibility.evidenceReferences)]);
+}
 export async function saveCaseJourney(pool:Pool,context:RepositoryContext,item:ClinicalCase,journey:PreparedJourney){
-  const client=await pool.connect();try{await client.query('BEGIN');await client.query(`INSERT INTO case_journey_cases(tenant_id,case_id,case_relationship,root_case_id,parent_case_id,patient_id,practice_id,doctor_id,continuation_operational_state,continuation_billing_policy_id,remake_repair_reason_id,continuation_stage_id,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,[context.tenantId,item.id,journey.caseRelationship,journey.rootCaseId,journey.parentCaseId,item.patientId,item.practiceId,item.doctorId,journey.continuationOperationalState,journey.continuationBillingPolicyId,journey.remakeRepairReasonId,journey.continuationStageId,context.actorId]);if(journey.responsibility)await client.query(`INSERT INTO case_journey_responsibilities(tenant_id,case_id,responsibility_category,clinic_percentage,lab_percentage,confirmed_by,confirmed_at,notes,evidence_references) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb)`,[context.tenantId,item.id,journey.responsibility.responsibilityCategory,journey.responsibility.clinicPercentage,journey.responsibility.labPercentage,journey.responsibility.confirmedBy,journey.responsibility.confirmedAt,journey.responsibility.notes,JSON.stringify(journey.responsibility.evidenceReferences)]);await client.query('COMMIT');}catch(error){await client.query('ROLLBACK');throw error;}finally{client.release();}
+  const client=await pool.connect();try{await client.query('BEGIN');await saveCaseJourneyWithClient(client,context,item,journey);await client.query('COMMIT');}catch(error){await client.query('ROLLBACK');throw error;}finally{client.release();}
 }
 
 export async function journeyForCase(pool:Pool,context:RepositoryContext,caseId:string){

@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { Client } from 'pg';
 import { migrations, runMigrations } from '../migration-runner.js';
+import { appliedMigrationVersion } from '../uat.js';
 
 const connectionString=process.env.DATABASE_URL;
 if(!connectionString)throw new Error('DATABASE_URL is required.');
@@ -46,27 +47,36 @@ async function ledgerVersions(schema:string){
   const client=await clientFor(schema);
   try{return (await client.query<{version:string}>('SELECT version FROM schema_migrations ORDER BY version')).rows.map(row=>row.version);}finally{await client.end();}
 }
+async function caseLinkDeleteAction(schema:string){
+  const client=await clientFor(schema);
+  try{return (await client.query<{confdeltype:string}>(`SELECT migration_constraint.confdeltype FROM pg_constraint migration_constraint
+    JOIN pg_class relation ON relation.oid=migration_constraint.conrelid
+    WHERE relation.relname='case_intake_submission_links' AND migration_constraint.conname LIKE 'case_intake_submission_links%case%fk'
+    ORDER BY migration_constraint.conname DESC LIMIT 1`)).rows[0]?.confdeltype;}finally{await client.end();}
+}
 
 await withSchema(async schema=>{
   const first=await runMigrations({connectionString,schema});
   assert.deepEqual(first.applied,migrations.map(migration=>migration.version),'fresh database must apply every migration once');
+  const fresh=await clientFor(schema);try{assert.equal(await appliedMigrationVersion(fresh),migrations.at(-1)?.version,'fresh migration runner state must report the authoritative current schema version');}finally{await fresh.end();}
   const products=await clientFor(schema);try{assert.equal((await products.query('SELECT count(*) FROM product_catalog')).rows[0].count,'87');}finally{await products.end();}
   const second=await runMigrations({connectionString,schema});
   assert.deepEqual(second.applied,[],'a second run must apply no DDL');
   assert.equal(second.skipped.length,migrations.length);
+  const repeated=await clientFor(schema);try{assert.equal(await appliedMigrationVersion(repeated),migrations.at(-1)?.version,'repeat migration execution must preserve current version reporting');}finally{await repeated.end();}
 });
 
 await withSchema(async schema=>{
   await applyRaw(schema,10);
   const result=await runMigrations({connectionString,schema});
   assert.deepEqual(result.adopted,migrations.slice(0,10).map(migration=>migration.version),'legacy 0001–0010 must be structurally adopted');
-  assert.deepEqual(result.applied,['0011','0012','0013'],'only missing post-legacy migrations may execute after legacy adoption');
+  assert.deepEqual(result.applied,migrations.slice(10).map(migration=>migration.version),'only missing post-legacy migrations may execute after legacy adoption');
 });
 
 await withSchema(async schema=>{
   await applyRaw(schema,11);
   const result=await runMigrations({connectionString,schema});
-  assert.deepEqual(result.applied,['0012','0013']);
+  assert.deepEqual(result.applied,migrations.slice(11).map(migration=>migration.version));
   assert.deepEqual(result.adopted,migrations.slice(0,11).map(migration=>migration.version),'a complete untracked 0011 must be adopted before 0012 executes');
 });
 
@@ -78,8 +88,8 @@ await withSchema(async schema=>{
     await client.query("INSERT INTO repository_documents(tenant_id,entity_type,entity_id,payload) VALUES($1,'case','legacy-case',$2::jsonb)",[tenant,JSON.stringify({patientId:'legacy-patient',practiceId:'legacy-practice',doctorId:'legacy-doctor'})]);
   }finally{await client.end();}
   await createLedgerThrough(schema,12);
-  const result=await runMigrations({connectionString,schema});assert.deepEqual(result.applied,['0013']);
-  const verified=await clientFor(schema);try{const row=await verified.query<{case_relationship:string;root_case_id:string;parent_case_id:string|null}>('SELECT case_relationship,root_case_id,parent_case_id FROM case_journey_cases WHERE case_id=$1',['legacy-case']);assert.deepEqual(row.rows[0],{case_relationship:'NEW',root_case_id:'legacy-case',parent_case_id:null});}finally{await verified.end();}
+  const result=await runMigrations({connectionString,schema});assert.deepEqual(result.applied,migrations.slice(12).map(migration=>migration.version));
+  const verified=await clientFor(schema);try{const row=await verified.query<{case_relationship:string;root_case_id:string;parent_case_id:string|null}>('SELECT case_relationship,root_case_id,parent_case_id FROM case_journey_cases WHERE case_id=$1',['legacy-case']);assert.deepEqual(row.rows[0],{case_relationship:'NEW',root_case_id:'legacy-case',parent_case_id:null});assert.equal(await appliedMigrationVersion(verified),migrations.at(-1)?.version,'0013 through the current migration upgrade state must report the current applied schema version');}finally{await verified.end();}
 });
 
 await withSchema(async schema=>{
@@ -100,13 +110,29 @@ await withSchema(async schema=>{
   await applyRaw(schema,10);
   await createLedgerThrough(schema,10);
   const result=await runMigrations({connectionString,schema});
-  assert.deepEqual(result.applied,['0011','0012','0013'],'an existing 0001–0010 ledger must execute only the missing migrations');
+  assert.deepEqual(result.applied,migrations.slice(10).map(migration=>migration.version),'an existing 0001–0010 ledger must execute only the missing migrations');
 });
 
 await withSchema(async schema=>{
   await runMigrations({connectionString,schema});
   const client=await clientFor(schema);try{await client.query("UPDATE schema_migrations SET checksum_sha256='changed' WHERE version='0011'");}finally{await client.end();}
   await assert.rejects(runMigrations({connectionString,schema}),/Checksum drift/);
+});
+
+await withSchema(async schema=>{
+  await applyRaw(schema,17);
+  await createLedgerThrough(schema,17);
+  const renderLike=await runMigrations({connectionString,schema});
+  assert.deepEqual(renderLike.applied,['0018'],'a Render-like canonical 0017 ledger must verify and apply only 0018');
+  assert.deepEqual(renderLike.skipped,migrations.slice(0,17).map(migration=>migration.version));
+  assert.equal(await caseLinkDeleteAction(schema),'c','0018 must add cascade behavior without recreating case linkage data');
+  const repeated=await runMigrations({connectionString,schema});
+  assert.deepEqual(repeated.applied,[],'a repeated Render-like startup must skip canonical 0017 and 0018');
+  const rollback=await readFile(new URL('../../migrations/0018_case_intake_submission_link_cascade.rollback.sql',import.meta.url),'utf8');
+  const forward=await readFile(new URL('../../migrations/0018_case_intake_submission_link_cascade.sql',import.meta.url),'utf8');
+  const client=await clientFor(schema);try{await client.query(rollback);assert.equal((await client.query<{confdeltype:string}>(`SELECT migration_constraint.confdeltype FROM pg_constraint migration_constraint JOIN pg_class relation ON relation.oid=migration_constraint.conrelid WHERE relation.relname='case_intake_submission_links' AND migration_constraint.conname='case_intake_submission_links_tenant_id_case_entity_type_ca_fkey'`)).rows[0]?.confdeltype,'a','0018 rollback must restore non-cascade semantics without deleting data');await client.query(forward);}finally{await client.end();}
+  assert.equal(await caseLinkDeleteAction(schema),'c','0018 reapply must restore cascade semantics');
+  const verified=await clientFor(schema);try{assert.equal(await appliedMigrationVersion(verified),'0018','Render-like canonical 0017 plus 0018 must report the latest ledger version');}finally{await verified.end();}
 });
 
 await withSchema(async schema=>{

@@ -48,7 +48,7 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Strict TypeScript and production build
         run: pnpm typecheck && pnpm build
-      - name: Apply versioned migrations 0001 through 0013
+      - name: Apply versioned migrations 0001 through 0016
         run: pnpm --filter @northstar/api migrate
       - name: Validate versioned migration ledger matrix
         run: pnpm --filter @northstar/api test:migration-runner
@@ -64,13 +64,25 @@ jobs:
           pnpm --filter @northstar/api test:commercial-entitlements
           pnpm --filter @northstar/api test:commercial-licensing
           pnpm --filter @northstar/api test:product-pricing
+          pnpm --filter @northstar/api test:case-builder
           pnpm --filter @northstar/api test:case-journey
+          pnpm --filter @northstar/api test:case-operations
       - name: Run Sprint 13A UAT integrations
         run: |
           pnpm --filter @northstar/api test:uat
           pnpm --filter @northstar/api test:uat-attachments
-      - name: Validate migrations 0010/0011/0012/0013 rollback and reapplication
+      - name: Validate migrations 0010–0016 rollback and reapplication
         run: |
+          # Integration fixtures create repository-backed product lines. Remove only
+          # those ephemeral fixtures before proving the historical 0011 rollback.
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "DELETE FROM case_product_line_lineage; DELETE FROM case_product_tat_overrides WHERE case_entity_type='case'; DELETE FROM case_product_lines WHERE case_entity_type='case'; DELETE FROM case_product_line_case_entities WHERE case_entity_type='case';"
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0016_operational_case_intake_foundation.rollback.sql
+          # 0016's immutable-event fixtures use repository Case documents without
+          # F1 patient identity.  Remove only those test documents after its
+          # tables are gone, before reapplying the F1 journey migration.
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "DELETE FROM repository_documents WHERE entity_type='case' AND payload->>'patientId' IS NULL;"
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0015_case_builder_structured_configuration.rollback.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0014_case_builder_product_line_authority.rollback.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0013_case_journey_foundation.rollback.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0012_patient_reference_optional.rollback.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0011_product_pricing_case_line_items.rollback.sql
@@ -79,6 +91,9 @@ jobs:
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0011_product_pricing_case_line_items.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0012_patient_reference_optional.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0013_case_journey_foundation.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0014_case_builder_product_line_authority.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0015_case_builder_structured_configuration.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f apps/api/migrations/0016_operational_case_intake_foundation.sql
       - name: Start secure application services
         run: |
           pnpm --filter @northstar/api dev > /tmp/sprint13a-api.log 2>&1 &
@@ -95,7 +110,12 @@ jobs:
           set -euo pipefail
           LOGIN=$(curl -fsS -c /tmp/session-cookie -X POST http://127.0.0.1:4000/api/auth/login -H 'Content-Type: application/json' -d '{"email":"tenant.owner@keramos-uat.example","password":"NorthStar!2026-UAT","rememberMe":true}')
           CSRF=$(python -c 'import json,sys;print(json.load(sys.stdin)["csrfToken"])' <<<"$LOGIN")
-          curl -fsS -b /tmp/session-cookie http://127.0.0.1:4000/api/system/information | grep '"migrationVersion":"0013"'
+          # The rollback/reapply block above deliberately uses raw SQL, so the
+          # registry and validated ledger remain the authoritative version source.
+          EXPECTED_MIGRATION=$(node --input-type=module -e "import { migrations } from './apps/api/dist/migration-runner.js'; process.stdout.write(migrations.at(-1).version)")
+          SYSTEM_INFORMATION=$(curl -fsS -b /tmp/session-cookie http://127.0.0.1:4000/api/system/information)
+          ACTUAL_MIGRATION=$(node -e "process.stdout.write(JSON.parse(process.argv[1]).migrationVersion)" "$SYSTEM_INFORMATION")
+          test "$ACTUAL_MIGRATION" = "$EXPECTED_MIGRATION"
           curl -fsS -b /tmp/session-cookie -X POST http://127.0.0.1:4000/api/uat/seed -H 'Content-Type: application/json' -H "X-CSRF-Token: $CSRF" -d '{}' | grep '240'
           curl -fsS -b /tmp/session-cookie http://127.0.0.1:4000/api/uat/readiness | grep 'buildVersion'
       - name: Install Chromium
