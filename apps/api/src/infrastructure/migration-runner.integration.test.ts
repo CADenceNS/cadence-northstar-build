@@ -47,6 +47,13 @@ async function ledgerVersions(schema:string){
   const client=await clientFor(schema);
   try{return (await client.query<{version:string}>('SELECT version FROM schema_migrations ORDER BY version')).rows.map(row=>row.version);}finally{await client.end();}
 }
+async function caseLinkDeleteAction(schema:string){
+  const client=await clientFor(schema);
+  try{return (await client.query<{confdeltype:string}>(`SELECT constraint.confdeltype FROM pg_constraint constraint
+    JOIN pg_class relation ON relation.oid=constraint.conrelid
+    WHERE relation.relname='case_intake_submission_links' AND constraint.conname LIKE 'case_intake_submission_links%case%fk'
+    ORDER BY constraint.conname DESC LIMIT 1`)).rows[0]?.confdeltype;}finally{await client.end();}
+}
 
 await withSchema(async schema=>{
   const first=await runMigrations({connectionString,schema});
@@ -110,6 +117,22 @@ await withSchema(async schema=>{
   await runMigrations({connectionString,schema});
   const client=await clientFor(schema);try{await client.query("UPDATE schema_migrations SET checksum_sha256='changed' WHERE version='0011'");}finally{await client.end();}
   await assert.rejects(runMigrations({connectionString,schema}),/Checksum drift/);
+});
+
+await withSchema(async schema=>{
+  await applyRaw(schema,17);
+  await createLedgerThrough(schema,17);
+  const renderLike=await runMigrations({connectionString,schema});
+  assert.deepEqual(renderLike.applied,['0018'],'a Render-like canonical 0017 ledger must verify and apply only 0018');
+  assert.deepEqual(renderLike.skipped,migrations.slice(0,17).map(migration=>migration.version));
+  assert.equal(await caseLinkDeleteAction(schema),'c','0018 must add cascade behavior without recreating case linkage data');
+  const repeated=await runMigrations({connectionString,schema});
+  assert.deepEqual(repeated.applied,[],'a repeated Render-like startup must skip canonical 0017 and 0018');
+  const rollback=await readFile(new URL('../../migrations/0018_case_intake_submission_link_cascade.rollback.sql',import.meta.url),'utf8');
+  const forward=await readFile(new URL('../../migrations/0018_case_intake_submission_link_cascade.sql',import.meta.url),'utf8');
+  const client=await clientFor(schema);try{await client.query(rollback);assert.equal((await client.query<{confdeltype:string}>(`SELECT constraint.confdeltype FROM pg_constraint constraint JOIN pg_class relation ON relation.oid=constraint.conrelid WHERE relation.relname='case_intake_submission_links' AND constraint.conname='case_intake_submission_links_tenant_id_case_entity_type_ca_fkey'`)).rows[0]?.confdeltype,'a','0018 rollback must restore non-cascade semantics without deleting data');await client.query(forward);}finally{await client.end();}
+  assert.equal(await caseLinkDeleteAction(schema),'c','0018 reapply must restore cascade semantics');
+  const verified=await clientFor(schema);try{assert.equal(await appliedMigrationVersion(verified),'0018','Render-like canonical 0017 plus 0018 must report the latest ledger version');}finally{await verified.end();}
 });
 
 await withSchema(async schema=>{
